@@ -82,7 +82,19 @@ Replace with proper policies before going live.
 - Auth pages (login, register, forgot password, reset password)
 - Student dashboard (courses, subscription bar, announcements, quick links)
 - Admin dashboard (stats, recent users, quick links)
+- 
+### Done ✅
+- Foundation (Supabase, Cloudflare, GitHub)
+- Auth pages (login, register, forgot password, reset password)
+- Student dashboard
+- Admin dashboard
+- Brand colours (Navy + Teal)
+- Landing page (index.html)
+- Images folder set up
+- All admin page shells scaffolded
 
+### Next Session
+- Build admin/users.html with full working code
 ### Next Session
 - Admin pages: Users, Products, Subscriptions, Courses, Programs
 - Then: Quiz engine for students
