@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Products — QAcademy Nurses Hub</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logout-btn {
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover {
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h2>QAcademy</h2>
+      <p>Admin Panel</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard.html">🏠 Dashboard</a>
+      <a href="/admin/users.html">👥 Users</a>
+      <a href="/admin/subscriptions.html">💳 Subscriptions</a>
+      <a href="/admin/payments.html">💰 Payments</a>
+      <a href="/admin/products.html" class="active">📦 Products</a>
+      <a href="/admin/courses.html">📚 Courses</a>
+      <a href="/admin/announcements.html">📢 Announcements</a>
+      <a href="/admin/fixed-quizzes.html">📝 Fixed Quizzes</a>
+      <a href="/admin/config.html">⚙️ Config</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Products</h1>
+        <p>Manage platform products and offerings</p>
+      </div>
+      <div class="user-menu">
+        <span style="font-size:14px; font-weight:500;" id="adminName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Page Content -->
+    <div class="card">
+      <p style="color:var(--text-muted); font-size:14px;">This section is under construction.</p>
+    </div>
+
+  </main>
+</div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script>
+  async function initPage() {
+    const profile = await guardPage('ADMIN');
+    if (!profile) return;
+    document.getElementById('adminName').textContent = profile.forename || profile.name || profile.email;
+  }
+  initPage();
+</script>
+
+</body>
+</html>
