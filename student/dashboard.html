@@ -417,7 +417,7 @@
       .eq('status', 'ACTIVE')
       .order('expires_utc', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const bar = document.getElementById('subscriptionBar');
 
@@ -523,7 +523,7 @@
       .eq('status', 'ACTIVE')
       .order('expires_utc', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!sub || !sub.products?.courses_included) {
       coursesArea.innerHTML = `
