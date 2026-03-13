@@ -111,7 +111,7 @@
 
   // Load programmes from database automatically
   async function loadPrograms() {
-    const { data: programs, error } = await supabase
+    const { data: programs, error } = await db
       .from('programs')
       .select('program_id, program_name')
       .order('program_name');
@@ -170,7 +170,7 @@
     submitBtn.textContent = 'Creating account...';
 
     // Step 1 — Create Supabase Auth account
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await db.auth.signUp({
       email,
       password
     });
@@ -184,7 +184,7 @@
     }
 
     // Step 2 — Create user profile in users table
-    const { error: profileError } = await supabase
+    const { error: profileError } = await db
       .from('users')
       .insert({
         user_id: generateUserId(),
