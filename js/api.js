@@ -301,3 +301,74 @@ async function getDismissedAnnouncements(userId) {
   if (error) { console.error('getDismissedAnnouncements:', error); return []; }
   return data ? data.map(d => d.item_id) : [];
 }
+
+
+// ------------------------------------------------------------
+// STUDENT COURSE ACCESS
+// Returns a map of every course the student can access,
+// with stacked expiry calculated from ALL active subscriptions.
+//
+// Logic:
+// - Fetch all ACTIVE subscriptions
+// - For each subscription, loop through courses_included
+// - For each course, sum remaining days across all subs
+// - Return map: { course_id: { days, expires, label } }
+//
+// Used by: student dashboard, course pages
+// ------------------------------------------------------------
+async function getStudentCourseAccess(userId) {
+  const now = new Date();
+
+  // Fetch all active subscriptions with product details
+  const { data: subscriptions, error } = await db
+    .from('subscriptions')
+    .select(`
+      *,
+      products (
+        product_id,
+        name,
+        kind,
+        courses_included
+      )
+    `)
+    .eq('user_id', userId)
+    .eq('status', 'ACTIVE');
+
+  if (error) { console.error('getStudentCourseAccess:', error); return {}; }
+  if (!subscriptions || subscriptions.length === 0) return {};
+
+  // Build course access map
+  // For each course, accumulate remaining days from every
+  // active subscription that includes it
+  const courseMap = {};
+
+  subscriptions.forEach(sub => {
+    if (!sub.products?.courses_included) return;
+
+    const subExpiry      = new Date(sub.expires_utc);
+    const remainingMs    = subExpiry - now;
+    const remainingDays  = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
+
+    // Skip expired subscriptions (safety check)
+    if (remainingDays === 0) return;
+
+    sub.products.courses_included.forEach(courseId => {
+      if (!courseMap[courseId]) {
+        // First subscription covering this course
+        courseMap[courseId] = {
+          totalDays: remainingDays,
+          // Expiry = today + total stacked days
+          expires: new Date(now.getTime() + remainingDays * 24 * 60 * 60 * 1000)
+        };
+      } else {
+        // Stack on top of existing days for this course
+        courseMap[courseId].totalDays += remainingDays;
+        courseMap[courseId].expires = new Date(
+          now.getTime() + courseMap[courseId].totalDays * 24 * 60 * 60 * 1000
+        );
+      }
+    });
+  });
+
+  return courseMap;
+}
