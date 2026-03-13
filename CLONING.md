@@ -404,6 +404,31 @@ The platform uses Navy + Teal. These are set in `css/style.css` `:root`:
 - `--primary-light: #edf6f5`
 - `--accent: #2d7d72`
 To rebrand in future — change only these 4 lines.
+
+## Step 9 — Programme Trial Products
+Run this SQL to archive the old WELCOME_TRIAL and insert 
+5 programme-specific trials:
+[paste the trial products SQL from this session]
+
+## Step 10 — api.js
+Create js/api.js — shared data layer.
+Shared data functions live in api.js.
+Page-specific logic lives in the page itself.
+Before writing a Supabase query in a page, ask:
+will another page ever need this? If yes, put it in api.js..
+Key functions:
+- getPrograms(), getProducts(), getCourses()
+- getUsers(), getUserById()
+- assignSubscription(), deactivateUser(), activateUser()
+- sendPasswordReset(), updateUserProfile()
+- getAnnouncements(), getDismissedAnnouncements()
+- getStudentCourseAccess() — stacked expiry logic
+
+## Step 11 — Stacked Subscription Logic
+Course access is calculated by summing remaining days across
+all active subscriptions covering each course.
+The longest expiry across all courses shows in the top bar.
+Each course card shows its own specific stacked expiry.
 ## Before Going Live Checklist
 - [ ] Replace dev_allow_all RLS policies with proper role-based policies
 - [ ] Set up custom SMTP for emails
