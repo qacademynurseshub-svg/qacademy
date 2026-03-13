@@ -70,7 +70,7 @@
 <script src="/js/config.js"></script>
 <script>
   // If already logged in, redirect to correct dashboard
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
+  db.auth.getSession().then(async ({ data: { session } }) => {
     if (session) {
       await redirectByRole(session.user.id);
     }
@@ -91,7 +91,7 @@
     submitBtn.textContent = 'Signing in...';
 
     // Sign in with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await db.auth.signInWithPassword({
       email,
       password
     });
@@ -110,7 +110,7 @@
 
   // Redirect user to their correct dashboard based on role
   async function redirectByRole(authId) {
-    const { data: profile } = await supabase
+    const { data: profile } = await db
       .from('users')
       .select('role, must_change_password')
       .eq('auth_id', authId)
