@@ -93,11 +93,26 @@ Replace with proper policies before going live.
 - Images folder set up
 - All admin page shells scaffolded
 
+### Done ✅
+- Foundation (Supabase, Cloudflare, GitHub)
+- Auth pages (login, register, forgot password, reset password)
+- Student dashboard (courses, subscription bar, announcements, quick links)
+- Admin dashboard (stats, recent users, quick links)
+- Brand colours (Navy + Teal)
+- All admin page shells scaffolded
+- js/api.js — shared data layer
+- admin/users.html — full user management with side panel
+- Programme-specific trials (RN_TRIAL, RM_TRIAL etc.)
+- Auto-assign trial on registration
+- Stacked subscription logic — courses show correct merged expiry
+- 20 test users with realistic data
+
 ### Next Session
-- Build admin/users.html with full working code
-### Next Session
-- Admin pages: Users, Products, Subscriptions, Courses, Programs
-- Then: Quiz engine for students
+- admin/subscriptions.html
+- admin/products.html
+- admin/courses.html
+- admin/announcements.html
+- Then quiz engine for students
 
 ### Intentionally Skipped (for now)
 - My Teacher feature (teacher classes, question banks, teacher quizzes)
