@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — QAcademy Nurses Hub</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    /* Announcement Strip */
+    .announcements-strip {
+      margin-bottom: 24px;
+    }
+
+    .announcement-item {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .announcement-item.pinned {
+      background: var(--primary-light);
+      border-color: var(--primary);
+    }
+
+    .announcement-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .announcement-body {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .announcement-dismiss {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 18px;
+      line-height: 1;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .announcement-dismiss:hover {
+      color: var(--danger);
+    }
+
+    /* Subscription Status */
+    .subscription-bar {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .subscription-bar.warning {
+      background: #fffbeb;
+      border-color: #fcd34d;
+    }
+
+    .subscription-bar.expired {
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+
+    .sub-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .sub-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .sub-expiry {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .sub-expiry.warning {
+      color: var(--warning);
+      font-weight: 600;
+    }
+
+    .sub-expiry.expired {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    /* Course Cards */
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .course-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      cursor: pointer;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .course-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+
+    .course-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .course-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .course-badge {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+
+    /* Quick Links */
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .quick-link-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: box-shadow 0.2s, border-color 0.2s;
+      text-decoration: none;
+      color: var(--text);
+      display: block;
+    }
+
+    .quick-link-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+      text-decoration: none;
+      color: var(--primary);
+    }
+
+    .quick-link-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .quick-link-label {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--danger);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 20px;
+      margin-left: 4px;
+    }
+
+    /* Recent Attempts */
+    .attempts-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .attempts-table th {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .attempts-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .attempts-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status-chip {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-chip.completed {
+      background: #f0fdf4;
+      color: var(--success);
+    }
+
+    .status-chip.in_progress {
+      background: #fffbeb;
+      color: var(--warning);
+    }
+
+    /* No subscription state */
+    .no-sub-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px;
+      text-align: center;
+    }
+
+    .no-sub-card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .no-sub-card p {
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* Top nav */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .logout-btn {
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .logout-btn:hover {
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h2>QAcademy</h2>
+      <p>Nurses Hub</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/student/dashboard.html" class="active">🏠 Dashboard</a>
+      <a href="/fixed-quizzes.html">📝 Fixed Quizzes</a>
+      <a href="/quiz-builder.html">🔧 Quiz Builder</a>
+      <a href="/history.html">📊 Learning History</a>
+      <a href="/downloads.html">📥 Downloads</a>
+      <a href="/messages.html">💬 Messages <span class="badge" id="msgBadge" style="display:none"></span></a>
+      <a href="/telegram.html">✈️ Telegram</a>
+      <a href="/account.html">👤 My Account</a>
+      <a href="/subscription.html">💳 Subscription</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Dashboard</h1>
+        <p id="welcomeMsg">Welcome back!</p>
+      </div>
+      <div class="user-menu">
+        <span class="user-name" id="userName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Announcements Strip -->
+    <div class="announcements-strip" id="announcementsStrip"></div>
+
+    <!-- Subscription Status Bar -->
+    <div id="subscriptionBar"></div>
+
+    <!-- Quick Links -->
+    <p class="section-title">Quick Links</p>
+    <div class="quick-links">
+      <a href="/fixed-quizzes.html" class="quick-link-card">
+        <div class="quick-link-icon">📝</div>
+        <div class="quick-link-label">Fixed Quizzes</div>
+      </a>
+      <a href="/quiz-builder.html" class="quick-link-card">
+        <div class="quick-link-icon">🔧</div>
+        <div class="quick-link-label">Quiz Builder</div>
+      </a>
+      <a href="/history.html" class="quick-link-card">
+        <div class="quick-link-icon">📊</div>
+        <div class="quick-link-label">Learning History</div>
+      </a>
+      <a href="/downloads.html" class="quick-link-card">
+        <div class="quick-link-icon">📥</div>
+        <div class="quick-link-label">Downloads</div>
+      </a>
+      <a href="/messages.html" class="quick-link-card">
+        <div class="quick-link-icon">💬</div>
+        <div class="quick-link-label">Messages <span class="badge" id="msgBadge2" style="display:none"></span></div>
+      </a>
+      <a href="/telegram.html" class="quick-link-card">
+        <div class="quick-link-icon">✈️</div>
+        <div class="quick-link-label">Telegram</div>
+      </a>
+    </div>
+
+    <!-- Course Cards -->
+    <p class="section-title">My Courses</p>
+    <div id="coursesArea" class="card-grid" style="margin-bottom:32px;"></div>
+
+    <!-- Recent Attempts -->
+    <p class="section-title">Recent Quiz Attempts</p>
+    <div class="card" id="attemptsArea">
+      <p style="color:var(--text-muted); font-size:14px;">No quiz attempts yet. Start a quiz to see your history here.</p>
+    </div>
+
+  </main>
+</div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script>
+
+  let currentProfile = null;
+
+  // Initialize dashboard
+  async function initDashboard() {
+    // Guard — must be logged in as STUDENT
+    const profile = await guardPage('STUDENT');
+    if (!profile) return;
+
+    currentProfile = profile;
+
+    // Set welcome message and name
+    document.getElementById('userName').textContent = profile.forename || profile.name || profile.email;
+    document.getElementById('welcomeMsg').textContent = `Welcome back, ${profile.forename || 'Student'}!`;
+
+    // Load all dashboard sections
+    await Promise.all([
+      loadSubscriptionBar(profile),
+      loadAnnouncements(profile),
+      loadCourses(profile),
+      loadRecentAttempts(profile)
+    ]);
+  }
+
+  // Load subscription status bar
+  async function loadSubscriptionBar(profile) {
+    const { data: sub } = await db
+      .from('subscriptions')
+      .select('*, products(name)')
+      .eq('user_id', profile.user_id)
+      .eq('status', 'ACTIVE')
+      .order('expires_utc', { ascending: false })
+      .limit(1)
+      .single();
+
+    const bar = document.getElementById('subscriptionBar');
+
+    if (!sub) {
+      bar.innerHTML = `
+        <div class="subscription-bar expired" style="margin-bottom:24px;">
+          <div>
+            <div class="sub-label">Subscription</div>
+            <div class="sub-name">No active subscription</div>
+          </div>
+          <a href="/subscription.html" class="btn btn-primary" style="width:auto; padding:8px 16px;">
+            Subscribe Now
+          </a>
+        </div>`;
+      return;
+    }
+
+    const expiry = new Date(sub.expires_utc);
+    const now = new Date();
+    const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+    const isWarning = daysLeft <= 7;
+
+    bar.innerHTML = `
+      <div class="subscription-bar ${isWarning ? 'warning' : ''}" style="margin-bottom:24px;">
+        <div>
+          <div class="sub-label">Active Subscription</div>
+          <div class="sub-name">${sub.products?.name || 'Subscription'}</div>
+        </div>
+        <div class="sub-expiry ${isWarning ? 'warning' : ''}">
+          ${isWarning
+            ? `⚠️ Expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`
+            : `Expires ${expiry.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`
+          }
+        </div>
+      </div>`;
+  }
+
+  // Load announcements
+  async function loadAnnouncements(profile) {
+    const now = new Date().toISOString();
+
+    const { data: announcements } = await db
+      .from('announcements')
+      .select('*')
+      .eq('status', 'active')
+      .or(`start_at.is.null,start_at.lte.${now}`)
+      .or(`end_at.is.null,end_at.gte.${now}`)
+      .order('pinned', { ascending: false })
+      .order('priority', { ascending: false });
+
+    if (!announcements || announcements.length === 0) return;
+
+    // Get dismissed announcements
+    const { data: dismissed } = await db
+      .from('user_notice_state')
+      .select('item_id')
+      .eq('user_id', profile.user_id)
+      .eq('state', 'dismissed');
+
+    const dismissedIds = dismissed ? dismissed.map(d => d.item_id) : [];
+
+    const strip = document.getElementById('announcementsStrip');
+    strip.innerHTML = '';
+
+    announcements.forEach(a => {
+      if (dismissedIds.includes(a.announcement_id)) return;
+
+      const item = document.createElement('div');
+      item.className = `announcement-item ${a.pinned ? 'pinned' : ''}`;
+      item.innerHTML = `
+        <div>
+          <div class="announcement-title">${a.title}</div>
+          <div class="announcement-body">${a.body_text || ''}</div>
+        </div>
+        ${a.dismissible
+          ? `<button class="announcement-dismiss" onclick="dismissAnnouncement('${a.announcement_id}', this)">×</button>`
+          : ''
+        }`;
+      strip.appendChild(item);
+    });
+  }
+
+  // Dismiss an announcement
+  async function dismissAnnouncement(announcementId, btn) {
+    await db.from('user_notice_state').insert({
+      user_id: currentProfile.user_id,
+      item_type: 'ANNOUNCEMENT',
+      item_id: announcementId,
+      state: 'dismissed'
+    });
+    btn.closest('.announcement-item').remove();
+  }
+
+  // Load courses based on active subscription
+  async function loadCourses(profile) {
+    const coursesArea = document.getElementById('coursesArea');
+
+    // Get active subscription
+    const { data: sub } = await db
+      .from('subscriptions')
+      .select('*, products(courses_included)')
+      .eq('user_id', profile.user_id)
+      .eq('status', 'ACTIVE')
+      .order('expires_utc', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!sub || !sub.products?.courses_included) {
+      coursesArea.innerHTML = `
+        <div class="no-sub-card" style="grid-column:1/-1;">
+          <h3>No Active Subscription</h3>
+          <p>Subscribe to a product to unlock your courses and start practising.</p>
+          <a href="/subscription.html" class="btn btn-primary" style="width:auto; display:inline-block; padding:10px 24px;">
+            View Plans
+          </a>
+        </div>`;
+      return;
+    }
+
+    const courseIds = sub.products.courses_included;
+
+    // Fetch those courses
+    const { data: courses } = await db
+      .from('courses')
+      .select('*')
+      .in('course_id', courseIds)
+      .eq('status', 'active');
+
+    if (!courses || courses.length === 0) {
+      coursesArea.innerHTML = '<p style="color:var(--text-muted)">No courses found.</p>';
+      return;
+    }
+
+    coursesArea.innerHTML = '';
+    courses.forEach(course => {
+      coursesArea.innerHTML += `
+        <div class="course-card" onclick="window.location.href='/course/${course.course_id}.html'">
+          <div class="course-badge">${course.program_scope.join(', ')}</div>
+          <h3>${course.title}</h3>
+          <p>Click to view quizzes and study materials</p>
+        </div>`;
+    });
+  }
+
+  // Load recent quiz attempts
+  async function loadRecentAttempts(profile) {
+    const { data: attempts } = await db
+      .from('attempts')
+      .select('*')
+      .eq('user_id', profile.user_id)
+      .order('ts_iso', { ascending: false })
+      .limit(5);
+
+    const area = document.getElementById('attemptsArea');
+
+    if (!attempts || attempts.length === 0) {
+      area.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No quiz attempts yet. Start a quiz to see your history here.</p>';
+      return;
+    }
+
+    let rows = '';
+    attempts.forEach(a => {
+      const date = new Date(a.ts_iso).toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric'
+      });
+      const score = a.status === 'completed'
+        ? `${a.score_raw}/${a.score_total} (${Math.round(a.score_pct)}%)`
+        : '—';
+
+      rows += `
+        <tr>
+          <td>${a.display_label || a.quiz_id || 'Quiz'}</td>
+          <td>${a.mode}</td>
+          <td>${a.n} questions</td>
+          <td>${score}</td>
+          <td>${date}</td>
+          <td><span class="status-chip ${a.status}">${a.status.replace('_', ' ')}</span></td>
+          <td>
+            ${a.status === 'completed'
+              ? `<a href="/runner/instant.html?attempt_id=${a.attempt_id}&review=1" style="font-size:13px;">Review</a>`
+              : `<a href="/runner/instant.html?attempt_id=${a.attempt_id}" style="font-size:13px;">Resume</a>`
+            }
+          </td>
+        </tr>`;
+    });
+
+    area.innerHTML = `
+      <table class="attempts-table">
+        <thead>
+          <tr>
+            <th>Quiz</th>
+            <th>Mode</th>
+            <th>Questions</th>
+            <th>Score</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // Start dashboard
+  initDashboard();
+
+</script>
+
+</body>
+</html>
