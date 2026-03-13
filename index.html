@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QAcademy Nurses Hub — NMC Exam Prep</title>
+  <link rel="icon" href="/QAcademy_Favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1e3a5f;
+      --primary-dark: #142d4c;
+      --accent: #2d7d72;
+      --accent-dark: #245f56;
+      --primary-light: #edf6f5;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --bg: #f9fafb;
+      --white: #ffffff;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--white);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    a { text-decoration: none; }
+
+    /* --- TOP NAV --- */
+    .topnav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topnav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topnav-brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .topnav-brand-text h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.2;
+    }
+
+    .topnav-brand-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .topnav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-outline {
+      padding: 8px 20px;
+      border: 1.5px solid var(--primary);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary);
+      background: transparent;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .btn-solid {
+      padding: 8px 20px;
+      border: 1.5px solid var(--accent);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--white);
+      background: var(--accent);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+
+    .btn-solid:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+
+    /* --- HERO --- */
+    .hero {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, #1a5276 100%);
+      padding: 80px 40px 90px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: rgba(45, 125, 114, 0.15);
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      left: -40px;
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      background: rgba(45, 125, 114, 0.1);
+    }
+
+    .hero-logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 24px;
+      border: 3px solid rgba(255,255,255,0.3);
+    }
+
+    .hero h2 {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.2;
+      max-width: 640px;
+      margin: 0 auto 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h2 span {
+      color: #7dd3c8;
+    }
+
+    .hero p {
+      font-size: 17px;
+      color: rgba(255,255,255,0.8);
+      max-width: 500px;
+      margin: 0 auto 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn-hero-primary {
+      padding: 14px 32px;
+      background: var(--accent);
+      color: var(--white);
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn-hero-primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .btn-hero-secondary {
+      padding: 14px 32px;
+      background: transparent;
+      color: var(--white);
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      border: 2px solid rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn-hero-secondary:hover {
+      border-color: var(--white);
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* --- PROGRAMMES STRIP --- */
+    .programmes {
+      background: var(--primary-light);
+      border-top: 1px solid #c5e4e0;
+      border-bottom: 1px solid #c5e4e0;
+      padding: 20px 40px;
+      text-align: center;
+    }
+
+    .programmes p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .programme-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .chip {
+      background: var(--white);
+      border: 1.5px solid var(--accent);
+      color: var(--accent);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* --- FEATURES --- */
+    .features {
+      padding: 72px 40px;
+      max-width: 1000px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .features-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    .features h3 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 48px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 24px;
+      text-align: left;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      box-shadow: 0 4px 16px rgba(30,58,95,0.1);
+      border-color: var(--accent);
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--primary-light);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .feature-card h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* --- BOTTOM CTA --- */
+    .bottom-cta {
+      background: var(--primary);
+      padding: 64px 40px;
+      text-align: center;
+    }
+
+    .bottom-cta h3 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 12px;
+    }
+
+    .bottom-cta p {
+      font-size: 15px;
+      color: rgba(255,255,255,0.75);
+      margin-bottom: 28px;
+    }
+
+    /* --- FOOTER --- */
+    .footer {
+      background: var(--primary-dark);
+      padding: 20px 40px;
+      text-align: center;
+    }
+
+    .footer p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* --- RESPONSIVE --- */
+    @media (max-width: 640px) {
+      .topnav { padding: 0 20px; }
+      .hero { padding: 60px 24px 70px; }
+      .hero h2 { font-size: 28px; }
+      .hero p { font-size: 15px; }
+      .programmes { padding: 20px 24px; }
+      .features { padding: 48px 24px; }
+      .features h3 { font-size: 22px; }
+      .bottom-cta { padding: 48px 24px; }
+      .footer { padding: 20px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP NAV -->
+  <nav class="topnav">
+    <div class="topnav-brand">
+      <img src="/QAcademy_Favicon.png" alt="QAcademy Logo" />
+      <div class="topnav-brand-text">
+        <h1>QAcademy</h1>
+        <p>Nurses Hub</p>
+      </div>
+    </div>
+    <div class="topnav-actions">
+      <a href="/login.html"><button class="btn-outline">Sign In</button></a>
+      <a href="/register.html"><button class="btn-solid">Register Free</button></a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <img src="/QAcademy_Favicon.png" alt="QAcademy" class="hero-logo" />
+    <h2>Study smarter. Pass your NMC exam <span>with confidence.</span></h2>
+    <p>Ghana's dedicated practice platform for nursing licensure candidates. Built for RN, RM, RPHN, RMHN and NACNAP students.</p>
+    <div class="hero-cta">
+      <a href="/register.html"><button class="btn-hero-primary">Create Free Account</button></a>
+      <a href="/login.html"><button class="btn-hero-secondary">Sign In</button></a>
+    </div>
+  </section>
+
+  <!-- PROGRAMMES STRIP -->
+  <section class="programmes">
+    <p>Available for all programmes</p>
+    <div class="programme-chips">
+      <span class="chip">Registered Nursing (RN)</span>
+      <span class="chip">Registered Midwifery (RM)</span>
+      <span class="chip">Public Health Nursing (RPHN)</span>
+      <span class="chip">Mental Health Nursing (RMHN)</span>
+      <span class="chip">NACNAP</span>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <p class="features-label">Why QAcademy</p>
+    <h3>Everything you need to pass your NMC exam</h3>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h4>Practice Quizzes</h4>
+        <p>Hundreds of exam-style questions across all subjects. Fixed quizzes and custom quiz builder to target your weak areas.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⏱️</div>
+        <h4>Timed Exam Mode</h4>
+        <p>Simulate real exam conditions with timed quizzes. Build the speed and confidence you need on exam day.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h4>Track Your Progress</h4>
+        <p>Full learning history with scores, time taken, and detailed answer reviews. See exactly where you need to improve.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📥</div>
+        <h4>Study Offline</h4>
+        <p>Download question packs as PDF to study anywhere — even without internet access.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h4>Instant Feedback</h4>
+        <p>Every question comes with detailed rationale and per-option explanations so you learn from every attempt.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✈️</div>
+        <h4>Telegram Community</h4>
+        <p>Get access to dedicated Telegram study groups for your programme when you subscribe.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOTTOM CTA -->
+  <section class="bottom-cta">
+    <h3>Ready to start preparing?</h3>
+    <p>Join hundreds of nursing students already using QAcademy to prepare for their NMC exams.</p>
+    <a href="/register.html"><button class="btn-hero-primary">Create Your Free Account</button></a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>&copy; 2026 QAcademy Nurses Hub. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>
