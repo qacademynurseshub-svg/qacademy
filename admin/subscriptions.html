@@ -3,31 +3,259 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Subscriptions — QAcademy Nurses Hub</title>
+  <title>Subscriptions — QAcademy Admin</title>
   <link rel="stylesheet" href="/css/style.css" />
   <style>
+
+    /* ── Page layout ── */
     .top-nav {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 28px;
     }
-    .user-menu {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
     .logout-btn {
-      font-size: 13px;
-      color: var(--text-muted);
-      cursor: pointer;
-      background: none;
-      border: none;
+      font-size: 13px; color: var(--text-muted);
+      cursor: pointer; background: none; border: none;
       font-family: 'Inter', sans-serif;
     }
-    .logout-btn:hover {
-      color: var(--danger);
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── Filters bar ── */
+    .filters-bar {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
     }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+    .filter-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .filter-group select,
+    .filter-group input {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .filter-group select:focus,
+    .filter-group input:focus { outline: none; border-color: var(--primary); }
+
+    .filter-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      align-self: flex-end;
+      height: 36px;
+    }
+    .filter-toggle.active { background: #fff7ed; border-color: var(--warning); color: var(--warning); font-weight: 600; }
+    .filter-actions { display: flex; gap: 8px; align-self: flex-end; margin-left: auto; }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-mini {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+    }
+    .stat-mini .label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    .stat-mini .value { font-size: 24px; font-weight: 700; color: var(--primary); }
+
+    /* ── Table ── */
+    .table-wrapper {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-header h3 { font-size: 15px; font-weight: 600; }
+    .result-count { font-size: 13px; color: var(--text-muted); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      text-align: left; padding: 10px 16px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); cursor: pointer; }
+
+    /* ── Status chips ── */
+    .chip {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .chip.ACTIVE   { background: #f0fdf4; color: var(--success); }
+    .chip.EXPIRED  { background: #fef2f2; color: var(--danger); }
+    .chip.CANCELLED{ background: #f3f4f6; color: var(--text-muted); }
+    .chip.TRIAL    { background: var(--primary-light); color: var(--primary); }
+    .chip.expiring { background: #fff7ed; color: var(--warning); }
+
+    .source-chip {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 4px; font-size: 11px; font-weight: 600;
+      background: var(--bg); color: var(--text-muted); border: 1px solid var(--border);
+    }
+
+    /* ── Side panel ── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.3); z-index: 100;
+    }
+    .overlay.show { display: block; }
+
+    .side-panel {
+      position: fixed; top: 0; right: -480px; width: 480px;
+      height: 100vh; background: var(--white);
+      border-left: 1px solid var(--border);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+      z-index: 101; transition: right 0.3s ease;
+      overflow-y: auto; display: flex; flex-direction: column;
+    }
+    .side-panel.open { right: 0; }
+
+    .panel-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: var(--white); z-index: 1;
+    }
+    .panel-header h3 { font-size: 16px; font-weight: 700; }
+    .panel-close {
+      background: none; border: none; cursor: pointer;
+      font-size: 22px; color: var(--text-muted); line-height: 1;
+    }
+    .panel-close:hover { color: var(--danger); }
+    .panel-body { padding: 24px; flex: 1; }
+
+    .detail-section { margin-bottom: 24px; }
+    .detail-section h4 {
+      font-size: 12px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 12px;
+      padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    }
+    .detail-row {
+      display: flex; justify-content: space-between;
+      padding: 6px 0; font-size: 14px;
+    }
+    .detail-row .key { color: var(--text-muted); }
+    .detail-row .val { font-weight: 500; text-align: right; max-width: 60%; }
+
+    .panel-actions {
+      padding: 20px 24px;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 10px; flex-wrap: wrap;
+      position: sticky; bottom: 0; background: var(--white);
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--white); border-radius: var(--radius);
+      width: 100%; max-width: 520px; max-height: 90vh;
+      overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 700; }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+      padding: 16px 24px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end;
+    }
+
+    /* ── Buttons ── */
+    .btn { display: inline-block; padding: 9px 18px; border-radius: var(--radius); font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; border: none; transition: 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-danger { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #fee2e2; }
+    .btn-ghost { background: none; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-success { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+    .btn-success:hover { background: #dcfce7; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 14px;
+      font-family: 'Inter', sans-serif; color: var(--text);
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+    .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    .alert { padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 14px; display: none; }
+    .alert.show { display: block; }
+    .alert-error { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state p { font-size: 15px; margin-bottom: 4px; }
+    .empty-state small { font-size: 13px; }
+
+    /* ── User search in modal ── */
+    .user-search-results {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      max-height: 200px; overflow-y: auto; background: var(--white);
+      display: none;
+    }
+    .user-search-results.show { display: block; }
+    .user-result-item {
+      padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .user-result-item:last-child { border-bottom: none; }
+    .user-result-item:hover { background: var(--primary-light); }
+    .user-result-item .name { font-weight: 600; }
+    .user-result-item .meta { color: var(--text-muted); font-size: 12px; }
+    .selected-user-badge {
+      display: none; padding: 8px 12px; background: var(--primary-light);
+      border: 1px solid var(--primary); border-radius: var(--radius);
+      font-size: 13px; font-weight: 600; color: var(--primary);
+      margin-top: 6px; align-items: center; justify-content: space-between;
+    }
+    .selected-user-badge.show { display: flex; }
   </style>
 </head>
 <body>
@@ -60,7 +288,7 @@
     <div class="top-nav">
       <div class="page-header" style="margin-bottom:0">
         <h1>Subscriptions</h1>
-        <p>View and manage subscription plans</p>
+        <p>Manage all student subscriptions</p>
       </div>
       <div class="user-menu">
         <span style="font-size:14px; font-weight:500;" id="adminName"></span>
@@ -68,26 +296,633 @@
       </div>
     </div>
 
-    <!-- Page Content -->
-    <div class="card">
-      <p style="color:var(--text-muted); font-size:14px;">This section is under construction.</p>
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-mini">
+        <div class="label">Total</div>
+        <div class="value" id="statTotal">—</div>
+      </div>
+      <div class="stat-mini">
+        <div class="label">Active</div>
+        <div class="value" id="statActive" style="color:var(--success)">—</div>
+      </div>
+      <div class="stat-mini">
+        <div class="label">Expired</div>
+        <div class="value" id="statExpired" style="color:var(--danger)">—</div>
+      </div>
+      <div class="stat-mini">
+        <div class="label">Trial</div>
+        <div class="value" id="statTrial" style="color:var(--primary)">—</div>
+      </div>
+      <div class="stat-mini">
+        <div class="label">Expiring (7d)</div>
+        <div class="value" id="statExpiring" style="color:var(--warning)">—</div>
+      </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="filters-bar">
+      <div class="filter-group">
+        <label>Search student</label>
+        <input type="text" id="filterSearch" placeholder="Name or email…" oninput="applyFilters()" />
+      </div>
+      <div class="filter-group">
+        <label>Status</label>
+        <select id="filterStatus" onchange="applyFilters()">
+          <option value="">All statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="TRIAL">Trial</option>
+          <option value="EXPIRED">Expired</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Product</label>
+        <select id="filterProduct" onchange="applyFilters()">
+          <option value="">All products</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Programme</label>
+        <select id="filterProgramme" onchange="applyFilters()">
+          <option value="">All programmes</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Source</label>
+        <select id="filterSource" onchange="applyFilters()">
+          <option value="">All sources</option>
+          <option value="PAYMENT">Payment</option>
+          <option value="ADMIN">Admin</option>
+          <option value="IMPORT">Import</option>
+        </select>
+      </div>
+      <button class="filter-toggle" id="expiringToggle" onclick="toggleExpiring()">
+        ⚠️ Expiring Soon
+      </button>
+      <div class="filter-actions">
+        <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+        <button class="btn btn-primary" onclick="openGrantModal()">+ Grant Subscription</button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+      <div class="table-header">
+        <h3>All Subscriptions</h3>
+        <span class="result-count" id="resultCount">Loading…</span>
+      </div>
+      <div id="tableArea">
+        <div class="empty-state"><p>Loading subscriptions…</p></div>
+      </div>
     </div>
 
   </main>
+</div>
+
+<!-- ── Side Panel ── -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="side-panel" id="sidePanel">
+  <div class="panel-header">
+    <h3 id="panelTitle">Subscription Details</h3>
+    <button class="panel-close" onclick="closePanel()">×</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="panel-actions" id="panelActions"></div>
+</div>
+
+<!-- ── Grant Subscription Modal ── -->
+<div class="modal-overlay" id="grantModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Grant Subscription</h3>
+      <button class="panel-close" onclick="closeGrantModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-error" id="grantError"></div>
+      <div class="alert alert-success" id="grantSuccess"></div>
+
+      <!-- Student search -->
+      <div class="form-group">
+        <label>Student *</label>
+        <input type="text" id="grantUserSearch" placeholder="Search by name or email…" oninput="searchGrantUser()" autocomplete="off" />
+        <div class="user-search-results" id="grantUserResults"></div>
+        <div class="selected-user-badge" id="selectedUserBadge">
+          <span id="selectedUserLabel"></span>
+          <button onclick="clearSelectedUser()" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:16px;">×</button>
+        </div>
+        <input type="hidden" id="grantUserId" />
+      </div>
+
+      <!-- Product -->
+      <div class="form-group">
+        <label>Product *</label>
+        <select id="grantProduct">
+          <option value="">Select a product…</option>
+        </select>
+      </div>
+
+      <!-- Start date -->
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="grantStartDate" />
+        <p class="form-hint">Leave blank to start from today.</p>
+      </div>
+
+      <!-- Duration preview -->
+      <div id="durationPreview" style="display:none; padding:10px 14px; background:var(--primary-light); border-radius:var(--radius); font-size:13px; color:var(--primary); margin-bottom:16px;"></div>
+
+      <p style="font-size:13px; color:var(--text-muted);">
+        📧 A confirmation email will be sent to the student automatically.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeGrantModal()">Cancel</button>
+      <button class="btn btn-primary" id="grantSubmitBtn" onclick="submitGrant()">Grant Access</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Cancel Confirm Modal ── -->
+<div class="modal-overlay" id="cancelModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="cancelModalTitle">Cancel Subscription</h3>
+      <button class="panel-close" onclick="closeCancelModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;" id="cancelModalMsg"></p>
+      <div class="alert alert-error" id="cancelError" style="margin-top:14px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeCancelModal()">No, keep it</button>
+      <button class="btn btn-danger" id="cancelConfirmBtn" onclick="confirmCancel()">Yes, cancel it</button>
+    </div>
+  </div>
 </div>
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
+<script src="/js/api.js"></script>
 <script>
-  async function initPage() {
+
+  // ─── State ───────────────────────────────────────
+  let allSubscriptions = [];   // raw data from DB
+  let allUsers = [];           // for user search in grant modal
+  let allProducts = [];        // for product dropdown
+  let selectedSubId = null;    // currently open in side panel
+  let cancelTargetId = null;   // subscription being cancelled
+  let showExpiringSoon = false;
+
+  // ─── Init ─────────────────────────────────────────
+  async function init() {
     const profile = await guardPage('ADMIN');
     if (!profile) return;
-    document.getElementById('adminName').textContent = profile.forename || profile.name || profile.email;
-  }
-  initPage();
-</script>
+    document.getElementById('adminName').textContent = profile.forename || profile.name || 'Admin';
 
+    await Promise.all([loadData(), loadProducts(), loadProgrammes()]);
+  }
+
+  // ─── Load all data ────────────────────────────────
+  async function loadData() {
+    // Fetch subscriptions joined with users and products
+    const { data, error } = await db
+      .from('subscriptions')
+      .select(`
+        *,
+        users(user_id, name, forename, surname, email, program_id),
+        products(name, kind, duration_days)
+      `)
+      .order('start_utc', { ascending: false });
+
+    if (error) { console.error(error); return; }
+    allSubscriptions = data || [];
+
+    updateStats();
+    applyFilters();
+  }
+
+  // ─── Load products for dropdowns ─────────────────
+  async function loadProducts() {
+    const { data } = await db
+      .from('products')
+      .select('product_id, name, kind, duration_days')
+      .eq('status', 'active')
+      .order('name');
+
+    allProducts = data || [];
+
+    // Populate filter dropdown
+    const filterSel = document.getElementById('filterProduct');
+    allProducts.forEach(p => {
+      filterSel.innerHTML += `<option value="${p.product_id}">${p.name}</option>`;
+    });
+
+    // Populate grant modal dropdown
+    const grantSel = document.getElementById('grantProduct');
+    allProducts.forEach(p => {
+      grantSel.innerHTML += `<option value="${p.product_id}" data-days="${p.duration_days}">${p.name} (${p.kind})</option>`;
+    });
+    document.getElementById('grantProduct').addEventListener('change', updateDurationPreview);
+  }
+
+  // ─── Load programmes for filter ──────────────────
+  async function loadProgrammes() {
+    const { data } = await db.from('programs').select('program_id, program_name').order('program_name');
+    const sel = document.getElementById('filterProgramme');
+    (data || []).forEach(p => {
+      sel.innerHTML += `<option value="${p.program_id}">${p.program_name}</option>`;
+    });
+  }
+
+  // ─── Stats ────────────────────────────────────────
+  function updateStats() {
+    const now = new Date();
+    const in7 = new Date(now.getTime() + 7*24*60*60*1000);
+
+    const active    = allSubscriptions.filter(s => s.status === 'ACTIVE').length;
+    const expired   = allSubscriptions.filter(s => s.status === 'EXPIRED').length;
+    const trial     = allSubscriptions.filter(s => s.status === 'TRIAL').length;
+    const expiring  = allSubscriptions.filter(s =>
+      s.status === 'ACTIVE' && new Date(s.expires_utc) <= in7 && new Date(s.expires_utc) >= now
+    ).length;
+
+    document.getElementById('statTotal').textContent   = allSubscriptions.length;
+    document.getElementById('statActive').textContent  = active;
+    document.getElementById('statExpired').textContent = expired;
+    document.getElementById('statTrial').textContent   = trial;
+    document.getElementById('statExpiring').textContent= expiring;
+  }
+
+  // ─── Filters ──────────────────────────────────────
+  function applyFilters() {
+    const search    = document.getElementById('filterSearch').value.toLowerCase().trim();
+    const status    = document.getElementById('filterStatus').value;
+    const product   = document.getElementById('filterProduct').value;
+    const programme = document.getElementById('filterProgramme').value;
+    const source    = document.getElementById('filterSource').value;
+    const now       = new Date();
+    const in7       = new Date(now.getTime() + 7*24*60*60*1000);
+
+    let filtered = allSubscriptions.filter(s => {
+      const u = s.users || {};
+      const fullName = (u.name || `${u.forename||''} ${u.surname||''}`).toLowerCase();
+      const email = (u.email || '').toLowerCase();
+
+      if (search    && !fullName.includes(search) && !email.includes(search)) return false;
+      if (status    && s.status !== status)        return false;
+      if (product   && s.product_id !== product)   return false;
+      if (programme && u.program_id !== programme) return false;
+      if (source    && s.source !== source)        return false;
+      if (showExpiringSoon) {
+        const exp = new Date(s.expires_utc);
+        if (!(s.status === 'ACTIVE' && exp <= in7 && exp >= now)) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('resultCount').textContent = `${filtered.length} subscription${filtered.length !== 1 ? 's' : ''}`;
+    renderTable(filtered);
+  }
+
+  function toggleExpiring() {
+    showExpiringSoon = !showExpiringSoon;
+    document.getElementById('expiringToggle').classList.toggle('active', showExpiringSoon);
+    applyFilters();
+  }
+
+  function clearFilters() {
+    document.getElementById('filterSearch').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterProduct').value = '';
+    document.getElementById('filterProgramme').value = '';
+    document.getElementById('filterSource').value = '';
+    showExpiringSoon = false;
+    document.getElementById('expiringToggle').classList.remove('active');
+    applyFilters();
+  }
+
+  // ─── Render table ─────────────────────────────────
+  function renderTable(subs) {
+    const area = document.getElementById('tableArea');
+
+    if (!subs.length) {
+      area.innerHTML = `<div class="empty-state"><p>No subscriptions match your filters.</p><small>Try adjusting the filters above.</small></div>`;
+      return;
+    }
+
+    const now = new Date();
+    const in7 = new Date(now.getTime() + 7*24*60*60*1000);
+
+    let rows = subs.map(s => {
+      const u = s.users || {};
+      const name = u.name || `${u.forename||''} ${u.surname||''}`.trim() || '—';
+      const email = u.email || '—';
+      const productName = s.products?.name || s.product_id || '—';
+      const expiry = new Date(s.expires_utc);
+      const isExpiringSoon = s.status === 'ACTIVE' && expiry <= in7 && expiry >= now;
+      const expiryStr = expiry.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+      const startStr = new Date(s.start_utc).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+
+      const statusChip = isExpiringSoon
+        ? `<span class="chip expiring">⚠️ Expiring</span>`
+        : `<span class="chip ${s.status}">${s.status}</span>`;
+
+      return `
+        <tr onclick="openPanel('${s.subscription_id}')">
+          <td>
+            <div style="font-weight:600; font-size:14px;">${name}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${email}</div>
+          </td>
+          <td>${u.program_id || '—'}</td>
+          <td style="max-width:200px; font-size:13px;">${productName}</td>
+          <td>${statusChip}</td>
+          <td style="font-size:13px;">${startStr}</td>
+          <td style="font-size:13px; ${isExpiringSoon ? 'color:var(--warning); font-weight:600;' : ''}">${expiryStr}</td>
+          <td><span class="source-chip">${s.source || '—'}</span></td>
+        </tr>`;
+    }).join('');
+
+    area.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Programme</th>
+            <th>Product</th>
+            <th>Status</th>
+            <th>Start</th>
+            <th>Expires</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ─── Side Panel ───────────────────────────────────
+  function openPanel(subId) {
+    selectedSubId = subId;
+    const s = allSubscriptions.find(x => x.subscription_id === subId);
+    if (!s) return;
+
+    const u = s.users || {};
+    const name = u.name || `${u.forename||''} ${u.surname||''}`.trim() || '—';
+    const expiry = new Date(s.expires_utc);
+    const now = new Date();
+    const daysLeft = Math.ceil((expiry - now) / (1000*60*60*24));
+    const expiryStr = expiry.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const startStr  = new Date(s.start_utc).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+
+    document.getElementById('panelTitle').textContent = 'Subscription Details';
+
+    document.getElementById('panelBody').innerHTML = `
+      <div class="detail-section">
+        <h4>Student</h4>
+        <div class="detail-row"><span class="key">Name</span><span class="val">${name}</span></div>
+        <div class="detail-row"><span class="key">Email</span><span class="val">${u.email || '—'}</span></div>
+        <div class="detail-row"><span class="key">Programme</span><span class="val">${u.program_id || '—'}</span></div>
+      </div>
+      <div class="detail-section">
+        <h4>Subscription</h4>
+        <div class="detail-row"><span class="key">Product</span><span class="val">${s.products?.name || s.product_id}</span></div>
+        <div class="detail-row"><span class="key">Status</span><span class="val"><span class="chip ${s.status}">${s.status}</span></span></div>
+        <div class="detail-row"><span class="key">Start</span><span class="val">${startStr}</span></div>
+        <div class="detail-row"><span class="key">Expires</span><span class="val">${expiryStr}</span></div>
+        <div class="detail-row"><span class="key">Days remaining</span><span class="val" style="${daysLeft <= 7 && s.status==='ACTIVE' ? 'color:var(--warning);font-weight:700;' : ''}">${s.status === 'ACTIVE' ? (daysLeft > 0 ? `${daysLeft} days` : 'Expired') : '—'}</span></div>
+        <div class="detail-row"><span class="key">Source</span><span class="val"><span class="source-chip">${s.source || '—'}</span></span></div>
+        ${s.source_ref ? `<div class="detail-row"><span class="key">Reference</span><span class="val" style="font-size:12px;">${s.source_ref}</span></div>` : ''}
+      </div>`;
+
+    // Actions depending on status
+    let actions = `<button class="btn btn-ghost" onclick="closePanel()">Close</button>`;
+    if (s.status === 'ACTIVE' || s.status === 'TRIAL') {
+      actions += `<button class="btn btn-danger" onclick="openCancelModal('${s.subscription_id}', '${name}')">Cancel Subscription</button>`;
+    }
+    if (s.status === 'EXPIRED' || s.status === 'CANCELLED') {
+      actions += `<button class="btn btn-success" onclick="openGrantForUser('${u.user_id}', '${name}', '${u.email}')">Renew / Grant New</button>`;
+    }
+    document.getElementById('panelActions').innerHTML = actions;
+
+    document.getElementById('overlay').classList.add('show');
+    document.getElementById('sidePanel').classList.add('open');
+  }
+
+  function closePanel() {
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('sidePanel').classList.remove('open');
+    selectedSubId = null;
+  }
+
+  // ─── Cancel subscription ──────────────────────────
+  function openCancelModal(subId, studentName) {
+    cancelTargetId = subId;
+    document.getElementById('cancelModalTitle').textContent = 'Cancel Subscription';
+    document.getElementById('cancelModalMsg').textContent =
+      `Are you sure you want to cancel the subscription for ${studentName}? This will immediately revoke their course access.`;
+    document.getElementById('cancelError').classList.remove('show');
+    document.getElementById('cancelModal').classList.add('show');
+  }
+
+  function closeCancelModal() {
+    document.getElementById('cancelModal').classList.remove('show');
+    cancelTargetId = null;
+  }
+
+  async function confirmCancel() {
+    if (!cancelTargetId) return;
+    const btn = document.getElementById('cancelConfirmBtn');
+    btn.disabled = true; btn.textContent = 'Cancelling…';
+
+    const { error } = await db
+      .from('subscriptions')
+      .update({ status: 'CANCELLED' })
+      .eq('subscription_id', cancelTargetId);
+
+    if (error) {
+      document.getElementById('cancelError').textContent = error.message;
+      document.getElementById('cancelError').classList.add('show');
+      btn.disabled = false; btn.textContent = 'Yes, cancel it';
+      return;
+    }
+
+    closeCancelModal();
+    closePanel();
+    await loadData();
+  }
+
+  // ─── Grant Subscription Modal ─────────────────────
+  let grantForUserId   = null;
+  let grantForUserName = null;
+
+  function openGrantModal() {
+    grantForUserId = null;
+    grantForUserName = null;
+    resetGrantModal();
+    document.getElementById('grantModal').classList.add('show');
+  }
+
+  function openGrantForUser(userId, name, email) {
+    // Pre-fill user from side panel
+    grantForUserId = userId;
+    grantForUserName = name;
+    resetGrantModal();
+    document.getElementById('grantUserSearch').value = name;
+    document.getElementById('grantUserId').value = userId;
+    document.getElementById('selectedUserLabel').textContent = `${name} (${email})`;
+    document.getElementById('selectedUserBadge').classList.add('show');
+    document.getElementById('grantModal').classList.add('show');
+  }
+
+  function resetGrantModal() {
+    document.getElementById('grantUserSearch').value = '';
+    document.getElementById('grantUserId').value = '';
+    document.getElementById('grantProduct').value = '';
+    document.getElementById('grantStartDate').value = '';
+    document.getElementById('grantError').classList.remove('show');
+    document.getElementById('grantSuccess').classList.remove('show');
+    document.getElementById('grantUserResults').classList.remove('show');
+    document.getElementById('grantUserResults').innerHTML = '';
+    document.getElementById('selectedUserBadge').classList.remove('show');
+    document.getElementById('durationPreview').style.display = 'none';
+    document.getElementById('grantSubmitBtn').disabled = false;
+    document.getElementById('grantSubmitBtn').textContent = 'Grant Access';
+  }
+
+  function closeGrantModal() {
+    document.getElementById('grantModal').classList.remove('show');
+  }
+
+  // User search inside grant modal
+  async function searchGrantUser() {
+    const q = document.getElementById('grantUserSearch').value.trim();
+    const resultsEl = document.getElementById('grantUserResults');
+
+    // Clear selected if user is typing again
+    document.getElementById('grantUserId').value = '';
+    document.getElementById('selectedUserBadge').classList.remove('show');
+
+    if (q.length < 2) { resultsEl.classList.remove('show'); return; }
+
+    const { data } = await db
+      .from('users')
+      .select('user_id, name, forename, surname, email, program_id')
+      .or(`name.ilike.%${q}%,email.ilike.%${q}%,forename.ilike.%${q}%,surname.ilike.%${q}%`)
+      .eq('role', 'STUDENT')
+      .eq('active', true)
+      .limit(8);
+
+    if (!data || !data.length) {
+      resultsEl.innerHTML = `<div class="user-result-item"><span class="meta">No students found</span></div>`;
+      resultsEl.classList.add('show');
+      return;
+    }
+
+    resultsEl.innerHTML = data.map(u => {
+      const name = u.name || `${u.forename||''} ${u.surname||''}`.trim();
+      return `<div class="user-result-item" onclick="selectGrantUser('${u.user_id}','${name}','${u.email}')">
+        <div class="name">${name}</div>
+        <div class="meta">${u.email} · ${u.program_id || '—'}</div>
+      </div>`;
+    }).join('');
+    resultsEl.classList.add('show');
+  }
+
+  function selectGrantUser(userId, name, email) {
+    document.getElementById('grantUserId').value = userId;
+    document.getElementById('grantUserSearch').value = name;
+    document.getElementById('selectedUserLabel').textContent = `${name} (${email})`;
+    document.getElementById('selectedUserBadge').classList.add('show');
+    document.getElementById('grantUserResults').classList.remove('show');
+  }
+
+  function clearSelectedUser() {
+    document.getElementById('grantUserId').value = '';
+    document.getElementById('grantUserSearch').value = '';
+    document.getElementById('selectedUserBadge').classList.remove('show');
+  }
+
+  function updateDurationPreview() {
+    const sel = document.getElementById('grantProduct');
+    const opt = sel.options[sel.selectedIndex];
+    const days = opt?.dataset?.days;
+    const preview = document.getElementById('durationPreview');
+    if (!days || !sel.value) { preview.style.display = 'none'; return; }
+
+    const start = document.getElementById('grantStartDate').value
+      ? new Date(document.getElementById('grantStartDate').value)
+      : new Date();
+    const expiry = new Date(start.getTime() + parseInt(days) * 24*60*60*1000);
+    const expiryStr = expiry.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+    preview.textContent = `✅ Access will be granted for ${days} days — expires ${expiryStr}`;
+    preview.style.display = 'block';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('grantStartDate').addEventListener('change', updateDurationPreview);
+  });
+
+  // Submit grant
+  async function submitGrant() {
+    const userId    = document.getElementById('grantUserId').value;
+    const productId = document.getElementById('grantProduct').value;
+    const startVal  = document.getElementById('grantStartDate').value;
+    const errorEl   = document.getElementById('grantError');
+    const successEl = document.getElementById('grantSuccess');
+    const btn       = document.getElementById('grantSubmitBtn');
+
+    errorEl.classList.remove('show');
+    successEl.classList.remove('show');
+
+    if (!userId)    { errorEl.textContent = 'Please select a student.'; errorEl.classList.add('show'); return; }
+    if (!productId) { errorEl.textContent = 'Please select a product.'; errorEl.classList.add('show'); return; }
+
+    btn.disabled = true; btn.textContent = 'Granting…';
+
+    // Get product duration
+    const product = allProducts.find(p => p.product_id === productId);
+    if (!product) { errorEl.textContent = 'Product not found.'; errorEl.classList.add('show'); btn.disabled=false; btn.textContent='Grant Access'; return; }
+
+    const startDate  = startVal ? new Date(startVal) : new Date();
+    const expiresUtc = new Date(startDate.getTime() + product.duration_days * 24*60*60*1000);
+
+    // Generate subscription ID
+    const subId = 'SUB_' + Math.random().toString(36).substr(2, 10).toUpperCase();
+
+    const { error } = await db.from('subscriptions').insert({
+      subscription_id : subId,
+      user_id         : userId,
+      product_id      : productId,
+      start_utc       : startDate.toISOString(),
+      expires_utc     : expiresUtc.toISOString(),
+      status          : product.kind === 'TRIAL' ? 'TRIAL' : 'ACTIVE',
+      source          : 'ADMIN',
+      source_ref      : 'admin_grant',
+      expiry_reminded : false
+    });
+
+    if (error) {
+      errorEl.textContent = error.message;
+      errorEl.classList.add('show');
+      btn.disabled=false; btn.textContent='Grant Access';
+      return;
+    }
+
+    successEl.textContent = '✅ Subscription granted! The student now has access. (Email sent via your email system.)';
+    successEl.classList.add('show');
+    btn.textContent = 'Granted ✓';
+
+    await loadData();
+
+    setTimeout(() => {
+      closeGrantModal();
+    }, 2500);
+  }
+
+  init();
+</script>
 </body>
 </html>
