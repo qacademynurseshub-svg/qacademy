@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register — QAcademy Nurses Hub</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <h1>QAcademy</h1>
+      <p>Nurses Hub</p>
+    </div>
+
+    <!-- Title -->
+    <h2 class="auth-title">Create your account</h2>
+    <p class="auth-subtitle">Join QAcademy Nurses Hub today</p>
+
+    <!-- Alerts -->
+    <div class="alert alert-error" id="errorAlert"></div>
+    <div class="alert alert-success" id="successAlert"></div>
+
+    <!-- Register Form -->
+    <form id="registerForm">
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-group">
+          <label for="forename">First Name</label>
+          <input
+            type="text"
+            id="forename"
+            placeholder="First name"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="surname">Last Name</label>
+          <input
+            type="text"
+            id="surname"
+            placeholder="Last name"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          placeholder="you@example.com"
+          required
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="program">Programme</label>
+        <select id="program" required>
+          <option value="">Loading programmes...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          placeholder="Minimum 8 characters"
+          required
+          minlength="8"
+          autocomplete="new-password"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          placeholder="Repeat your password"
+          required
+          autocomplete="new-password"
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submitBtn">
+        Create Account
+      </button>
+
+    </form>
+
+    <!-- Footer -->
+    <div class="auth-footer">
+      Already have an account? <a href="/login.html">Sign in</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script>
+
+  // Load programmes from database automatically
+  async function loadPrograms() {
+    const { data: programs, error } = await supabase
+      .from('programs')
+      .select('program_id, program_name')
+      .order('program_name');
+
+    const select = document.getElementById('program');
+
+    if (error || !programs) {
+      select.innerHTML = '<option value="">Could not load programmes</option>';
+      return;
+    }
+
+    select.innerHTML = '<option value="">Select your programme</option>';
+    programs.forEach(p => {
+      select.innerHTML += `<option value="${p.program_id}">${p.program_name}</option>`;
+    });
+  }
+
+  // Generate a simple user ID
+  function generateUserId() {
+    return 'U_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+  }
+
+  // Handle registration form submission
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const forename = document.getElementById('forename').value.trim();
+    const surname = document.getElementById('surname').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const program_id = document.getElementById('program').value;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const submitBtn = document.getElementById('submitBtn');
+    const errorAlert = document.getElementById('errorAlert');
+    const successAlert = document.getElementById('successAlert');
+
+    // Reset alerts
+    errorAlert.classList.remove('show');
+    successAlert.classList.remove('show');
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      errorAlert.textContent = 'Passwords do not match.';
+      errorAlert.classList.add('show');
+      return;
+    }
+
+    // Validate programme selected
+    if (!program_id) {
+      errorAlert.textContent = 'Please select your programme.';
+      errorAlert.classList.add('show');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating account...';
+
+    // Step 1 — Create Supabase Auth account
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
+    });
+
+    if (error) {
+      errorAlert.textContent = error.message;
+      errorAlert.classList.add('show');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Account';
+      return;
+    }
+
+    // Step 2 — Create user profile in users table
+    const { error: profileError } = await supabase
+      .from('users')
+      .insert({
+        user_id: generateUserId(),
+        auth_id: data.user.id,
+        email: email,
+        forename: forename,
+        surname: surname,
+        name: forename + ' ' + surname,
+        program_id: program_id,
+        role: 'STUDENT',
+        active: true,
+        signup_source: 'SUPABASE_AUTH'
+      });
+
+    if (profileError) {
+      errorAlert.textContent = 'Account created but profile setup failed. Please contact support.';
+      errorAlert.classList.add('show');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Account';
+      return;
+    }
+
+    // Success
+    successAlert.textContent = 'Account created successfully! Redirecting to login...';
+    successAlert.classList.add('show');
+
+    setTimeout(() => {
+      window.location.href = '/login.html';
+    }, 2000);
+
+  });
+
+  // Load programmes on page load
+  loadPrograms();
+
+</script>
+
+</body>
+</html>
