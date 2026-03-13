@@ -391,7 +391,19 @@ Use `db` everywhere in all JS files instead of `supabase`.
 - My Teacher feature (intentionally deferred)
 
 ---
+## Step 8 — Add Images Folder
+1. Go to your GitHub repo
+2. Click "Add file" → "Upload files"
+3. Create `/images/` folder and upload your logo as `QAcademy_Logo.png`
+4. Reference images in code as `/images/filename.png`
 
+## Step 9 — Brand Colours
+The platform uses Navy + Teal. These are set in `css/style.css` `:root`:
+- `--primary: #1e3a5f`
+- `--primary-dark: #142d4c`
+- `--primary-light: #edf6f5`
+- `--accent: #2d7d72`
+To rebrand in future — change only these 4 lines.
 ## Before Going Live Checklist
 - [ ] Replace dev_allow_all RLS policies with proper role-based policies
 - [ ] Set up custom SMTP for emails
