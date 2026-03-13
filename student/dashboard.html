@@ -6,10 +6,7 @@
   <title>Dashboard — QAcademy Nurses Hub</title>
   <link rel="stylesheet" href="/css/style.css" />
   <style>
-    /* Announcement Strip */
-    .announcements-strip {
-      margin-bottom: 24px;
-    }
+    .announcements-strip { margin-bottom: 24px; }
 
     .announcement-item {
       background: #fffbeb;
@@ -28,16 +25,8 @@
       border-color: var(--primary);
     }
 
-    .announcement-title {
-      font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 2px;
-    }
-
-    .announcement-body {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
+    .announcement-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .announcement-body  { font-size: 13px; color: var(--text-muted); }
 
     .announcement-dismiss {
       background: none;
@@ -50,11 +39,8 @@
       flex-shrink: 0;
     }
 
-    .announcement-dismiss:hover {
-      color: var(--danger);
-    }
+    .announcement-dismiss:hover { color: var(--danger); }
 
-    /* Subscription Status */
     .subscription-bar {
       background: var(--white);
       border: 1px solid var(--border);
@@ -68,49 +54,16 @@
       gap: 8px;
     }
 
-    .subscription-bar.warning {
-      background: #fffbeb;
-      border-color: #fcd34d;
-    }
+    .subscription-bar.warning { background: #fffbeb; border-color: #fcd34d; }
+    .subscription-bar.expired { background: #fef2f2; border-color: #fecaca; }
 
-    .subscription-bar.expired {
-      background: #fef2f2;
-      border-color: #fecaca;
-    }
+    .sub-label   { font-size: 13px; color: var(--text-muted); }
+    .sub-name    { font-size: 15px; font-weight: 600; color: var(--text); }
+    .sub-expiry  { font-size: 13px; color: var(--text-muted); }
+    .sub-expiry.warning { color: var(--warning); font-weight: 600; }
+    .sub-expiry.expired { color: var(--danger);  font-weight: 600; }
 
-    .sub-label {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .sub-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .sub-expiry {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .sub-expiry.warning {
-      color: var(--warning);
-      font-weight: 600;
-    }
-
-    .sub-expiry.expired {
-      color: var(--danger);
-      font-weight: 600;
-    }
-
-    /* Course Cards */
-    .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      color: var(--text);
-    }
+    .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
 
     .course-card {
       background: var(--white);
@@ -126,16 +79,8 @@
       border-color: var(--primary);
     }
 
-    .course-card h3 {
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .course-card p {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
+    .course-card h3    { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .course-card p     { font-size: 13px; color: var(--text-muted); }
 
     .course-badge {
       display: inline-block;
@@ -148,7 +93,19 @@
       margin-bottom: 10px;
     }
 
-    /* Quick Links */
+    /* Course expiry label on card */
+    .course-expiry {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-top: 10px;
+    }
+
+    .course-expiry.normal  { background: #f0fdf4; color: var(--success); }
+    .course-expiry.warning { background: #fffbeb; color: var(--warning); }
+
     .quick-links {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -176,15 +133,8 @@
       color: var(--primary);
     }
 
-    .quick-link-icon {
-      font-size: 24px;
-      margin-bottom: 8px;
-    }
-
-    .quick-link-label {
-      font-size: 13px;
-      font-weight: 500;
-    }
+    .quick-link-icon  { font-size: 24px; margin-bottom: 8px; }
+    .quick-link-label { font-size: 13px; font-weight: 500; }
 
     .badge {
       display: inline-block;
@@ -197,12 +147,7 @@
       margin-left: 4px;
     }
 
-    /* Recent Attempts */
-    .attempts-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
+    .attempts-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 
     .attempts-table th {
       text-align: left;
@@ -218,9 +163,7 @@
       border-bottom: 1px solid var(--border);
     }
 
-    .attempts-table tr:last-child td {
-      border-bottom: none;
-    }
+    .attempts-table tr:last-child td { border-bottom: none; }
 
     .status-chip {
       display: inline-block;
@@ -230,17 +173,9 @@
       font-weight: 600;
     }
 
-    .status-chip.completed {
-      background: #f0fdf4;
-      color: var(--success);
-    }
+    .status-chip.completed   { background: #f0fdf4; color: var(--success); }
+    .status-chip.in_progress { background: #fffbeb; color: var(--warning); }
 
-    .status-chip.in_progress {
-      background: #fffbeb;
-      color: var(--warning);
-    }
-
-    /* No subscription state */
     .no-sub-card {
       background: var(--white);
       border: 1px solid var(--border);
@@ -249,18 +184,9 @@
       text-align: center;
     }
 
-    .no-sub-card h3 {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
+    .no-sub-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .no-sub-card p  { color: var(--text-muted); margin-bottom: 20px; }
 
-    .no-sub-card p {
-      color: var(--text-muted);
-      margin-bottom: 20px;
-    }
-
-    /* Top nav */
     .top-nav {
       display: flex;
       align-items: center;
@@ -268,16 +194,8 @@
       margin-bottom: 28px;
     }
 
-    .user-menu {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .user-name {
-      font-size: 14px;
-      font-weight: 500;
-    }
+    .user-menu   { display: flex; align-items: center; gap: 12px; }
+    .user-name   { font-size: 14px; font-weight: 500; }
 
     .logout-btn {
       font-size: 13px;
@@ -288,9 +206,7 @@
       font-family: 'Inter', sans-serif;
     }
 
-    .logout-btn:hover {
-      color: var(--danger);
-    }
+    .logout-btn:hover { color: var(--danger); }
   </style>
 </head>
 <body>
@@ -383,45 +299,41 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
+<script src="/js/api.js"></script>
 <script>
 
-  let currentProfile = null;
+  let currentProfile  = null;
+  let courseAccessMap = {}; // { course_id: { totalDays, expires } }
 
-  // Initialize dashboard
+  // ── Init ─────────────────────────────────────────────────
   async function initDashboard() {
-    // Guard — must be logged in as STUDENT
     const profile = await guardPage('STUDENT');
     if (!profile) return;
 
     currentProfile = profile;
 
-    // Set welcome message and name
-    document.getElementById('userName').textContent = profile.forename || profile.name || profile.email;
-    document.getElementById('welcomeMsg').textContent = `Welcome back, ${profile.forename || 'Student'}!`;
+    document.getElementById('userName').textContent    = profile.forename || profile.name || profile.email;
+    document.getElementById('welcomeMsg').textContent  = `Welcome back, ${profile.forename || 'Student'}!`;
 
-    // Load all dashboard sections
+    // Build the course access map first — everything else depends on it
+    courseAccessMap = await getStudentCourseAccess(profile.user_id);
+
+    // Load all sections in parallel
     await Promise.all([
-      loadSubscriptionBar(profile),
+      loadSubscriptionBar(),
       loadAnnouncements(profile),
-      loadCourses(profile),
+      loadCourses(),
       loadRecentAttempts(profile)
     ]);
   }
 
-  // Load subscription status bar
-  async function loadSubscriptionBar(profile) {
-    const { data: sub } = await db
-      .from('subscriptions')
-      .select('*, products(name)')
-      .eq('user_id', profile.user_id)
-      .eq('status', 'ACTIVE')
-      .order('expires_utc', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
+  // ── Subscription bar ─────────────────────────────────────
+  // Shows the longest expiry across all courses the student has
+  async function loadSubscriptionBar() {
     const bar = document.getElementById('subscriptionBar');
 
-    if (!sub) {
+    // No course access at all
+    if (Object.keys(courseAccessMap).length === 0) {
       bar.innerHTML = `
         <div class="subscription-bar expired" style="margin-bottom:24px;">
           <div>
@@ -435,49 +347,92 @@
       return;
     }
 
-    const expiry = new Date(sub.expires_utc);
-    const now = new Date();
-    const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+    // Find the longest expiry across all courses
+    let longestExpiry = null;
+    Object.values(courseAccessMap).forEach(access => {
+      if (!longestExpiry || access.expires > longestExpiry) {
+        longestExpiry = access.expires;
+      }
+    });
+
+    const now      = new Date();
+    const daysLeft = Math.ceil((longestExpiry - now) / (1000 * 60 * 60 * 24));
     const isWarning = daysLeft <= 7;
 
     bar.innerHTML = `
       <div class="subscription-bar ${isWarning ? 'warning' : ''}" style="margin-bottom:24px;">
         <div>
-          <div class="sub-label">Active Subscription</div>
-          <div class="sub-name">${sub.products?.name || 'Subscription'}</div>
+          <div class="sub-label">Platform Access</div>
+          <div class="sub-name">Active</div>
         </div>
         <div class="sub-expiry ${isWarning ? 'warning' : ''}">
           ${isWarning
             ? `⚠️ Expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`
-            : `Expires ${expiry.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`
+            : `Access until ${longestExpiry.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`
           }
         </div>
       </div>`;
   }
 
-  // Load announcements
-  async function loadAnnouncements(profile) {
-    const now = new Date().toISOString();
+  // ── Courses ───────────────────────────────────────────────
+  // Shows one card per course in the access map
+  // Each card shows that course's specific stacked expiry
+  async function loadCourses() {
+    const coursesArea = document.getElementById('coursesArea');
 
-    const { data: announcements } = await db
-      .from('announcements')
+    if (Object.keys(courseAccessMap).length === 0) {
+      coursesArea.innerHTML = `
+        <div class="no-sub-card" style="grid-column:1/-1;">
+          <h3>No Active Subscription</h3>
+          <p>Subscribe to a product to unlock your courses and start practising.</p>
+          <a href="/subscription.html" class="btn btn-primary" style="width:auto; display:inline-block; padding:10px 24px;">
+            View Plans
+          </a>
+        </div>`;
+      return;
+    }
+
+    // Fetch course details for all courses in the access map
+    const courseIds = Object.keys(courseAccessMap);
+    const { data: courses } = await db
+      .from('courses')
       .select('*')
-      .eq('status', 'active')
-      .or(`start_at.is.null,start_at.lte.${now}`)
-      .or(`end_at.is.null,end_at.gte.${now}`)
-      .order('pinned', { ascending: false })
-      .order('priority', { ascending: false });
+      .in('course_id', courseIds)
+      .eq('status', 'active');
 
-    if (!announcements || announcements.length === 0) return;
+    if (!courses || courses.length === 0) {
+      coursesArea.innerHTML = '<p style="color:var(--text-muted)">No courses found.</p>';
+      return;
+    }
 
-    // Get dismissed announcements
-    const { data: dismissed } = await db
-      .from('user_notice_state')
-      .select('item_id')
-      .eq('user_id', profile.user_id)
-      .eq('state', 'dismissed');
+    coursesArea.innerHTML = '';
 
-    const dismissedIds = dismissed ? dismissed.map(d => d.item_id) : [];
+    courses.forEach(course => {
+      const access    = courseAccessMap[course.course_id];
+      const daysLeft  = access.totalDays;
+      const isWarning = daysLeft <= 7;
+
+      // Format expiry label for the card
+      const expiryLabel = isWarning
+        ? `⚠️ Expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`
+        : `Expires ${access.expires.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`;
+
+      coursesArea.innerHTML += `
+        <div class="course-card" onclick="window.location.href='/course/${course.course_id}.html'">
+          <div class="course-badge">${course.program_scope.join(', ')}</div>
+          <h3>${course.title}</h3>
+          <p>Click to view quizzes and study materials</p>
+          <div class="course-expiry ${isWarning ? 'warning' : 'normal'}">
+            ${expiryLabel}
+          </div>
+        </div>`;
+    });
+  }
+
+  // ── Announcements ─────────────────────────────────────────
+  async function loadAnnouncements(profile) {
+    const announcements  = await getAnnouncements();
+    const dismissedIds   = await getDismissedAnnouncements(profile.user_id);
 
     const strip = document.getElementById('announcementsStrip');
     strip.innerHTML = '';
@@ -500,69 +455,18 @@
     });
   }
 
-  // Dismiss an announcement
+  // ── Dismiss announcement ──────────────────────────────────
   async function dismissAnnouncement(announcementId, btn) {
     await db.from('user_notice_state').insert({
-      user_id: currentProfile.user_id,
+      user_id:   currentProfile.user_id,
       item_type: 'ANNOUNCEMENT',
-      item_id: announcementId,
-      state: 'dismissed'
+      item_id:   announcementId,
+      state:     'dismissed'
     });
     btn.closest('.announcement-item').remove();
   }
 
-  // Load courses based on active subscription
-  async function loadCourses(profile) {
-    const coursesArea = document.getElementById('coursesArea');
-
-    // Get active subscription
-    const { data: sub } = await db
-      .from('subscriptions')
-      .select('*, products(courses_included)')
-      .eq('user_id', profile.user_id)
-      .eq('status', 'ACTIVE')
-      .order('expires_utc', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!sub || !sub.products?.courses_included) {
-      coursesArea.innerHTML = `
-        <div class="no-sub-card" style="grid-column:1/-1;">
-          <h3>No Active Subscription</h3>
-          <p>Subscribe to a product to unlock your courses and start practising.</p>
-          <a href="/subscription.html" class="btn btn-primary" style="width:auto; display:inline-block; padding:10px 24px;">
-            View Plans
-          </a>
-        </div>`;
-      return;
-    }
-
-    const courseIds = sub.products.courses_included;
-
-    // Fetch those courses
-    const { data: courses } = await db
-      .from('courses')
-      .select('*')
-      .in('course_id', courseIds)
-      .eq('status', 'active');
-
-    if (!courses || courses.length === 0) {
-      coursesArea.innerHTML = '<p style="color:var(--text-muted)">No courses found.</p>';
-      return;
-    }
-
-    coursesArea.innerHTML = '';
-    courses.forEach(course => {
-      coursesArea.innerHTML += `
-        <div class="course-card" onclick="window.location.href='/course/${course.course_id}.html'">
-          <div class="course-badge">${course.program_scope.join(', ')}</div>
-          <h3>${course.title}</h3>
-          <p>Click to view quizzes and study materials</p>
-        </div>`;
-    });
-  }
-
-  // Load recent quiz attempts
+  // ── Recent attempts ───────────────────────────────────────
   async function loadRecentAttempts(profile) {
     const { data: attempts } = await db
       .from('attempts')
@@ -580,9 +484,7 @@
 
     let rows = '';
     attempts.forEach(a => {
-      const date = new Date(a.ts_iso).toLocaleDateString('en-GB', {
-        day: 'numeric', month: 'short', year: 'numeric'
-      });
+      const date  = new Date(a.ts_iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
       const score = a.status === 'completed'
         ? `${a.score_raw}/${a.score_total} (${Math.round(a.score_pct)}%)`
         : '—';
@@ -608,23 +510,17 @@
       <table class="attempts-table">
         <thead>
           <tr>
-            <th>Quiz</th>
-            <th>Mode</th>
-            <th>Questions</th>
-            <th>Score</th>
-            <th>Date</th>
-            <th>Status</th>
-            <th>Action</th>
+            <th>Quiz</th><th>Mode</th><th>Questions</th>
+            <th>Score</th><th>Date</th><th>Status</th><th>Action</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>`;
   }
 
-  // Start dashboard
+  // ── Start ─────────────────────────────────────────────────
   initDashboard();
 
 </script>
-
 </body>
 </html>
