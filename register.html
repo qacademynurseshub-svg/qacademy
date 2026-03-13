@@ -31,33 +31,17 @@
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
         <div class="form-group">
           <label for="forename">First Name</label>
-          <input
-            type="text"
-            id="forename"
-            placeholder="First name"
-            required
-          />
+          <input type="text" id="forename" placeholder="First name" required />
         </div>
         <div class="form-group">
           <label for="surname">Last Name</label>
-          <input
-            type="text"
-            id="surname"
-            placeholder="Last name"
-            required
-          />
+          <input type="text" id="surname" placeholder="Last name" required />
         </div>
       </div>
 
       <div class="form-group">
         <label for="email">Email Address</label>
-        <input
-          type="email"
-          id="email"
-          placeholder="you@example.com"
-          required
-          autocomplete="email"
-        />
+        <input type="email" id="email" placeholder="you@example.com" required autocomplete="email" />
       </div>
 
       <div class="form-group">
@@ -69,25 +53,12 @@
 
       <div class="form-group">
         <label for="password">Password</label>
-        <input
-          type="password"
-          id="password"
-          placeholder="Minimum 8 characters"
-          required
-          minlength="8"
-          autocomplete="new-password"
-        />
+        <input type="password" id="password" placeholder="Minimum 8 characters" required minlength="8" autocomplete="new-password" />
       </div>
 
       <div class="form-group">
         <label for="confirmPassword">Confirm Password</label>
-        <input
-          type="password"
-          id="confirmPassword"
-          placeholder="Repeat your password"
-          required
-          autocomplete="new-password"
-        />
+        <input type="password" id="confirmPassword" placeholder="Repeat your password" required autocomplete="new-password" />
       </div>
 
       <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -107,18 +78,26 @@
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
 <script>
 
-  // Load programmes from database automatically
-  async function loadPrograms() {
-    const { data: programs, error } = await db
-      .from('programs')
-      .select('program_id, program_name')
-      .order('program_name');
+  // ── Map programme to its trial product ──────────────────
+  // This is the only place this mapping lives.
+  // Add a new programme here when you add one to the DB.
+  const TRIAL_PRODUCTS = {
+    'RN':     'RN_TRIAL',
+    'RM':     'RM_TRIAL',
+    'RPHN':   'RPHN_TRIAL',
+    'RMHN':   'RMHN_TRIAL',
+    'NACNAP': 'NACNAP_TRIAL'
+  };
 
+  // ── Load programmes from DB into dropdown ───────────────
+  async function loadPrograms() {
+    const programs = await getPrograms();
     const select = document.getElementById('program');
 
-    if (error || !programs) {
+    if (!programs.length) {
       select.innerHTML = '<option value="">Could not load programmes</option>';
       return;
     }
@@ -129,37 +108,36 @@
     });
   }
 
-  // Generate a simple user ID
+  // ── Generate a user ID ──────────────────────────────────
   function generateUserId() {
     return 'U_' + Math.random().toString(36).substr(2, 9).toUpperCase();
   }
 
-  // Handle registration form submission
+  // ── Handle form submission ──────────────────────────────
   document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const forename = document.getElementById('forename').value.trim();
-    const surname = document.getElementById('surname').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const program_id = document.getElementById('program').value;
-    const password = document.getElementById('password').value;
+    const forename        = document.getElementById('forename').value.trim();
+    const surname         = document.getElementById('surname').value.trim();
+    const email           = document.getElementById('email').value.trim();
+    const program_id      = document.getElementById('program').value;
+    const password        = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
-    const submitBtn = document.getElementById('submitBtn');
-    const errorAlert = document.getElementById('errorAlert');
-    const successAlert = document.getElementById('successAlert');
+    const submitBtn       = document.getElementById('submitBtn');
+    const errorAlert      = document.getElementById('errorAlert');
+    const successAlert    = document.getElementById('successAlert');
 
     // Reset alerts
     errorAlert.classList.remove('show');
     successAlert.classList.remove('show');
 
-    // Validate passwords match
+    // Validate
     if (password !== confirmPassword) {
       errorAlert.textContent = 'Passwords do not match.';
       errorAlert.classList.add('show');
       return;
     }
 
-    // Validate programme selected
     if (!program_id) {
       errorAlert.textContent = 'Please select your programme.';
       errorAlert.classList.add('show');
@@ -169,11 +147,8 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'Creating account...';
 
-    // Step 1 — Create Supabase Auth account
-    const { data, error } = await db.auth.signUp({
-      email,
-      password
-    });
+    // ── Step 1: Create Supabase Auth account ────────────
+    const { data, error } = await db.auth.signUp({ email, password });
 
     if (error) {
       errorAlert.textContent = error.message;
@@ -183,19 +158,21 @@
       return;
     }
 
-    // Step 2 — Create user profile in users table
+    const userId = generateUserId();
+
+    // ── Step 2: Create user profile ─────────────────────
     const { error: profileError } = await db
       .from('users')
       .insert({
-        user_id: generateUserId(),
-        auth_id: data.user.id,
-        email: email,
-        forename: forename,
-        surname: surname,
-        name: forename + ' ' + surname,
-        program_id: program_id,
-        role: 'STUDENT',
-        active: true,
+        user_id:       userId,
+        auth_id:       data.user.id,
+        email:         email,
+        forename:      forename,
+        surname:       surname,
+        name:          forename + ' ' + surname,
+        program_id:    program_id,
+        role:          'STUDENT',
+        active:        true,
         signup_source: 'SUPABASE_AUTH'
       });
 
@@ -207,8 +184,18 @@
       return;
     }
 
-    // Success
-    successAlert.textContent = 'Account created successfully! Redirecting to login...';
+    // ── Step 3: Auto-assign programme trial ─────────────
+    // Look up the correct trial product for this programme
+    const trialProductId = TRIAL_PRODUCTS[program_id];
+
+    if (trialProductId) {
+      // Use assignSubscription from api.js — it calculates
+      // the expiry date automatically from product.duration_days
+      await assignSubscription(userId, trialProductId);
+    }
+
+    // ── Step 4: Success ──────────────────────────────────
+    successAlert.textContent = 'Account created! Redirecting to login...';
     successAlert.classList.add('show');
 
     setTimeout(() => {
