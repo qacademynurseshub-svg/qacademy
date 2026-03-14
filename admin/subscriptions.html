@@ -129,6 +129,33 @@
       background: var(--bg); color: var(--text-muted); border: 1px solid var(--border);
     }
 
+    /* ── Visual grouping ── */
+    tr.group-continuation td {
+      background: #fafafa;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    tr.group-continuation td:first-child {
+      padding-left: 36px;
+    }
+    tr.group-continuation:hover td { background: var(--bg); }
+    tr.group-first td { border-top: 2px solid var(--border); }
+    tr.group-first:first-child td { border-top: none; }
+
+    .sub-count-badge {
+      display: inline-block; margin-left: 8px;
+      padding: 1px 7px; border-radius: 20px;
+      font-size: 11px; font-weight: 700;
+      background: var(--primary-light); color: var(--primary);
+      vertical-align: middle;
+    }
+
+    /* ── Ref link ── */
+    .ref-link {
+      font-size: 12px; color: var(--primary);
+      text-decoration: none; font-family: monospace;
+    }
+    .ref-link:hover { text-decoration: underline; }
+
     /* ── Side panel ── */
     .overlay {
       display: none; position: fixed; inset: 0;
@@ -461,6 +488,69 @@
   </div>
 </div>
 
+<!-- ── Edit Subscription Modal ── -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit Subscription</h3>
+      <button class="panel-close" onclick="closeEditModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-error"   id="editError"></div>
+      <div class="alert alert-success" id="editSuccess"></div>
+      <input type="hidden" id="editSubId" />
+
+      <div style="background:var(--bg); border-radius:var(--radius); padding:10px 14px; margin-bottom:16px; font-size:13px;">
+        <strong id="editStudentLabel"></strong>
+      </div>
+
+      <div class="form-group">
+        <label>Product *</label>
+        <select id="editProduct" onchange="updateEditPreview()">
+          <option value="">Select a product…</option>
+        </select>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-group">
+          <label>Start Date *</label>
+          <input type="date" id="editStartDate" onchange="updateEditPreview()" />
+        </div>
+        <div class="form-group">
+          <label>Expiry Date *</label>
+          <input type="date" id="editExpiryDate" />
+          <p class="form-hint">Or pick a product — expiry auto-calculates.</p>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Status *</label>
+        <select id="editStatus">
+          <option value="ACTIVE">Active</option>
+          <option value="TRIAL">Trial</option>
+          <option value="EXPIRED">Expired</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Source</label>
+        <select id="editSource">
+          <option value="ADMIN">Admin</option>
+          <option value="PAYMENT">Payment</option>
+          <option value="IMPORT">Import</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Source Reference</label>
+        <input type="text" id="editSourceRef" placeholder="e.g. payment reference or note" />
+        <p class="form-hint">Optional. Links to a payment record when payments are built.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" id="editSubmitBtn" onclick="submitEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
@@ -616,6 +706,24 @@
     const now = new Date();
     const in7 = new Date(now.getTime() + 7*24*60*60*1000);
 
+    // Sort by student name, then start date descending
+    subs.sort((a, b) => {
+      const nameA = (a.users?.name || `${a.users?.forename||''} ${a.users?.surname||''}`).trim().toLowerCase();
+      const nameB = (b.users?.name || `${b.users?.forename||''} ${b.users?.surname||''}`).trim().toLowerCase();
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+      return new Date(b.start_utc) - new Date(a.start_utc);
+    });
+
+    // Count subscriptions per user
+    const userSubCount = {};
+    subs.forEach(s => {
+      userSubCount[s.user_id] = (userSubCount[s.user_id] || 0) + 1;
+    });
+
+    // Track which users we've already rendered a first row for
+    const seenUsers = new Set();
+
     let rows = subs.map(s => {
       const u = s.users || {};
       const name = u.name || `${u.forename||''} ${u.surname||''}`.trim() || '—';
@@ -624,24 +732,45 @@
       const expiry = new Date(s.expires_utc);
       const isExpiringSoon = s.status === 'ACTIVE' && expiry <= in7 && expiry >= now;
       const expiryStr = expiry.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
-      const startStr = new Date(s.start_utc).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+      const startStr  = new Date(s.start_utc).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
 
       const statusChip = isExpiringSoon
         ? `<span class="chip expiring">⚠️ Expiring</span>`
         : `<span class="chip ${s.status}">${s.status}</span>`;
 
-      return `
-        <tr onclick="openPanel('${s.subscription_id}')">
-          <td>
-            <div style="font-weight:600; font-size:14px;">${name}</div>
+      // Ref column — shows source ref if available
+      const refCol = s.source_ref && s.source_ref !== 'admin_grant'
+        ? `<a class="ref-link" href="/admin/payments.html?ref=${s.source_ref}" title="View payment">${s.source_ref.substring(0,12)}…</a>`
+        : `<span style="color:var(--text-muted); font-size:12px;">${s.source_ref === 'admin_grant' ? 'Admin grant' : '—'}</span>`;
+
+      const isFirstForUser = !seenUsers.has(s.user_id);
+      seenUsers.add(s.user_id);
+      const rowClass = isFirstForUser ? 'group-first' : 'group-continuation';
+      const count = userSubCount[s.user_id];
+
+      // Student cell — full details on first row, dimmed on subsequent rows
+      const studentCell = isFirstForUser
+        ? `<td>
+            <div style="font-weight:600; font-size:14px;">
+              ${name}
+              ${count > 1 ? `<span class="sub-count-badge">${count} subs</span>` : ''}
+            </div>
             <div style="font-size:12px; color:var(--text-muted);">${email}</div>
-          </td>
-          <td>${u.program_id || '—'}</td>
+          </td>`
+        : `<td>
+            <div style="font-size:13px; color:var(--text-muted);">↳ ${name}</div>
+          </td>`;
+
+      return `
+        <tr class="${rowClass}" onclick="openPanel('${s.subscription_id}')">
+          ${studentCell}
+          <td style="font-size:13px; color:${isFirstForUser ? 'var(--text)' : 'var(--text-muted)'};">${u.program_id || '—'}</td>
           <td style="max-width:200px; font-size:13px;">${productName}</td>
           <td>${statusChip}</td>
           <td style="font-size:13px;">${startStr}</td>
           <td style="font-size:13px; ${isExpiringSoon ? 'color:var(--warning); font-weight:600;' : ''}">${expiryStr}</td>
           <td><span class="source-chip">${s.source || '—'}</span></td>
+          <td>${refCol}</td>
         </tr>`;
     }).join('');
 
@@ -656,6 +785,7 @@
             <th>Start</th>
             <th>Expires</th>
             <th>Source</th>
+            <th>Reference</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -698,6 +828,7 @@
 
     // Actions depending on status
     let actions = `<button class="btn btn-ghost" onclick="closePanel()">Close</button>`;
+    actions += `<button class="btn btn-primary" onclick="openEditModal('${s.subscription_id}')">✏️ Edit</button>`;
     if (s.status === 'ACTIVE' || s.status === 'TRIAL') {
       actions += `<button class="btn btn-danger" onclick="openCancelModal('${s.subscription_id}', '${name}')">Cancel Subscription</button>`;
     }
@@ -920,6 +1051,105 @@
     setTimeout(() => {
       closeGrantModal();
     }, 2500);
+  }
+
+  // ─── Edit Subscription Modal ──────────────────────
+  function openEditModal(subId) {
+    const s = allSubscriptions.find(x => x.subscription_id === subId);
+    if (!s) return;
+
+    const u = s.users || {};
+    const name = u.name || `${u.forename||''} ${u.surname||''}`.trim() || '—';
+
+    document.getElementById('editSubId').value = subId;
+    document.getElementById('editStudentLabel').textContent = `${name} · ${u.email || ''}`;
+
+    // Populate product dropdown if not already done
+    const editProdSel = document.getElementById('editProduct');
+    if (editProdSel.options.length <= 1) {
+      allProducts.forEach(p => {
+        editProdSel.innerHTML += `<option value="${p.product_id}" data-days="${p.duration_days}">${p.name} (${p.kind})</option>`;
+      });
+    }
+
+    // Pre-fill current values
+    editProdSel.value = s.product_id || '';
+    document.getElementById('editStatus').value    = s.status;
+    document.getElementById('editSource').value    = s.source || 'ADMIN';
+    document.getElementById('editSourceRef').value = s.source_ref || '';
+
+    // Format dates for input[type=date] (YYYY-MM-DD)
+    document.getElementById('editStartDate').value  = s.start_utc  ? s.start_utc.substring(0,10)  : '';
+    document.getElementById('editExpiryDate').value = s.expires_utc ? s.expires_utc.substring(0,10) : '';
+
+    document.getElementById('editError').classList.remove('show');
+    document.getElementById('editSuccess').classList.remove('show');
+    document.getElementById('editSubmitBtn').disabled = false;
+    document.getElementById('editSubmitBtn').textContent = 'Save Changes';
+    document.getElementById('editModal').classList.add('show');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').classList.remove('show');
+  }
+
+  function updateEditPreview() {
+    // When product or start date changes, auto-calculate expiry
+    const sel   = document.getElementById('editProduct');
+    const opt   = sel.options[sel.selectedIndex];
+    const days  = opt?.dataset?.days;
+    const start = document.getElementById('editStartDate').value;
+    if (!days || !start) return;
+    const expiry = new Date(new Date(start).getTime() + parseInt(days) * 24*60*60*1000);
+    document.getElementById('editExpiryDate').value = expiry.toISOString().substring(0,10);
+  }
+
+  async function submitEdit() {
+    const subId     = document.getElementById('editSubId').value;
+    const productId = document.getElementById('editProduct').value;
+    const startVal  = document.getElementById('editStartDate').value;
+    const expiryVal = document.getElementById('editExpiryDate').value;
+    const status    = document.getElementById('editStatus').value;
+    const source    = document.getElementById('editSource').value;
+    const sourceRef = document.getElementById('editSourceRef').value.trim();
+    const errorEl   = document.getElementById('editError');
+    const successEl = document.getElementById('editSuccess');
+    const btn       = document.getElementById('editSubmitBtn');
+
+    errorEl.classList.remove('show');
+    successEl.classList.remove('show');
+
+    if (!productId) { errorEl.textContent = 'Please select a product.'; errorEl.classList.add('show'); return; }
+    if (!startVal)  { errorEl.textContent = 'Please set a start date.';  errorEl.classList.add('show'); return; }
+    if (!expiryVal) { errorEl.textContent = 'Please set an expiry date.'; errorEl.classList.add('show'); return; }
+
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    const { error } = await db
+      .from('subscriptions')
+      .update({
+        product_id  : productId,
+        start_utc   : new Date(startVal).toISOString(),
+        expires_utc : new Date(expiryVal).toISOString(),
+        status,
+        source,
+        source_ref  : sourceRef || null
+      })
+      .eq('subscription_id', subId);
+
+    if (error) {
+      errorEl.textContent = error.message;
+      errorEl.classList.add('show');
+      btn.disabled = false; btn.textContent = 'Save Changes';
+      return;
+    }
+
+    successEl.textContent = '✅ Subscription updated successfully.';
+    successEl.classList.add('show');
+    btn.textContent = 'Saved ✓';
+
+    await loadData();
+    setTimeout(() => { closeEditModal(); closePanel(); }, 1500);
   }
 
   init();
