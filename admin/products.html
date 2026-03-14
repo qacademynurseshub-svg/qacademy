@@ -450,7 +450,7 @@
       const courses = (p.courses_included || []).map(c =>
         `<span class="course-tag">${c}</span>`
       ).join('');
-      const tgKeys = (p.telegram_group_keys || []).map(k =>
+      const tgTagsHtml = (p.telegram_group_keys || []).map(k =>
         `<span class="tg-tag">✈️ ${k}</span>`
       ).join('');
       const price = p.kind === 'PAID' ? formatPrice(p.price_minor, p.currency) : '—';
@@ -466,7 +466,7 @@
           <td style="font-size:13px; font-weight:600;">${price}</td>
           <td style="font-size:13px;">${p.duration_days ? `${p.duration_days}d` : '—'}</td>
           <td style="max-width:220px;">${courses || '<span style="color:var(--text-muted);font-size:12px;">None</span>'}</td>
-          <td>${tgKeys || '<span style="color:var(--text-muted);font-size:12px;">—</span>'}</td>
+          <td>${tgTagsHtml || '<span style="color:var(--text-muted);font-size:12px;">—</span>'}</td>
         </tr>`;
     }).join('');
 
@@ -499,7 +499,7 @@
       return `<span class="course-tag">${course ? course.title : c}</span>`;
     }).join(' ') || '<span style="color:var(--text-muted);font-size:13px;">None assigned</span>';
 
-    const tgGroups = (p.telegram_group_keys || []).map(k =>
+    const tgGroupsHtml = (p.telegram_group_keys || []).map(k =>
       `<span class="tg-tag">✈️ ${k}</span>`
     ).join(' ') || '<span style="color:var(--text-muted);font-size:13px;">None</span>';
 
@@ -524,7 +524,7 @@
       </div>
       <div class="detail-section">
         <h4>Telegram Groups</h4>
-        <div style="margin-top:4px;">${tgGroups}</div>
+        <div style="margin-top:4px;">${tgGroupsHtml}</div>
       </div>`;
 
     let actions = `<button class="btn btn-ghost" onclick="closePanel()">Close</button>`;
