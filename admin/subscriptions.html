@@ -358,9 +358,17 @@
         <select id="filterStatus" onchange="applyFilters()">
           <option value="">All statuses</option>
           <option value="ACTIVE">Active</option>
-          <option value="TRIAL">Trial</option>
           <option value="EXPIRED">Expired</option>
           <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Kind</label>
+        <select id="filterKind" onchange="applyFilters()">
+          <option value="">All kinds</option>
+          <option value="PAID">Paid</option>
+          <option value="TRIAL">Trial</option>
+          <option value="FREE">Free</option>
         </select>
       </div>
       <div class="filter-group">
@@ -634,7 +642,7 @@
 
     const active    = allSubscriptions.filter(s => s.status === 'ACTIVE').length;
     const expired   = allSubscriptions.filter(s => s.status === 'EXPIRED').length;
-    const trial     = allSubscriptions.filter(s => s.status === 'TRIAL').length;
+    const trial     = allSubscriptions.filter(s => s.products?.kind === 'TRIAL').length;
     const expiring  = allSubscriptions.filter(s =>
       s.status === 'ACTIVE' && new Date(s.expires_utc) <= in7 && new Date(s.expires_utc) >= now
     ).length;
@@ -650,6 +658,7 @@
   function applyFilters() {
     const search    = document.getElementById('filterSearch').value.toLowerCase().trim();
     const status    = document.getElementById('filterStatus').value;
+    const kind      = document.getElementById('filterKind').value;
     const product   = document.getElementById('filterProduct').value;
     const programme = document.getElementById('filterProgramme').value;
     const source    = document.getElementById('filterSource').value;
@@ -662,10 +671,11 @@
       const email = (u.email || '').toLowerCase();
 
       if (search    && !fullName.includes(search) && !email.includes(search)) return false;
-      if (status    && s.status !== status)        return false;
-      if (product   && s.product_id !== product)   return false;
-      if (programme && u.program_id !== programme) return false;
-      if (source    && s.source !== source)        return false;
+      if (status    && s.status !== status)              return false;
+      if (kind      && s.products?.kind !== kind)        return false;
+      if (product   && s.product_id !== product)         return false;
+      if (programme && u.program_id !== programme)       return false;
+      if (source    && s.source !== source)              return false;
       if (showExpiringSoon) {
         const exp = new Date(s.expires_utc);
         if (!(s.status === 'ACTIVE' && exp <= in7 && exp >= now)) return false;
@@ -686,6 +696,7 @@
   function clearFilters() {
     document.getElementById('filterSearch').value = '';
     document.getElementById('filterStatus').value = '';
+    document.getElementById('filterKind').value = '';
     document.getElementById('filterProduct').value = '';
     document.getElementById('filterProgramme').value = '';
     document.getElementById('filterSource').value = '';
