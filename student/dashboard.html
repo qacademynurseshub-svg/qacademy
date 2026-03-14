@@ -191,7 +191,7 @@
       <a href="/fixed-quizzes.html">📝 Fixed Quizzes</a>
       <a href="/quiz-builder.html">🔧 Quiz Builder</a>
       <a href="/history.html">📊 History</a>
-      <a href="/announcements.html">📢 Announcements</a>
+      <a href="/student/announcements.html">📢 Announcements</a>
       <a href="/downloads.html">📥 Downloads</a>
       <a href="/messages.html">💬 Messages</a>
       <a href="/telegram.html">✈️ Telegram</a>
@@ -394,7 +394,7 @@
     // "View all" footer link — always shown when there are any unread
     // Shows count if more than 2 unread so student knows there's more
     const footer = document.createElement('a');
-    footer.href = '/announcements.html';
+    footer.href = '/student/announcements.html';
     footer.className = 'announcements-footer';
     footer.textContent = totalUnread > 2
       ? `View all announcements (${totalUnread} unread) →`
