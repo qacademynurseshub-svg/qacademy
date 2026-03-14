@@ -751,6 +751,13 @@
 
     btn.disabled = true; btn.textContent = 'Saving…';
 
+    // Capture any key still typed in the input but not yet confirmed with Enter
+    const pendingInput = document.getElementById('tgTagInput').value.trim().toUpperCase().replace(/\s/g, '_');
+    if (pendingInput && !tgKeys.includes(pendingInput)) {
+      tgKeys.push(pendingInput);
+      document.getElementById('tgTagInput').value = '';
+    }
+
     const payload = {
       name,
       kind,
