@@ -371,13 +371,8 @@
 
   // ─── Load products ────────────────────────────────
   async function loadProducts() {
-    const { data, error } = await db
-      .from('products')
-      .select('*')
-      .order('name');
-
-    if (error) { console.error(error); return; }
-    allProducts = data || [];
+    // getAllProducts() from api.js — returns ALL including archived (admin needs both)
+    allProducts = await getAllProducts();
 
     // Populate currency filter from actual data
     const currencies = [...new Set(allProducts.map(p => p.currency).filter(Boolean))];
@@ -391,12 +386,12 @@
 
   // ─── Load courses and programs for picker ─────────
   async function loadCoursesAndPrograms() {
-    const [{ data: courses }, { data: programs }] = await Promise.all([
-      db.from('courses').select('course_id, title, program_scope, status').order('title'),
-      db.from('programs').select('program_id, program_name').order('program_name')
+    // getCourses() and getPrograms() from api.js
+    [allCourses, allPrograms] = await Promise.all([
+      getCourses(),
+      getPrograms()
     ]);
-    allCourses  = (courses  || []).filter(c => c.status !== 'archived');
-    allPrograms = programs  || [];
+    // getCourses() already filters active only — no need to filter again
   }
 
   // ─── Stats ────────────────────────────────────────
