@@ -22,6 +22,9 @@ https://qacademy-gamma.pages.dev
 2. All pages load `/js/config.js` and `/js/guard.js` before their own scripts
 3. Protected pages call `guardPage()` on load
 4. Logout calls `logout()` from guard.js
+5. Shared Supabase read queries live in `js/api.js` — never repeat them in pages
+6. Write operations (insert/update) are page-specific and stay in the page
+7. Always use `.maybeSingle()` not `.single()` when result might be empty
 
 ## File Structure
 ```
@@ -35,18 +38,29 @@ qacademy-gamma/
 │   └── style.css
 ├── js/
 │   ├── config.js
-│   └── guard.js
+│   ├── guard.js
+│   └── api.js
+├── images/
+│   └── QAcademy_Logo.png
 ├── student/
 │   └── dashboard.html
 └── admin/
-    └── dashboard.html
+    ├── dashboard.html
+    ├── users.html
+    ├── subscriptions.html
+    ├── products.html
+    ├── courses.html
+    ├── payments.html
+    ├── announcements.html
+    ├── fixed-quizzes.html
+    └── config.html
 ```
 
 ## User Roles
 | Role | Access |
 |---|---|
 | STUDENT | Student dashboard, courses, quizzes |
-| TEACHER | Teacher features (My Teacher - coming soon) |
+| TEACHER | Teacher features (intentionally deferred) |
 | ADMIN | Full admin panel |
 
 ## Role Routing (login redirect)
@@ -66,6 +80,33 @@ qacademy-gamma/
 | announcements | Platform announcements | ✅ |
 | user_notice_state | Announcement dismiss state | ✅ |
 
+## api.js — Shared Functions
+| Function | Returns | Used by |
+|---|---|---|
+| `getPrograms()` | All programmes | Register, admin filters, quiz builder |
+| `getProducts()` | Active products only | Grant modal, payments, student pages |
+| `getAllProducts()` | All products including archived | admin/products.html |
+| `getCourses()` | Active courses only | Student dashboard, quiz builder |
+| `getAllCourses()` | All courses including archived | admin/courses.html |
+| `getUsers()` | Filtered user list | admin/users.html |
+| `getUserById()` | Full user + subscription history | Admin user panel |
+| `assignSubscription()` | Grants a subscription | admin/subscriptions.html, admin/users.html |
+| `deactivateUser()` | Deactivates account | admin/users.html |
+| `activateUser()` | Reactivates account | admin/users.html |
+| `sendPasswordReset()` | Sends reset email | admin/users.html |
+| `updateUserProfile()` | Updates user fields | admin/users.html |
+| `getAnnouncements()` | Active in-schedule announcements | Student dashboard |
+| `getDismissedAnnouncements()` | Dismissed announcement IDs | Student dashboard |
+| `getStudentCourseAccess()` | Stacked course access map | Student dashboard, course pages |
+
+## Key Design Decisions
+- **Trial is a product Kind** (PAID / TRIAL / FREE), not a subscription status
+- **Subscription status** is only: ACTIVE / EXPIRED / CANCELLED
+- **Stacked subscriptions** — if a student has multiple active subscriptions covering the same course, remaining days are summed
+- **Programme scope on courses** is an array — a course can belong to multiple programmes or none
+- **Product ID and Course ID** cannot be changed after creation
+- **Archive not delete** — products and courses are archived, never hard deleted
+
 ## RLS
 Enabled on all tables with `dev_allow_all` policy.
 Replace with proper policies before going live.
@@ -77,51 +118,46 @@ Replace with proper policies before going live.
 | ADMIN | samquatleumas@gmail.com | role=ADMIN in users table |
 
 ## Build Progress
+
 ### Done ✅
 - Foundation (Supabase, Cloudflare, GitHub)
 - Auth pages (login, register, forgot password, reset password)
-- Student dashboard (courses, subscription bar, announcements, quick links)
+- Student dashboard (courses, subscription bar, announcements strip, quick links)
 - Admin dashboard (stats, recent users, quick links)
-- 
-### Done ✅
-- Foundation (Supabase, Cloudflare, GitHub)
-- Auth pages (login, register, forgot password, reset password)
-- Student dashboard
-- Admin dashboard
 - Brand colours (Navy + Teal)
 - Landing page (index.html)
-- Images folder set up
-- All admin page shells scaffolded
-
-### Done ✅
-- Foundation (Supabase, Cloudflare, GitHub)
-- Auth pages (login, register, forgot password, reset password)
-- Student dashboard (courses, subscription bar, announcements, quick links)
-- Admin dashboard (stats, recent users, quick links)
-- Brand colours (Navy + Teal)
-- All admin page shells scaffolded
+- Images folder with logo
 - js/api.js — shared data layer
-- admin/users.html — full user management with side panel
-- Programme-specific trials (RN_TRIAL, RM_TRIAL etc.)
-- Auto-assign trial on registration
-- Stacked subscription logic — courses show correct merged expiry
-- 20 test users with realistic data
+- admin/users.html — full user management (search, filters, side panel, assign subscription, password reset, activate/deactivate)
+- admin/subscriptions.html — full CRUD, visual grouping, 7 stat cards, 6 filters, edit modal, payment reference column
+- admin/products.html — full CRUD, course picker, Telegram group key tag input, archive/restore
+- admin/courses.html — combined courses & programmes, two tabs, full CRUD for both
+- Programme-specific trials (auto-assigned on registration based on programme)
+- Stacked subscription logic (multiple active subs merged per course)
+- 20 test users seeded with realistic data across all programmes
 
-### Next Session
-- admin/subscriptions.html
-- admin/products.html
-- admin/courses.html
-- admin/announcements.html
-- Then quiz engine for students
+### Next Session ⏭️
+- admin/announcements.html — full announcement management with targeting, scheduling, rich content
+- /announcements.html — student view of all announcements
+
+### After That
+- Quiz engine: admin/fixed-quizzes.html, fixed-quizzes.html, runner/instant.html, runner/timed.html, history.html
+- Quiz builder: quiz-builder.html
+- Payments: Paystack webhook, admin/payments.html
+- Messaging: messages.html, admin messages
+- Downloads: downloads.html (offline packs)
+- Telegram: bot integration, telegram.html
+- My Teacher feature (intentionally deferred to later phase)
 
 ### Intentionally Skipped (for now)
-- My Teacher feature (teacher classes, question banks, teacher quizzes)
-- Will be built later as a separate feature
+- Teacher features (classes, question banks, teacher quizzes, results)
+- Will be built as a separate phase after core student experience is complete
 
 ## Automation Notes
-The platform is built to be data-driven:
+The platform is fully data-driven:
 - Add a new programme → insert row in `programs` table
 - Add a new course → insert row in `courses` table
 - Add a new product → insert row in `products` table
 - Assign courses to a product → update `courses_included` array
-- Everything reflects on frontend automatically
+- Archive a product → set status = archived (stops appearing for new subscriptions)
+- Everything reflects on frontend automatically — no code changes needed
