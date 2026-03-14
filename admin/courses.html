@@ -379,7 +379,9 @@
     const profile = await guardPage('ADMIN');
     if (!profile) return;
     document.getElementById('adminName').textContent = profile.forename || profile.name || 'Admin';
-    await Promise.all([loadPrograms(), loadCourses()]);
+    // Load courses first so course counts are ready when programmes render
+    await loadCourses();
+    await loadPrograms();
   }
 
   // ─── Tab switching ────────────────────────────────
