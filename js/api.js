@@ -22,9 +22,9 @@ async function getPrograms() {
 
 
 // ------------------------------------------------------------
-// PRODUCTS
-// Returns: array of all active product fields
-// Used by: assign subscription panel, payment page, admin products
+// PRODUCTS (ACTIVE ONLY)
+// Returns: array of all active products
+// Used by: grant subscription modal, payment page, student-facing pages
 // ------------------------------------------------------------
 async function getProducts() {
   const { data, error } = await db
@@ -34,6 +34,24 @@ async function getProducts() {
     .order('name');
 
   if (error) { console.error('getProducts:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// PRODUCTS (ALL — ADMIN ONLY)
+// Returns: ALL products regardless of status (active + archived)
+// Reason: admin products page needs to show and manage archived
+//         products too. Student-facing pages use getProducts().
+// Used by: admin/products.html, admin/subscriptions.html filters
+// ------------------------------------------------------------
+async function getAllProducts() {
+  const { data, error } = await db
+    .from('products')
+    .select('*')
+    .order('name');
+
+  if (error) { console.error('getAllProducts:', error); return []; }
   return data || [];
 }
 
@@ -175,10 +193,10 @@ async function getUserById(userId) {
 // Used by: admin users page, admin subscriptions page
 // ------------------------------------------------------------
 async function assignSubscription(userId, productId, startDate = null) {
-  // Get product to calculate expiry date
+  // Get product to calculate expiry date and kind
   const { data: product, error: productError } = await db
     .from('products')
-    .select('duration_days')
+    .select('duration_days, kind')
     .eq('product_id', productId)
     .maybeSingle();
 
@@ -195,18 +213,20 @@ async function assignSubscription(userId, productId, startDate = null) {
   const { error } = await db
     .from('subscriptions')
     .insert({
-      subscription_id: subscriptionId,
-      user_id: userId,
-      product_id: productId,
-      start_utc: start.toISOString(),
-      expires_utc: expires.toISOString(),
-      status: 'ACTIVE',
-      source: 'ADMIN'
+      subscription_id : subscriptionId,
+      user_id         : userId,
+      product_id      : productId,
+      start_utc       : start.toISOString(),
+      expires_utc     : expires.toISOString(),
+      status          : product.kind === 'TRIAL' ? 'TRIAL' : 'ACTIVE',
+      source          : 'ADMIN',
+      source_ref      : 'admin_grant',
+      expiry_reminded : false
     });
 
   if (error) {
     console.error('assignSubscription:', error);
-    return { success: false, message: 'Failed to assign subscription.' };
+    return { success: false, message: error.message };
   }
 
   return { success: true, subscriptionId };
