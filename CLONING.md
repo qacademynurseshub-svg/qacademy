@@ -132,8 +132,10 @@ INSERT INTO programs (program_id, program_name) VALUES
 CREATE TABLE courses (
   course_id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
-  program_scope TEXT[] NOT NULL,
-  status TEXT NOT NULL DEFAULT 'active'
+  program_scope TEXT[] NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'active',
+  page_slug TEXT,
+  sheet_id TEXT
 );
 
 INSERT INTO courses (course_id, title, program_scope, status) VALUES
@@ -197,14 +199,18 @@ CREATE TABLE products (
   kind TEXT NOT NULL DEFAULT 'PAID',
   status TEXT NOT NULL DEFAULT 'active',
   courses_included TEXT[] NOT NULL,
-  price_minor INTEGER NOT NULL,
+  price_minor INTEGER NOT NULL DEFAULT 0,
   currency TEXT NOT NULL DEFAULT 'GHS',
   duration_days INTEGER NOT NULL,
   telegram_group_keys TEXT[]
 );
 
 INSERT INTO products (product_id, name, courses_included, duration_days, status, kind, price_minor, currency, telegram_group_keys) VALUES
-  ('WELCOME_TRIAL', 'Welcome Trial', ARRAY['GP'], 7, 'active', 'TRIAL', 0, 'GHS', NULL),
+  ('RN_TRIAL', 'Registered Nursing Trial', ARRAY['GP','RN_MED','RN_SURG'], 7, 'active', 'TRIAL', 0, 'GHS', NULL),
+  ('RM_TRIAL', 'Registered Midwifery Trial', ARRAY['GP','RM_PED_OBS_HRN','RM_MID'], 7, 'active', 'TRIAL', 0, 'GHS', NULL),
+  ('RPHN_TRIAL', 'Registered Public Health Nursing Trial', ARRAY['GP','RPHN_PPHN','RPHN_DISEASE_CTRL'], 7, 'active', 'TRIAL', 0, 'GHS', NULL),
+  ('RMHN_TRIAL', 'Registered Mental Health Nursing Trial', ARRAY['GP','RMHN_PSYCH_NURS','RMHN_PSYCH_PPHARM'], 7, 'active', 'TRIAL', 0, 'GHS', NULL),
+  ('NACNAP_TRIAL', 'NACNAP Trial', ARRAY['GP','NAC_BASIC_CLIN','NAC_BASIC_PREV'], 7, 'active', 'TRIAL', 0, 'GHS', NULL),
   ('RN_FULL', 'Registered Nursing Full Access', ARRAY['GP','RN_MED','RN_SURG'], 365, 'active', 'PAID', 15000, 'GHS', NULL),
   ('RM_FULL', 'Registered Midwife Full Access', ARRAY['GP','RM_PED_OBS_HRN','RM_MID'], 365, 'active', 'PAID', 15000, 'GHS', NULL),
   ('RPHN_FULL', 'Registered Public Health Nursing Full Access', ARRAY['GP','RPHN_PPHN','RPHN_DISEASE_CTRL'], 365, 'active', 'PAID', 15000, 'GHS', NULL),
@@ -316,16 +322,30 @@ CREATE POLICY "public_read_programs" ON programs FOR SELECT USING (true);
 
 ---
 
-## Step 7 — Create Files in GitHub
+## Step 7 — Add Images Folder
+1. Go to your GitHub repo
+2. Click "Add file" → "Upload files"
+3. Create `/images/` folder and upload your logo as `QAcademy_Logo.png`
+4. Reference images in code as `/images/filename.png`
 
-Create each file below in the GitHub repo.
-All files are in the repo at:
-https://github.com/mybackpacc-byte/qacademy-gamma
+---
+
+## Step 8 — Brand Colours
+The platform uses Navy + Teal. These are set in `css/style.css` `:root`:
+- `--primary: #1e3a5f`
+- `--primary-dark: #142d4c`
+- `--primary-light: #edf6f5`
+- `--accent: #2d7d72`
+To rebrand in future — change only these 4 lines.
+
+---
+
+## Step 9 — Create Core JS Files
 
 ### js/config.js
 ```javascript
 const SUPABASE_URL = 'https://zrakjibtxyzoqcdtvpmq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYWtqaWJ0eHl6b3FjZHR2cG1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MDcyODAsImV4cCI6MjA4ODk4MzI4MH0.saSEaK1IkbP03rfVvuwFpXQlLtAdKLIg9V7UwO7a2po';
+const SUPABASE_ANON_KEY = 'your-anon-key-here';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 ```
 
@@ -333,28 +353,68 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 - Checks session on every protected page
 - Redirects to /login.html if no session
 - Checks role and redirects to correct dashboard
-- Provides logout() function
+- Provides `logout()` function
 - Uses `db` not `supabase`
+
+### js/api.js
+Shared data access layer. All Supabase read queries live here.
+Key functions:
+- `getPrograms()` — all programmes
+- `getProducts()` — active products only (student-facing)
+- `getAllProducts()` — all products including archived (admin only)
+- `getCourses()` — active courses only (student-facing)
+- `getAllCourses()` — all courses including archived (admin only)
+- `getUsers()` — filtered user list
+- `getUserById()` — full user + subscription history
+- `assignSubscription()` — grants a subscription, auto-calculates expiry, sets correct status based on product kind
+- `deactivateUser()` / `activateUser()`
+- `sendPasswordReset()`
+- `updateUserProfile()`
+- `getAnnouncements()` — active in-schedule announcements
+- `getDismissedAnnouncements()` — dismissed IDs per user
+- `getStudentCourseAccess()` — stacked course expiry map
+
+**Rule:** Shared reads go in api.js. Write operations stay in the page.
 
 ### css/style.css
 - Shared styles for all pages
-- Uses Inter font from Google Fonts
+- Inter font from Google Fonts
 - CSS variables for colours and spacing
 - Styles for auth pages, dashboard, cards, forms, buttons, alerts
 
-### Pages created
+---
+
+## Step 10 — Create Pages
+
+### Auth Pages
 | File | Purpose |
 |---|---|
 | login.html | Email/password login + role redirect |
-| register.html | New account + auto programme dropdown |
+| register.html | New account + auto programme dropdown + auto trial assignment |
 | forgot-password.html | Send reset email |
 | reset-password.html | Set new password from reset link |
-| student/dashboard.html | Student home — courses, subscription, announcements |
-| admin/dashboard.html | Admin home — stats, recent users, quick links |
+
+### Student Pages
+| File | Purpose |
+|---|---|
+| student/dashboard.html | Courses, subscription bar, announcements strip, quick links |
+
+### Admin Pages
+| File | Purpose |
+|---|---|
+| admin/dashboard.html | Stats, recent users, quick links |
+| admin/users.html | Full user management — search, filters, side panel, assign subscription, password reset, activate/deactivate |
+| admin/subscriptions.html | Full CRUD — grant, edit, cancel. Visual grouping by student. 7 stat cards. 6 filters including Kind (Paid/Trial/Free) separate from Status |
+| admin/products.html | Full CRUD — create/edit products, course picker grouped by programme, Telegram group key tag input, archive/restore |
+| admin/courses.html | Combined page — two tabs: Programmes tab + Courses tab. Full CRUD for both. Courses show programme scope as checkboxes (a course can belong to multiple programmes) |
+| admin/payments.html | Shell — to be built in payments phase |
+| admin/announcements.html | To be built next session |
+| admin/fixed-quizzes.html | Shell — to be built in quiz engine phase |
+| admin/config.html | Shell — to be built later |
 
 ---
 
-## Step 8 — Create First Admin Account
+## Step 11 — Create First Admin Account
 
 1. Register a new account via /register.html
 2. Go to Supabase Table Editor → users table
@@ -364,71 +424,71 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 ---
 
+## Key Design Decisions
+
+### Trial is a product Kind, not a subscription status
+- `products.kind` = PAID | TRIAL | FREE
+- `subscriptions.status` = ACTIVE | EXPIRED | CANCELLED
+- Never put TRIAL in the status filter — use a separate Kind filter
+
+### Stacked Subscription Logic
+Course access is calculated by summing remaining days across all active
+subscriptions covering each course. This means a student who buys a second
+subscription before the first expires gets the days added together.
+The top bar shows the longest expiry across all courses.
+Each course card shows its own specific stacked expiry.
+
+### Programme Scope on Courses
+`program_scope` is a TEXT[] array. A course can belong to multiple
+programmes (e.g. General Paper belongs to all 5 programmes).
+This is not a hard tie — it is just a label for filtering and display.
+A course can also have an empty scope if it is truly independent.
+
+### Auto-assign Trial on Registration
+When a student registers, the system reads their `program_id` and
+auto-assigns the matching programme trial product:
+- RN → RN_TRIAL
+- RM → RM_TRIAL
+- RPHN → RPHN_TRIAL
+- RMHN → RMHN_TRIAL
+- NACNAP → NACNAP_TRIAL
+
+### Product ID and Course ID are immutable
+Cannot be changed after creation. They are used as foreign keys
+throughout the system. Archive instead of delete.
+
+---
+
 ## Known Issues & Fixes
 
 ### Issue: programmes not loading on register page
 **Cause:** Supabase JS library uses `supabase` as global variable name.
-Our config.js was also trying to create `const supabase` — name clash.
+config.js was also trying to create `const supabase` — name clash.
 **Fix:** Use `const db = supabase.createClient(...)` in config.js.
-Use `db` everywhere in all JS files instead of `supabase`.
+Use `db` everywhere in all JS files.
 
 ### Issue: 406 error on subscriptions query
 **Cause:** `.single()` throws 406 when no rows found.
 **Fix:** Use `.maybeSingle()` instead of `.single()` when result might be empty.
 
+### Issue: course counts show 0 on programmes tab
+**Cause:** `loadPrograms()` and `loadCourses()` ran in parallel — courses
+not ready when programmes rendered.
+**Fix:** `await loadCourses()` first, then `await loadPrograms()`.
+
+### Issue: Telegram group keys not saving on products page
+**Cause:** Tag input only captures keys on Enter keypress. Typing a key
+and clicking Save without pressing Enter loses the value.
+**Fix:** In `submitProduct()`, check for any pending text in the tag input
+before building the payload and add it to the tgKeys array automatically.
+
+### Issue: variable name collision on products table render
+**Cause:** Local variable `tgKeys` in renderTable() clashed with global
+`tgKeys` array used by the tag input.
+**Fix:** Renamed local render variables to `tgTagsHtml` and `tgGroupsHtml`.
+
 ---
 
-## Next Steps (as of end of Session 1)
-- Build admin pages: Users, Products, Subscriptions, Courses, Programs
-- Build quiz engine: fixed quizzes, instant runner, timed runner
-- Build quiz builder
-- Build learning history
-- Build announcements page
-- Build messaging
-- Build downloads/offline packs
-- Build Paystack payments
-- Build Telegram integration
-- My Teacher feature (intentionally deferred)
-
----
-## Step 8 — Add Images Folder
-1. Go to your GitHub repo
-2. Click "Add file" → "Upload files"
-3. Create `/images/` folder and upload your logo as `QAcademy_Logo.png`
-4. Reference images in code as `/images/filename.png`
-
-## Step 9 — Brand Colours
-The platform uses Navy + Teal. These are set in `css/style.css` `:root`:
-- `--primary: #1e3a5f`
-- `--primary-dark: #142d4c`
-- `--primary-light: #edf6f5`
-- `--accent: #2d7d72`
-To rebrand in future — change only these 4 lines.
-
-## Step 9 — Programme Trial Products
-Run this SQL to archive the old WELCOME_TRIAL and insert 
-5 programme-specific trials:
-[paste the trial products SQL from this session]
-
-## Step 10 — api.js
-Create js/api.js — shared data layer.
-Shared data functions live in api.js.
-Page-specific logic lives in the page itself.
-Before writing a Supabase query in a page, ask:
-will another page ever need this? If yes, put it in api.js..
-Key functions:
-- getPrograms(), getProducts(), getCourses()
-- getUsers(), getUserById()
-- assignSubscription(), deactivateUser(), activateUser()
-- sendPasswordReset(), updateUserProfile()
-- getAnnouncements(), getDismissedAnnouncements()
-- getStudentCourseAccess() — stacked expiry logic
-
-## Step 11 — Stacked Subscription Logic
-Course access is calculated by summing remaining days across
-all active subscriptions covering each course.
-The longest expiry across all courses shows in the top bar.
-Each course card shows its own specific stacked expiry.
 ## Before Going Live Checklist
 - [ ] Replace dev_allow_all RLS policies with proper role-based policies
 - [ ] Set up custom SMTP for emails
@@ -436,3 +496,4 @@ Each course card shows its own specific stacked expiry.
 - [ ] Set up custom domain on Cloudflare
 - [ ] Set up Paystack webhook
 - [ ] Remove test accounts
+- [ ] Rotate Supabase anon key if it was ever committed publicly
