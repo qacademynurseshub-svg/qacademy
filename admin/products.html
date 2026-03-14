@@ -3,31 +3,129 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Products — QAcademy Nurses Hub</title>
+  <title>Products — QAcademy Admin</title>
   <link rel="stylesheet" href="/css/style.css" />
   <style>
-    .top-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 28px;
-    }
-    .user-menu {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .logout-btn {
-      font-size: 13px;
-      color: var(--text-muted);
-      cursor: pointer;
-      background: none;
-      border: none;
-      font-family: 'Inter', sans-serif;
-    }
-    .logout-btn:hover {
-      color: var(--danger);
-    }
+
+    .top-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+    .user-menu { display:flex; align-items:center; gap:12px; }
+    .logout-btn { font-size:13px; color:var(--text-muted); cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; }
+    .logout-btn:hover { color:var(--danger); }
+
+    /* ── Stats ── */
+    .stats-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; margin-bottom:20px; }
+    .stat-mini { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px; }
+    .stat-mini .label { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+    .stat-mini .value { font-size:24px; font-weight:700; color:var(--primary); }
+
+    /* ── Filters ── */
+    .filters-bar { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; margin-bottom:20px; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+    .filter-group { display:flex; flex-direction:column; gap:4px; min-width:140px; }
+    .filter-group label { font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; }
+    .filter-group select, .filter-group input { padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); }
+    .filter-group select:focus, .filter-group input:focus { outline:none; border-color:var(--primary); }
+    .filter-actions { display:flex; gap:8px; align-self:flex-end; margin-left:auto; }
+
+    /* ── Table ── */
+    .table-wrapper { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .table-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); }
+    .table-header h3 { font-size:15px; font-weight:600; }
+    .result-count { font-size:13px; color:var(--text-muted); }
+
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th { text-align:left; padding:10px 16px; background:var(--bg); border-bottom:1px solid var(--border); font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; }
+    td { padding:12px 16px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:var(--bg); cursor:pointer; }
+    tr.archived-row td { opacity:0.5; }
+
+    /* ── Chips ── */
+    .chip { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+    .chip.active   { background:#f0fdf4; color:var(--success); }
+    .chip.archived { background:#f3f4f6; color:var(--text-muted); }
+    .chip.PAID     { background:#f0fdf4; color:var(--success); }
+    .chip.TRIAL    { background:var(--primary-light); color:var(--primary); }
+    .chip.FREE     { background:#f3f4f6; color:var(--text-muted); }
+
+    .course-tag { display:inline-block; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; background:var(--primary-light); color:var(--primary); margin:2px; }
+    .tg-tag { display:inline-block; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; background:#e7f3ff; color:#0088cc; margin:2px; }
+
+    /* ── Side panel ── */
+    .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:100; }
+    .overlay.show { display:block; }
+    .side-panel { position:fixed; top:0; right:-500px; width:500px; height:100vh; background:var(--white); border-left:1px solid var(--border); box-shadow:-4px 0 24px rgba(0,0,0,0.08); z-index:101; transition:right 0.3s ease; overflow-y:auto; display:flex; flex-direction:column; }
+    .side-panel.open { right:0; }
+    .panel-header { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--white); z-index:1; }
+    .panel-header h3 { font-size:16px; font-weight:700; }
+    .panel-close { background:none; border:none; cursor:pointer; font-size:22px; color:var(--text-muted); line-height:1; }
+    .panel-close:hover { color:var(--danger); }
+    .panel-body { padding:24px; flex:1; }
+    .panel-actions { padding:20px 24px; border-top:1px solid var(--border); display:flex; gap:10px; flex-wrap:wrap; position:sticky; bottom:0; background:var(--white); }
+
+    .detail-section { margin-bottom:24px; }
+    .detail-section h4 { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+    .detail-row { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; }
+    .detail-row .key { color:var(--text-muted); }
+    .detail-row .val { font-weight:500; text-align:right; max-width:65%; }
+
+    /* ── Modal ── */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; align-items:center; justify-content:center; }
+    .modal-overlay.show { display:flex; }
+    .modal { background:var(--white); border-radius:var(--radius); width:100%; max-width:600px; max-height:92vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--white); z-index:1; }
+    .modal-header h3 { font-size:16px; font-weight:700; }
+    .modal-body { padding:24px; }
+    .modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; position:sticky; bottom:0; background:var(--white); }
+
+    /* ── Buttons ── */
+    .btn { display:inline-block; padding:9px 18px; border-radius:var(--radius); font-size:13px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; border:none; transition:0.2s; }
+    .btn-primary { background:var(--primary); color:white; }
+    .btn-primary:hover { background:var(--primary-dark); }
+    .btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
+    .btn-danger  { background:#fef2f2; color:var(--danger); border:1px solid #fecaca; }
+    .btn-danger:hover { background:#fee2e2; }
+    .btn-ghost   { background:none; border:1px solid var(--border); color:var(--text); }
+    .btn-ghost:hover { background:var(--bg); }
+    .btn-warning { background:#fff7ed; color:var(--warning); border:1px solid #fed7aa; }
+    .btn-warning:hover { background:#ffedd5; }
+    .btn-success { background:#f0fdf4; color:var(--success); border:1px solid #bbf7d0; }
+    .btn-success:hover { background:#dcfce7; }
+
+    /* ── Form ── */
+    .form-group { margin-bottom:16px; }
+    .form-group label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+    .form-group input, .form-group select, .form-group textarea { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius); font-size:14px; font-family:'Inter',sans-serif; color:var(--text); }
+    .form-group input:focus, .form-group select:focus { outline:none; border-color:var(--primary); }
+    .form-hint { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+
+    .alert { padding:10px 14px; border-radius:var(--radius); font-size:13px; margin-bottom:14px; display:none; }
+    .alert.show { display:block; }
+    .alert-error   { background:#fef2f2; color:var(--danger); border:1px solid #fecaca; }
+    .alert-success { background:#f0fdf4; color:var(--success); border:1px solid #bbf7d0; }
+
+    .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
+
+    /* ── Course checkboxes ── */
+    .course-picker { border:1px solid var(--border); border-radius:var(--radius); max-height:260px; overflow-y:auto; }
+    .course-group { border-bottom:1px solid var(--border); }
+    .course-group:last-child { border-bottom:none; }
+    .course-group-header { padding:8px 14px; background:var(--bg); font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; justify-content:space-between; }
+    .course-group-header button { font-size:11px; background:none; border:none; color:var(--primary); cursor:pointer; font-family:'Inter',sans-serif; font-weight:600; }
+    .course-checkbox-item { display:flex; align-items:center; gap:10px; padding:8px 14px; border-bottom:1px solid #f9fafb; cursor:pointer; }
+    .course-checkbox-item:last-child { border-bottom:none; }
+    .course-checkbox-item:hover { background:var(--primary-light); }
+    .course-checkbox-item input[type=checkbox] { width:16px; height:16px; cursor:pointer; accent-color:var(--primary); }
+    .course-checkbox-item label { font-size:13px; cursor:pointer; flex:1; }
+    .course-checkbox-item .course-id { font-size:11px; color:var(--text-muted); font-family:monospace; }
+
+    /* ── Telegram keys input ── */
+    .tag-input-wrapper { border:1px solid var(--border); border-radius:var(--radius); padding:6px 10px; min-height:40px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; cursor:text; }
+    .tag-input-wrapper:focus-within { border-color:var(--primary); }
+    .tag-item { display:inline-flex; align-items:center; gap:4px; background:#e7f3ff; color:#0088cc; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:600; }
+    .tag-remove { background:none; border:none; cursor:pointer; color:#0088cc; font-size:14px; line-height:1; padding:0; }
+    .tag-input { border:none; outline:none; font-size:13px; font-family:'Inter',sans-serif; min-width:120px; flex:1; background:transparent; }
   </style>
 </head>
 <body>
@@ -56,11 +154,10 @@
   <!-- Main Content -->
   <main class="main-content">
 
-    <!-- Top Nav -->
     <div class="top-nav">
       <div class="page-header" style="margin-bottom:0">
         <h1>Products</h1>
-        <p>Manage platform products and offerings</p>
+        <p>Manage subscription products and course bundles</p>
       </div>
       <div class="user-menu">
         <span style="font-size:14px; font-weight:500;" id="adminName"></span>
@@ -68,26 +165,682 @@
       </div>
     </div>
 
-    <!-- Page Content -->
-    <div class="card">
-      <p style="color:var(--text-muted); font-size:14px;">This section is under construction.</p>
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-mini"><div class="label">Total</div><div class="value" id="statTotal">—</div></div>
+      <div class="stat-mini"><div class="label">Active</div><div class="value" id="statActive" style="color:var(--success)">—</div></div>
+      <div class="stat-mini"><div class="label">Archived</div><div class="value" id="statArchived" style="color:var(--text-muted)">—</div></div>
+      <div class="stat-mini"><div class="label">Paid</div><div class="value" id="statPaid" style="color:var(--success)">—</div></div>
+      <div class="stat-mini"><div class="label">Trial</div><div class="value" id="statTrial" style="color:var(--primary)">—</div></div>
+      <div class="stat-mini"><div class="label">Free</div><div class="value" id="statFree" style="color:var(--text-muted)">—</div></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="filterSearch" placeholder="Product name…" oninput="applyFilters()" />
+      </div>
+      <div class="filter-group">
+        <label>Kind</label>
+        <select id="filterKind" onchange="applyFilters()">
+          <option value="">All kinds</option>
+          <option value="PAID">Paid</option>
+          <option value="TRIAL">Trial</option>
+          <option value="FREE">Free</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Status</label>
+        <select id="filterStatus" onchange="applyFilters()">
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Currency</label>
+        <select id="filterCurrency" onchange="applyFilters()">
+          <option value="">All currencies</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+        <button class="btn btn-primary" onclick="openNewModal()">+ New Product</button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+      <div class="table-header">
+        <h3>All Products</h3>
+        <span class="result-count" id="resultCount">Loading…</span>
+      </div>
+      <div id="tableArea">
+        <div class="empty-state"><p>Loading products…</p></div>
+      </div>
     </div>
 
   </main>
+</div>
+
+<!-- ── Side Panel ── -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="side-panel" id="sidePanel">
+  <div class="panel-header">
+    <h3 id="panelTitle">Product Details</h3>
+    <button class="panel-close" onclick="closePanel()">×</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="panel-actions" id="panelActions"></div>
+</div>
+
+<!-- ── New / Edit Product Modal ── -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">New Product</h3>
+      <button class="panel-close" onclick="closeProductModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-error"   id="modalError"></div>
+      <div class="alert alert-success" id="modalSuccess"></div>
+      <input type="hidden" id="editProductId" />
+
+      <!-- Product ID — only shown on new -->
+      <div class="form-group" id="productIdGroup">
+        <label>Product ID *</label>
+        <input type="text" id="fieldProductId" placeholder="e.g. RN_FULL_2027" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase().replace(/\s/g,'_')" />
+        <p class="form-hint">Unique code. Use underscores, no spaces. Cannot be changed after creation.</p>
+      </div>
+
+      <!-- Name -->
+      <div class="form-group">
+        <label>Product Name *</label>
+        <input type="text" id="fieldName" placeholder="e.g. Registered Nursing Full Access 2027" />
+      </div>
+
+      <!-- Kind + Status -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Kind *</label>
+          <select id="fieldKind">
+            <option value="PAID">Paid</option>
+            <option value="TRIAL">Trial</option>
+            <option value="FREE">Free</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status *</label>
+          <select id="fieldStatus">
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Price + Currency + Duration -->
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Price</label>
+          <input type="number" id="fieldPrice" placeholder="0.00" min="0" step="0.01" />
+          <p class="form-hint">Enter in full units (e.g. 150.00)</p>
+        </div>
+        <div class="form-group">
+          <label>Currency</label>
+          <select id="fieldCurrency">
+            <option value="GHS">GHS</option>
+            <option value="USD">USD</option>
+            <option value="GBP">GBP</option>
+            <option value="NGN">NGN</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Duration (days) *</label>
+          <input type="number" id="fieldDuration" placeholder="365" min="1" />
+          <p class="form-hint">e.g. 365 = 1 year</p>
+        </div>
+      </div>
+
+      <!-- Courses Included -->
+      <div class="form-group">
+        <label>Courses Included *</label>
+        <p class="form-hint" style="margin-bottom:8px;">Tick all courses this product gives access to. Grouped by programme for convenience — you can mix freely.</p>
+        <div class="course-picker" id="coursePicker">
+          <div style="padding:16px; color:var(--text-muted); font-size:13px;">Loading courses…</div>
+        </div>
+        <p class="form-hint" id="selectedCoursesCount" style="margin-top:6px;"></p>
+      </div>
+
+      <!-- Telegram Group Keys -->
+      <div class="form-group">
+        <label>Telegram Group Keys</label>
+        <div class="tag-input-wrapper" id="tgTagWrapper" onclick="document.getElementById('tgTagInput').focus()">
+          <input type="text" class="tag-input" id="tgTagInput" placeholder="Type a key and press Enter…" onkeydown="handleTgKeydown(event)" />
+        </div>
+        <p class="form-hint">Press Enter after each key. e.g. RN_2026, PREMIUM_2026. Leave empty if no Telegram groups.</p>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeProductModal()">Cancel</button>
+      <button class="btn btn-primary" id="modalSubmitBtn" onclick="submitProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Archive Confirm Modal ── -->
+<div class="modal-overlay" id="archiveModal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3 id="archiveModalTitle">Archive Product</h3>
+      <button class="panel-close" onclick="closeArchiveModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;" id="archiveModalMsg"></p>
+      <div class="alert alert-error" id="archiveError" style="margin-top:14px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeArchiveModal()">Cancel</button>
+      <button class="btn btn-warning" id="archiveConfirmBtn" onclick="confirmArchive()">Archive</button>
+    </div>
+  </div>
 </div>
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
+<script src="/js/api.js"></script>
 <script>
-  async function initPage() {
+
+  let allProducts  = [];
+  let allCourses   = [];
+  let allPrograms  = [];
+  let editingId    = null;   // null = new, string = editing existing
+  let archiveTarget = null;
+  let tgKeys       = [];     // telegram group keys being edited
+
+  // ─── Init ─────────────────────────────────────────
+  async function init() {
     const profile = await guardPage('ADMIN');
     if (!profile) return;
-    document.getElementById('adminName').textContent = profile.forename || profile.name || profile.email;
+    document.getElementById('adminName').textContent = profile.forename || profile.name || 'Admin';
+    await Promise.all([loadProducts(), loadCoursesAndPrograms()]);
   }
-  initPage();
-</script>
 
+  // ─── Load products ────────────────────────────────
+  async function loadProducts() {
+    const { data, error } = await db
+      .from('products')
+      .select('*')
+      .order('name');
+
+    if (error) { console.error(error); return; }
+    allProducts = data || [];
+
+    // Populate currency filter from actual data
+    const currencies = [...new Set(allProducts.map(p => p.currency).filter(Boolean))];
+    const currSel = document.getElementById('filterCurrency');
+    currSel.innerHTML = '<option value="">All currencies</option>';
+    currencies.forEach(c => { currSel.innerHTML += `<option value="${c}">${c}</option>`; });
+
+    updateStats();
+    applyFilters();
+  }
+
+  // ─── Load courses and programs for picker ─────────
+  async function loadCoursesAndPrograms() {
+    const [{ data: courses }, { data: programs }] = await Promise.all([
+      db.from('courses').select('course_id, title, program_scope, status').order('title'),
+      db.from('programs').select('program_id, program_name').order('program_name')
+    ]);
+    allCourses  = (courses  || []).filter(c => c.status !== 'archived');
+    allPrograms = programs  || [];
+  }
+
+  // ─── Stats ────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('statTotal').textContent    = allProducts.length;
+    document.getElementById('statActive').textContent   = allProducts.filter(p => p.status === 'active').length;
+    document.getElementById('statArchived').textContent = allProducts.filter(p => p.status === 'archived').length;
+    document.getElementById('statPaid').textContent     = allProducts.filter(p => p.kind === 'PAID').length;
+    document.getElementById('statTrial').textContent    = allProducts.filter(p => p.kind === 'TRIAL').length;
+    document.getElementById('statFree').textContent     = allProducts.filter(p => p.kind === 'FREE').length;
+  }
+
+  // ─── Filters ──────────────────────────────────────
+  function applyFilters() {
+    const search   = document.getElementById('filterSearch').value.toLowerCase().trim();
+    const kind     = document.getElementById('filterKind').value;
+    const status   = document.getElementById('filterStatus').value;
+    const currency = document.getElementById('filterCurrency').value;
+
+    const filtered = allProducts.filter(p => {
+      if (search   && !p.name.toLowerCase().includes(search) && !p.product_id.toLowerCase().includes(search)) return false;
+      if (kind     && p.kind !== kind)         return false;
+      if (status   && p.status !== status)     return false;
+      if (currency && p.currency !== currency) return false;
+      return true;
+    });
+
+    document.getElementById('resultCount').textContent = `${filtered.length} product${filtered.length !== 1 ? 's' : ''}`;
+    renderTable(filtered);
+  }
+
+  function clearFilters() {
+    document.getElementById('filterSearch').value   = '';
+    document.getElementById('filterKind').value     = '';
+    document.getElementById('filterStatus').value   = '';
+    document.getElementById('filterCurrency').value = '';
+    applyFilters();
+  }
+
+  // ─── Format price ─────────────────────────────────
+  function formatPrice(minor, currency) {
+    if (!minor && minor !== 0) return '—';
+    const major = minor / 100;
+    return `${currency || ''} ${major.toLocaleString('en-GB', { minimumFractionDigits:2, maximumFractionDigits:2 })}`.trim();
+  }
+
+  // ─── Render table ─────────────────────────────────
+  function renderTable(products) {
+    const area = document.getElementById('tableArea');
+    if (!products.length) {
+      area.innerHTML = `<div class="empty-state"><p>No products match your filters.</p></div>`;
+      return;
+    }
+
+    const rows = products.map(p => {
+      const courses = (p.courses_included || []).map(c =>
+        `<span class="course-tag">${c}</span>`
+      ).join('');
+      const tgKeys = (p.telegram_group_keys || []).map(k =>
+        `<span class="tg-tag">✈️ ${k}</span>`
+      ).join('');
+      const price = p.kind === 'PAID' ? formatPrice(p.price_minor, p.currency) : '—';
+
+      return `
+        <tr class="${p.status === 'archived' ? 'archived-row' : ''}" onclick="openPanel('${p.product_id}')">
+          <td>
+            <div style="font-weight:600; font-size:14px;">${p.name}</div>
+            <div style="font-size:11px; color:var(--text-muted); font-family:monospace; margin-top:2px;">${p.product_id}</div>
+          </td>
+          <td><span class="chip ${p.kind}">${p.kind}</span></td>
+          <td><span class="chip ${p.status}">${p.status}</span></td>
+          <td style="font-size:13px; font-weight:600;">${price}</td>
+          <td style="font-size:13px;">${p.duration_days ? `${p.duration_days}d` : '—'}</td>
+          <td style="max-width:220px;">${courses || '<span style="color:var(--text-muted);font-size:12px;">None</span>'}</td>
+          <td>${tgKeys || '<span style="color:var(--text-muted);font-size:12px;">—</span>'}</td>
+        </tr>`;
+    }).join('');
+
+    area.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Kind</th>
+            <th>Status</th>
+            <th>Price</th>
+            <th>Duration</th>
+            <th>Courses</th>
+            <th>Telegram Groups</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ─── Side Panel ───────────────────────────────────
+  function openPanel(productId) {
+    const p = allProducts.find(x => x.product_id === productId);
+    if (!p) return;
+
+    document.getElementById('panelTitle').textContent = p.name;
+
+    const courses = (p.courses_included || []).map(c => {
+      const course = allCourses.find(x => x.course_id === c);
+      return `<span class="course-tag">${course ? course.title : c}</span>`;
+    }).join(' ') || '<span style="color:var(--text-muted);font-size:13px;">None assigned</span>';
+
+    const tgGroups = (p.telegram_group_keys || []).map(k =>
+      `<span class="tg-tag">✈️ ${k}</span>`
+    ).join(' ') || '<span style="color:var(--text-muted);font-size:13px;">None</span>';
+
+    document.getElementById('panelBody').innerHTML = `
+      <div class="detail-section">
+        <h4>Product Info</h4>
+        <div class="detail-row"><span class="key">Product ID</span><span class="val" style="font-family:monospace;font-size:12px;">${p.product_id}</span></div>
+        <div class="detail-row"><span class="key">Name</span><span class="val">${p.name}</span></div>
+        <div class="detail-row"><span class="key">Kind</span><span class="val"><span class="chip ${p.kind}">${p.kind}</span></span></div>
+        <div class="detail-row"><span class="key">Status</span><span class="val"><span class="chip ${p.status}">${p.status}</span></span></div>
+      </div>
+      <div class="detail-section">
+        <h4>Pricing & Access</h4>
+        <div class="detail-row"><span class="key">Price</span><span class="val">${formatPrice(p.price_minor, p.currency)}</span></div>
+        <div class="detail-row"><span class="key">Currency</span><span class="val">${p.currency || '—'}</span></div>
+        <div class="detail-row"><span class="key">Duration</span><span class="val">${p.duration_days ? `${p.duration_days} days` : '—'}</span></div>
+        <div class="detail-row"><span class="key">Price (minor units)</span><span class="val" style="font-family:monospace;font-size:12px;">${p.price_minor ?? '—'}</span></div>
+      </div>
+      <div class="detail-section">
+        <h4>Courses Included (${(p.courses_included||[]).length})</h4>
+        <div style="margin-top:4px;">${courses}</div>
+      </div>
+      <div class="detail-section">
+        <h4>Telegram Groups</h4>
+        <div style="margin-top:4px;">${tgGroups}</div>
+      </div>`;
+
+    let actions = `<button class="btn btn-ghost" onclick="closePanel()">Close</button>`;
+    actions += `<button class="btn btn-primary" onclick="openEditModal('${p.product_id}')">✏️ Edit</button>`;
+    if (p.status === 'active') {
+      actions += `<button class="btn btn-warning" onclick="openArchiveModal('${p.product_id}','${p.name.replace(/'/g,"\\'")}')">Archive</button>`;
+    } else {
+      actions += `<button class="btn btn-success" onclick="restoreProduct('${p.product_id}')">Restore</button>`;
+    }
+    document.getElementById('panelActions').innerHTML = actions;
+
+    document.getElementById('overlay').classList.add('show');
+    document.getElementById('sidePanel').classList.add('open');
+  }
+
+  function closePanel() {
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('sidePanel').classList.remove('open');
+  }
+
+  // ─── Build course picker ──────────────────────────
+  function buildCoursePicker(selectedIds = []) {
+    const picker = document.getElementById('coursePicker');
+
+    // Group courses by their first programme scope
+    const grouped = {};
+    const ungrouped = [];
+
+    allCourses.forEach(c => {
+      if (c.program_scope && c.program_scope.length > 0) {
+        const prog = c.program_scope[0];
+        if (!grouped[prog]) grouped[prog] = [];
+        grouped[prog].push(c);
+      } else {
+        ungrouped.push(c);
+      }
+    });
+
+    let html = '';
+
+    // Render grouped
+    Object.keys(grouped).sort().forEach(progId => {
+      const prog = allPrograms.find(p => p.program_id === progId);
+      const progName = prog ? prog.program_name : progId;
+      const courses = grouped[progId];
+
+      html += `<div class="course-group">
+        <div class="course-group-header">
+          <span>${progName}</span>
+          <button type="button" onclick="selectAllInGroup('${progId}')">Select all</button>
+        </div>`;
+      courses.forEach(c => {
+        const checked = selectedIds.includes(c.course_id) ? 'checked' : '';
+        html += `<div class="course-checkbox-item" onclick="toggleCourse('${c.course_id}')">
+          <input type="checkbox" id="course_${c.course_id}" value="${c.course_id}" ${checked} onclick="event.stopPropagation(); updateCourseCount()" />
+          <label for="course_${c.course_id}">${c.title}</label>
+          <span class="course-id">${c.course_id}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+
+    // Render ungrouped
+    if (ungrouped.length) {
+      html += `<div class="course-group">
+        <div class="course-group-header"><span>Other / Independent</span></div>`;
+      ungrouped.forEach(c => {
+        const checked = selectedIds.includes(c.course_id) ? 'checked' : '';
+        html += `<div class="course-checkbox-item" onclick="toggleCourse('${c.course_id}')">
+          <input type="checkbox" id="course_${c.course_id}" value="${c.course_id}" ${checked} onclick="event.stopPropagation(); updateCourseCount()" />
+          <label for="course_${c.course_id}">${c.title}</label>
+          <span class="course-id">${c.course_id}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    picker.innerHTML = html || '<div style="padding:16px; color:var(--text-muted); font-size:13px;">No courses available.</div>';
+    updateCourseCount();
+  }
+
+  function toggleCourse(courseId) {
+    const cb = document.getElementById(`course_${courseId}`);
+    if (cb) { cb.checked = !cb.checked; updateCourseCount(); }
+  }
+
+  function selectAllInGroup(progId) {
+    const grouped = allCourses.filter(c => c.program_scope && c.program_scope.includes(progId));
+    grouped.forEach(c => {
+      const cb = document.getElementById(`course_${c.course_id}`);
+      if (cb) cb.checked = true;
+    });
+    updateCourseCount();
+  }
+
+  function updateCourseCount() {
+    const checked = document.querySelectorAll('#coursePicker input[type=checkbox]:checked');
+    document.getElementById('selectedCoursesCount').textContent =
+      checked.length > 0 ? `${checked.length} course${checked.length !== 1 ? 's' : ''} selected` : '';
+  }
+
+  function getSelectedCourses() {
+    return [...document.querySelectorAll('#coursePicker input[type=checkbox]:checked')]
+      .map(cb => cb.value);
+  }
+
+  // ─── Telegram tag input ───────────────────────────
+  function renderTgTags() {
+    const wrapper = document.getElementById('tgTagWrapper');
+    const input   = document.getElementById('tgTagInput');
+    // Remove old tag items
+    wrapper.querySelectorAll('.tag-item').forEach(t => t.remove());
+    // Re-add before the input
+    tgKeys.forEach(k => {
+      const tag = document.createElement('span');
+      tag.className = 'tag-item';
+      tag.innerHTML = `${k} <button class="tag-remove" onclick="removeTgKey('${k}')" type="button">×</button>`;
+      wrapper.insertBefore(tag, input);
+    });
+  }
+
+  function handleTgKeydown(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = e.target.value.trim().toUpperCase().replace(/\s/g, '_');
+      if (val && !tgKeys.includes(val)) {
+        tgKeys.push(val);
+        renderTgTags();
+      }
+      e.target.value = '';
+    }
+    if (e.key === 'Backspace' && !e.target.value && tgKeys.length) {
+      tgKeys.pop();
+      renderTgTags();
+    }
+  }
+
+  function removeTgKey(key) {
+    tgKeys = tgKeys.filter(k => k !== key);
+    renderTgTags();
+  }
+
+  // ─── New Product Modal ────────────────────────────
+  function openNewModal() {
+    editingId = null;
+    tgKeys = [];
+    document.getElementById('modalTitle').textContent = 'New Product';
+    document.getElementById('editProductId').value = '';
+    document.getElementById('productIdGroup').style.display = 'block';
+    document.getElementById('fieldProductId').value = '';
+    document.getElementById('fieldName').value = '';
+    document.getElementById('fieldKind').value = 'PAID';
+    document.getElementById('fieldStatus').value = 'active';
+    document.getElementById('fieldPrice').value = '';
+    document.getElementById('fieldCurrency').value = 'GHS';
+    document.getElementById('fieldDuration').value = '';
+    document.getElementById('modalError').classList.remove('show');
+    document.getElementById('modalSuccess').classList.remove('show');
+    document.getElementById('modalSubmitBtn').disabled = false;
+    document.getElementById('modalSubmitBtn').textContent = 'Save Product';
+    renderTgTags();
+    buildCoursePicker([]);
+    document.getElementById('productModal').classList.add('show');
+  }
+
+  // ─── Edit Product Modal ───────────────────────────
+  function openEditModal(productId) {
+    const p = allProducts.find(x => x.product_id === productId);
+    if (!p) return;
+
+    editingId = productId;
+    tgKeys = [...(p.telegram_group_keys || [])];
+
+    document.getElementById('modalTitle').textContent = 'Edit Product';
+    document.getElementById('editProductId').value = productId;
+    document.getElementById('productIdGroup').style.display = 'none'; // can't change product_id
+
+    document.getElementById('fieldName').value     = p.name || '';
+    document.getElementById('fieldKind').value     = p.kind || 'PAID';
+    document.getElementById('fieldStatus').value   = p.status || 'active';
+    document.getElementById('fieldPrice').value    = p.price_minor != null ? (p.price_minor / 100).toFixed(2) : '';
+    document.getElementById('fieldCurrency').value = p.currency || 'GHS';
+    document.getElementById('fieldDuration').value = p.duration_days || '';
+
+    document.getElementById('modalError').classList.remove('show');
+    document.getElementById('modalSuccess').classList.remove('show');
+    document.getElementById('modalSubmitBtn').disabled = false;
+    document.getElementById('modalSubmitBtn').textContent = 'Save Changes';
+
+    renderTgTags();
+    buildCoursePicker(p.courses_included || []);
+    document.getElementById('productModal').classList.add('show');
+  }
+
+  function closeProductModal() {
+    document.getElementById('productModal').classList.remove('show');
+  }
+
+  // ─── Submit (create or update) ────────────────────
+  async function submitProduct() {
+    const isNew      = !editingId;
+    const productId  = isNew
+      ? document.getElementById('fieldProductId').value.trim().toUpperCase()
+      : editingId;
+    const name       = document.getElementById('fieldName').value.trim();
+    const kind       = document.getElementById('fieldKind').value;
+    const status     = document.getElementById('fieldStatus').value;
+    const priceInput = parseFloat(document.getElementById('fieldPrice').value) || 0;
+    const currency   = document.getElementById('fieldCurrency').value;
+    const duration   = parseInt(document.getElementById('fieldDuration').value) || null;
+    const courses    = getSelectedCourses();
+
+    const errorEl   = document.getElementById('modalError');
+    const successEl = document.getElementById('modalSuccess');
+    const btn       = document.getElementById('modalSubmitBtn');
+
+    errorEl.classList.remove('show');
+    successEl.classList.remove('show');
+
+    if (isNew && !productId) { errorEl.textContent = 'Product ID is required.'; errorEl.classList.add('show'); return; }
+    if (!name)               { errorEl.textContent = 'Product name is required.'; errorEl.classList.add('show'); return; }
+    if (!duration)           { errorEl.textContent = 'Duration (days) is required.'; errorEl.classList.add('show'); return; }
+    if (!courses.length)     { errorEl.textContent = 'Please select at least one course.'; errorEl.classList.add('show'); return; }
+
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    const payload = {
+      name,
+      kind,
+      status,
+      price_minor          : Math.round(priceInput * 100),
+      currency,
+      duration_days        : duration,
+      courses_included     : courses,
+      telegram_group_keys  : tgKeys.length ? tgKeys : null
+    };
+
+    let error;
+    if (isNew) {
+      payload.product_id = productId;
+      ({ error } = await db.from('products').insert(payload));
+    } else {
+      ({ error } = await db.from('products').update(payload).eq('product_id', productId));
+    }
+
+    if (error) {
+      errorEl.textContent = error.message;
+      errorEl.classList.add('show');
+      btn.disabled = false; btn.textContent = isNew ? 'Save Product' : 'Save Changes';
+      return;
+    }
+
+    successEl.textContent = `✅ Product ${isNew ? 'created' : 'updated'} successfully.`;
+    successEl.classList.add('show');
+    btn.textContent = 'Saved ✓';
+
+    await loadProducts();
+    setTimeout(() => { closeProductModal(); closePanel(); }, 1500);
+  }
+
+  // ─── Archive / Restore ────────────────────────────
+  function openArchiveModal(productId, name) {
+    archiveTarget = productId;
+    document.getElementById('archiveModalTitle').textContent = 'Archive Product';
+    document.getElementById('archiveModalMsg').textContent =
+      `Archive "${name}"? It will no longer appear as an option for new subscriptions. Existing subscriptions are not affected.`;
+    document.getElementById('archiveError').classList.remove('show');
+    document.getElementById('archiveConfirmBtn').textContent = 'Archive';
+    document.getElementById('archiveConfirmBtn').disabled = false;
+    document.getElementById('archiveModal').classList.add('show');
+  }
+
+  function closeArchiveModal() {
+    document.getElementById('archiveModal').classList.remove('show');
+    archiveTarget = null;
+  }
+
+  async function confirmArchive() {
+    if (!archiveTarget) return;
+    const btn = document.getElementById('archiveConfirmBtn');
+    btn.disabled = true; btn.textContent = 'Archiving…';
+
+    const { error } = await db
+      .from('products')
+      .update({ status: 'archived' })
+      .eq('product_id', archiveTarget);
+
+    if (error) {
+      document.getElementById('archiveError').textContent = error.message;
+      document.getElementById('archiveError').classList.add('show');
+      btn.disabled = false; btn.textContent = 'Archive';
+      return;
+    }
+
+    closeArchiveModal();
+    closePanel();
+    await loadProducts();
+  }
+
+  async function restoreProduct(productId) {
+    const { error } = await db
+      .from('products')
+      .update({ status: 'active' })
+      .eq('product_id', productId);
+
+    if (error) { alert(error.message); return; }
+    closePanel();
+    await loadProducts();
+  }
+
+  init();
+</script>
 </body>
 </html>
