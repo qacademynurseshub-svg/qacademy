@@ -74,6 +74,24 @@ async function getCourses() {
 
 
 // ------------------------------------------------------------
+// COURSES (ALL — ADMIN ONLY)
+// Returns: ALL courses regardless of status (active, draft, archived)
+// Reason: admin courses page needs to show and manage all statuses.
+//         Student-facing pages use getCourses().
+// Used by: admin/courses.html
+// ------------------------------------------------------------
+async function getAllCourses() {
+  const { data, error } = await db
+    .from('courses')
+    .select('*')
+    .order('title');
+
+  if (error) { console.error('getAllCourses:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
 // USERS — LIST
 // Returns: lighter list-level data for all users
 // Reason: loading full data for hundreds of users is wasteful
