@@ -338,8 +338,16 @@
         <div class="value" id="statExpired" style="color:var(--danger)">—</div>
       </div>
       <div class="stat-mini">
+        <div class="label">Paid</div>
+        <div class="value" id="statPaid" style="color:var(--accent)">—</div>
+      </div>
+      <div class="stat-mini">
         <div class="label">Trial</div>
         <div class="value" id="statTrial" style="color:var(--primary)">—</div>
+      </div>
+      <div class="stat-mini">
+        <div class="label">Free</div>
+        <div class="value" id="statFree" style="color:var(--text-muted)">—</div>
       </div>
       <div class="stat-mini">
         <div class="label">Expiring (7d)</div>
@@ -642,16 +650,20 @@
 
     const active    = allSubscriptions.filter(s => s.status === 'ACTIVE').length;
     const expired   = allSubscriptions.filter(s => s.status === 'EXPIRED').length;
+    const paid      = allSubscriptions.filter(s => s.products?.kind === 'PAID').length;
     const trial     = allSubscriptions.filter(s => s.products?.kind === 'TRIAL').length;
+    const free      = allSubscriptions.filter(s => s.products?.kind === 'FREE').length;
     const expiring  = allSubscriptions.filter(s =>
       s.status === 'ACTIVE' && new Date(s.expires_utc) <= in7 && new Date(s.expires_utc) >= now
     ).length;
 
-    document.getElementById('statTotal').textContent   = allSubscriptions.length;
-    document.getElementById('statActive').textContent  = active;
-    document.getElementById('statExpired').textContent = expired;
-    document.getElementById('statTrial').textContent   = trial;
-    document.getElementById('statExpiring').textContent= expiring;
+    document.getElementById('statTotal').textContent    = allSubscriptions.length;
+    document.getElementById('statActive').textContent   = active;
+    document.getElementById('statExpired').textContent  = expired;
+    document.getElementById('statPaid').textContent     = paid;
+    document.getElementById('statTrial').textContent    = trial;
+    document.getElementById('statFree').textContent     = free;
+    document.getElementById('statExpiring').textContent = expiring;
   }
 
   // ─── Filters ──────────────────────────────────────
