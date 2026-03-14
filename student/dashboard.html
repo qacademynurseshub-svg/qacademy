@@ -38,8 +38,18 @@
       padding: 0;
       flex-shrink: 0;
     }
-
     .announcement-dismiss:hover { color: var(--danger); }
+
+    /* "View all" link at the bottom of the strip */
+    .announcements-footer {
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 500;
+      padding: 4px 0 8px;
+      display: block;
+      text-decoration: none;
+    }
+    .announcements-footer:hover { text-decoration: underline; }
 
     .subscription-bar {
       background: var(--white);
@@ -73,119 +83,80 @@
       cursor: pointer;
       transition: box-shadow 0.2s, border-color 0.2s;
     }
-
     .course-card:hover {
-      box-shadow: var(--shadow-md);
-      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-color: var(--accent);
     }
-
-    .course-card h3    { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-    .course-card p     { font-size: 13px; color: var(--text-muted); }
-
     .course-badge {
       display: inline-block;
       background: var(--primary-light);
-      color: var(--primary);
+      color: var(--accent);
       font-size: 11px;
       font-weight: 600;
       padding: 2px 8px;
-      border-radius: 20px;
+      border-radius: 999px;
       margin-bottom: 10px;
+      text-transform: uppercase;
     }
+    .course-card h3 { font-size: 15px; font-weight: 700; margin: 0 0 6px; color: var(--primary); }
+    .course-card p  { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }
+    .course-expiry  { font-size: 12px; font-weight: 600; }
+    .course-expiry.warning { color: var(--warning); }
+    .course-expiry.normal  { color: var(--accent); }
 
-    /* Course expiry label on card */
-    .course-expiry {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 20px;
-      margin-top: 10px;
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
     }
-
-    .course-expiry.normal  { background: #f0fdf4; color: var(--success); }
-    .course-expiry.warning { background: #fffbeb; color: var(--warning); }
 
     .quick-links {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
       gap: 12px;
       margin-bottom: 32px;
     }
-
     .quick-link-card {
       background: var(--white);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 16px 12px;
       text-align: center;
-      cursor: pointer;
-      transition: box-shadow 0.2s, border-color 0.2s;
       text-decoration: none;
       color: var(--text);
-      display: block;
+      transition: box-shadow 0.2s, border-color 0.2s;
     }
-
     .quick-link-card:hover {
-      box-shadow: var(--shadow-md);
-      border-color: var(--primary);
-      text-decoration: none;
-      color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-color: var(--accent);
     }
-
     .quick-link-icon  { font-size: 24px; margin-bottom: 8px; }
     .quick-link-label { font-size: 13px; font-weight: 500; }
 
-    .badge {
-      display: inline-block;
-      background: var(--danger);
-      color: white;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 20px;
-      margin-left: 4px;
-    }
-
-    .attempts-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-
-    .attempts-table th {
-      text-align: left;
-      padding: 10px 12px;
-      border-bottom: 2px solid var(--border);
+    .attempts-table {
+      width: 100%;
+      border-collapse: collapse;
       font-size: 13px;
-      color: var(--text-muted);
-      font-weight: 600;
     }
-
+    .attempts-table th,
     .attempts-table td {
       padding: 10px 12px;
       border-bottom: 1px solid var(--border);
+      text-align: left;
     }
-
-    .attempts-table tr:last-child td { border-bottom: none; }
+    .attempts-table th { font-size: 12px; font-weight: 600; color: var(--text-muted); }
 
     .status-chip {
       display: inline-block;
-      padding: 2px 10px;
-      border-radius: 20px;
-      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
       font-weight: 600;
+      text-transform: capitalize;
     }
-
-    .status-chip.completed   { background: #f0fdf4; color: var(--success); }
-    .status-chip.in_progress { background: #fffbeb; color: var(--warning); }
-
-    .no-sub-card {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 40px;
-      text-align: center;
-    }
-
-    .no-sub-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-    .no-sub-card p  { color: var(--text-muted); margin-bottom: 20px; }
+    .status-chip.completed { background: #dcfce7; color: #166534; }
+    .status-chip.in_progress { background: #fef9c3; color: #854d0e; }
+    .status-chip.abandoned { background: #f3f4f6; color: #6b7280; }
 
     .top-nav {
       display: flex;
@@ -193,10 +164,7 @@
       justify-content: space-between;
       margin-bottom: 28px;
     }
-
-    .user-menu   { display: flex; align-items: center; gap: 12px; }
-    .user-name   { font-size: 14px; font-weight: 500; }
-
+    .user-menu { display: flex; align-items: center; gap: 12px; }
     .logout-btn {
       font-size: 13px;
       color: var(--text-muted);
@@ -205,7 +173,6 @@
       border: none;
       font-family: 'Inter', sans-serif;
     }
-
     .logout-btn:hover { color: var(--danger); }
   </style>
 </head>
@@ -216,19 +183,18 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-logo">
+      <img src="/images/QAcademy_Logo.png" alt="QAcademy" style="width:40px; margin-bottom:6px;" />
       <h2>QAcademy</h2>
-      <p>Nurses Hub</p>
     </div>
     <nav class="sidebar-nav">
       <a href="/student/dashboard.html" class="active">🏠 Dashboard</a>
       <a href="/fixed-quizzes.html">📝 Fixed Quizzes</a>
       <a href="/quiz-builder.html">🔧 Quiz Builder</a>
-      <a href="/history.html">📊 Learning History</a>
+      <a href="/history.html">📊 History</a>
+      <a href="/announcements.html">📢 Announcements</a>
       <a href="/downloads.html">📥 Downloads</a>
-      <a href="/messages.html">💬 Messages <span class="badge" id="msgBadge" style="display:none"></span></a>
+      <a href="/messages.html">💬 Messages</a>
       <a href="/telegram.html">✈️ Telegram</a>
-      <a href="/account.html">👤 My Account</a>
-      <a href="/subscription.html">💳 Subscription</a>
     </nav>
   </aside>
 
@@ -289,7 +255,7 @@
     <!-- Recent Attempts -->
     <p class="section-title">Recent Quiz Attempts</p>
     <div class="card" id="attemptsArea">
-      <p style="color:var(--text-muted); font-size:14px;">No quiz attempts yet. Start a quiz to see your history here.</p>
+      <p style="color:var(--text-muted); font-size:14px;">No quiz attempts yet.</p>
     </div>
 
   </main>
@@ -303,7 +269,7 @@
 <script>
 
   let currentProfile  = null;
-  let courseAccessMap = {}; // { course_id: { totalDays, expires } }
+  let courseAccessMap = {};
 
   // ── Init ─────────────────────────────────────────────────
   async function initDashboard() {
@@ -312,13 +278,11 @@
 
     currentProfile = profile;
 
-    document.getElementById('userName').textContent    = profile.forename || profile.name || profile.email;
-    document.getElementById('welcomeMsg').textContent  = `Welcome back, ${profile.forename || 'Student'}!`;
+    document.getElementById('userName').textContent   = profile.forename || profile.name || profile.email;
+    document.getElementById('welcomeMsg').textContent = `Welcome back, ${profile.forename || 'Student'}!`;
 
-    // Build the course access map first — everything else depends on it
     courseAccessMap = await getStudentCourseAccess(profile.user_id);
 
-    // Load all sections in parallel
     await Promise.all([
       loadSubscriptionBar(),
       loadAnnouncements(profile),
@@ -327,15 +291,13 @@
     ]);
   }
 
-  // ── Subscription bar ─────────────────────────────────────
-  // Shows the longest expiry across all courses the student has
+  // ── Subscription bar ──────────────────────────────────────
   async function loadSubscriptionBar() {
     const bar = document.getElementById('subscriptionBar');
 
-    // No course access at all
     if (Object.keys(courseAccessMap).length === 0) {
       bar.innerHTML = `
-        <div class="subscription-bar expired" style="margin-bottom:24px;">
+        <div class="subscription-bar expired">
           <div>
             <div class="sub-label">Subscription</div>
             <div class="sub-name">No active subscription</div>
@@ -347,12 +309,9 @@
       return;
     }
 
-    // Find the longest expiry across all courses
     let longestExpiry = null;
     Object.values(courseAccessMap).forEach(access => {
-      if (!longestExpiry || access.expires > longestExpiry) {
-        longestExpiry = access.expires;
-      }
+      if (!longestExpiry || access.expires > longestExpiry) longestExpiry = access.expires;
     });
 
     const now      = new Date();
@@ -360,7 +319,7 @@
     const isWarning = daysLeft <= 7;
 
     bar.innerHTML = `
-      <div class="subscription-bar ${isWarning ? 'warning' : ''}" style="margin-bottom:24px;">
+      <div class="subscription-bar ${isWarning ? 'warning' : ''}">
         <div>
           <div class="sub-label">Platform Access</div>
           <div class="sub-name">Active</div>
@@ -368,58 +327,142 @@
         <div class="sub-expiry ${isWarning ? 'warning' : ''}">
           ${isWarning
             ? `⚠️ Expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`
-            : `Access until ${longestExpiry.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`
+            : `Expires ${longestExpiry.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`
           }
         </div>
       </div>`;
   }
 
+  // ── Announcements strip ───────────────────────────────────
+  // Rules:
+  // - Only show UNREAD announcements (no row in user_notice_state for this user)
+  // - Max 2 shown on the strip — pinned first, then by priority
+  // - If total unread > 2, show "View all (X unread)" footer link
+  // - Dismissed and Read announcements are hidden from the strip
+  async function loadAnnouncements(profile) {
+    // getAnnouncements() from api.js — returns active, in-schedule announcements
+    const announcements = await getAnnouncements();
+
+    // Fetch ALL states for this user (dismissed, read, clicked)
+    // We want to hide anything that already has ANY state
+    const { data: stateRows } = await db
+      .from('user_notice_state')
+      .select('item_id')
+      .eq('user_id', profile.user_id)
+      .eq('item_type', 'ANNOUNCEMENT');
+
+    // Build a Set of announcement IDs the student has already interacted with
+    const interactedIds = new Set((stateRows || []).map(r => r.item_id));
+
+    // Filter to only truly unread announcements
+    const unread = announcements.filter(a => !interactedIds.has(a.announcement_id));
+    const totalUnread = unread.length;
+
+    // Take max 2 for the strip (api.js already orders pinned first, then priority)
+    const toShow = unread.slice(0, 2);
+
+    const strip = document.getElementById('announcementsStrip');
+    strip.innerHTML = '';
+
+    if (toShow.length === 0) {
+      // Nothing to show — strip stays empty, no clutter
+      return;
+    }
+
+    // Render up to 2 announcement items
+    toShow.forEach(a => {
+      const item = document.createElement('div');
+      item.className = `announcement-item ${a.pinned ? 'pinned' : ''}`;
+      item.id = `strip-item-${a.announcement_id}`;
+      item.innerHTML = `
+        <div>
+          <div class="announcement-title">${escapeHtml(a.title)}</div>
+          ${a.body_text
+            ? `<div class="announcement-body">${escapeHtml(a.body_text.slice(0, 120))}${a.body_text.length > 120 ? '…' : ''}</div>`
+            : ''
+          }
+        </div>
+        ${a.dismissible
+          ? `<button class="announcement-dismiss"
+               onclick="dismissFromStrip('${a.announcement_id}', this)"
+               title="Dismiss">×</button>`
+          : ''
+        }`;
+      strip.appendChild(item);
+    });
+
+    // "View all" footer link — always shown when there are any unread
+    // Shows count if more than 2 unread so student knows there's more
+    const footer = document.createElement('a');
+    footer.href = '/announcements.html';
+    footer.className = 'announcements-footer';
+    footer.textContent = totalUnread > 2
+      ? `View all announcements (${totalUnread} unread) →`
+      : `View all announcements →`;
+    strip.appendChild(footer);
+  }
+
+  // ── Dismiss from strip ────────────────────────────────────
+  // When student clicks × on the strip, we:
+  // 1. Write state = 'dismissed' to user_notice_state using upsert
+  //    (upsert = insert if new, update if already exists — no duplicates)
+  // 2. Remove the card from the strip immediately
+  async function dismissFromStrip(announcementId, btn) {
+    btn.disabled = true;
+
+    const { error } = await db
+      .from('user_notice_state')
+      .upsert({
+        user_id:    currentProfile.user_id,
+        item_type:  'ANNOUNCEMENT',
+        item_id:    announcementId,
+        state:      'dismissed',
+        seen_at:    new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,item_type,item_id'
+      });
+
+    if (error) {
+      console.error('dismissFromStrip:', error);
+      btn.disabled = false;
+      return;
+    }
+
+    // Remove this item from the strip
+    const item = document.getElementById(`strip-item-${announcementId}`);
+    if (item) {
+      item.style.transition = 'opacity 0.25s';
+      item.style.opacity = '0';
+      setTimeout(() => item.remove(), 250);
+    }
+  }
+
   // ── Courses ───────────────────────────────────────────────
-  // Shows one card per course in the access map
-  // Each card shows that course's specific stacked expiry
   async function loadCourses() {
+    const courses = await getCourses();
     const coursesArea = document.getElementById('coursesArea');
 
-    if (Object.keys(courseAccessMap).length === 0) {
-      coursesArea.innerHTML = `
-        <div class="no-sub-card" style="grid-column:1/-1;">
-          <h3>No Active Subscription</h3>
-          <p>Subscribe to a product to unlock your courses and start practising.</p>
-          <a href="/subscription.html" class="btn btn-primary" style="width:auto; display:inline-block; padding:10px 24px;">
-            View Plans
-          </a>
-        </div>`;
+    const accessible = courses.filter(c => courseAccessMap[c.course_id]);
+
+    if (!accessible.length) {
+      coursesArea.innerHTML = `<p style="color:var(--text-muted); font-size:14px;">No courses available yet.</p>`;
       return;
     }
 
-    // Fetch course details for all courses in the access map
-    const courseIds = Object.keys(courseAccessMap);
-    const { data: courses } = await db
-      .from('courses')
-      .select('*')
-      .in('course_id', courseIds)
-      .eq('status', 'active');
-
-    if (!courses || courses.length === 0) {
-      coursesArea.innerHTML = '<p style="color:var(--text-muted)">No courses found.</p>';
-      return;
-    }
-
-    coursesArea.innerHTML = '';
-
-    courses.forEach(course => {
+    accessible.forEach(course => {
       const access    = courseAccessMap[course.course_id];
-      const daysLeft  = access.totalDays;
+      const now       = new Date();
+      const daysLeft  = Math.ceil((access.expires - now) / (1000 * 60 * 60 * 24));
       const isWarning = daysLeft <= 7;
 
-      // Format expiry label for the card
       const expiryLabel = isWarning
         ? `⚠️ Expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`
         : `Expires ${access.expires.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`;
 
       coursesArea.innerHTML += `
         <div class="course-card" onclick="window.location.href='/course/${course.course_id}.html'">
-          <div class="course-badge">${course.program_scope.join(', ')}</div>
+          <div class="course-badge">${(course.program_scope || []).join(', ')}</div>
           <h3>${course.title}</h3>
           <p>Click to view quizzes and study materials</p>
           <div class="course-expiry ${isWarning ? 'warning' : 'normal'}">
@@ -427,43 +470,6 @@
           </div>
         </div>`;
     });
-  }
-
-  // ── Announcements ─────────────────────────────────────────
-  async function loadAnnouncements(profile) {
-    const announcements  = await getAnnouncements();
-    const dismissedIds   = await getDismissedAnnouncements(profile.user_id);
-
-    const strip = document.getElementById('announcementsStrip');
-    strip.innerHTML = '';
-
-    announcements.forEach(a => {
-      if (dismissedIds.includes(a.announcement_id)) return;
-
-      const item = document.createElement('div');
-      item.className = `announcement-item ${a.pinned ? 'pinned' : ''}`;
-      item.innerHTML = `
-        <div>
-          <div class="announcement-title">${a.title}</div>
-          <div class="announcement-body">${a.body_text || ''}</div>
-        </div>
-        ${a.dismissible
-          ? `<button class="announcement-dismiss" onclick="dismissAnnouncement('${a.announcement_id}', this)">×</button>`
-          : ''
-        }`;
-      strip.appendChild(item);
-    });
-  }
-
-  // ── Dismiss announcement ──────────────────────────────────
-  async function dismissAnnouncement(announcementId, btn) {
-    await db.from('user_notice_state').insert({
-      user_id:   currentProfile.user_id,
-      item_type: 'ANNOUNCEMENT',
-      item_id:   announcementId,
-      state:     'dismissed'
-    });
-    btn.closest('.announcement-item').remove();
   }
 
   // ── Recent attempts ───────────────────────────────────────
@@ -516,6 +522,16 @@
         </thead>
         <tbody>${rows}</tbody>
       </table>`;
+  }
+
+  // ── Escape HTML ───────────────────────────────────────────
+  // Prevents any HTML in announcement titles/body being rendered as code
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
   }
 
   // ── Start ─────────────────────────────────────────────────
