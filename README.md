@@ -43,7 +43,8 @@ qacademy-gamma/
 ├── images/
 │   └── QAcademy_Logo.png
 ├── student/
-│   └── dashboard.html
+│   ├── dashboard.html
+│   └── announcements.html
 └── admin/
     ├── dashboard.html
     ├── users.html
@@ -78,15 +79,22 @@ qacademy-gamma/
 | users | All platform users | ✅ |
 | subscriptions | User subscriptions | ✅ |
 | announcements | Platform announcements | ✅ |
-| user_notice_state | Announcement dismiss state | ✅ |
+| user_notice_state | Announcement interaction state | ✅ |
+
+## Announcement States (user_notice_state)
+| State | Trigger | Meaning |
+|---|---|---|
+| `read` | Student clicks "Mark as Read" | Consciously acknowledged |
+| `clicked` | Student clicks a link/button inside body | Took action |
+| `dismissed` | Student clicks × | Closed, never shows again |
 
 ## api.js — Shared Functions
 | Function | Returns | Used by |
 |---|---|---|
 | `getPrograms()` | All programmes | Register, admin filters, quiz builder |
 | `getProducts()` | Active products only | Grant modal, payments, student pages |
-| `getAllProducts()` | All products including archived | admin/products.html |
-| `getCourses()` | Active courses only | Student dashboard, quiz builder |
+| `getAllProducts()` | All products including archived | admin/products.html, admin/announcements.html |
+| `getCourses()` | Active courses only | Student dashboard, quiz builder, admin/announcements.html |
 | `getAllCourses()` | All courses including archived | admin/courses.html |
 | `getUsers()` | Filtered user list | admin/users.html |
 | `getUserById()` | Full user + subscription history | Admin user panel |
@@ -95,17 +103,21 @@ qacademy-gamma/
 | `activateUser()` | Reactivates account | admin/users.html |
 | `sendPasswordReset()` | Sends reset email | admin/users.html |
 | `updateUserProfile()` | Updates user fields | admin/users.html |
-| `getAnnouncements()` | Active in-schedule announcements | Student dashboard |
-| `getDismissedAnnouncements()` | Dismissed announcement IDs | Student dashboard |
+| `getAnnouncements()` | Active in-schedule announcements | Student dashboard, student/announcements.html |
+| `getDismissedAnnouncements()` | Dismissed announcement IDs | Student dashboard (legacy, still used) |
 | `getStudentCourseAccess()` | Stacked course access map | Student dashboard, course pages |
 
 ## Key Design Decisions
 - **Trial is a product Kind** (PAID / TRIAL / FREE), not a subscription status
 - **Subscription status** is only: ACTIVE / EXPIRED / CANCELLED
-- **Stacked subscriptions** — if a student has multiple active subscriptions covering the same course, remaining days are summed
+- **Stacked subscriptions** — remaining days are summed across all active subscriptions per course
 - **Programme scope on courses** is an array — a course can belong to multiple programmes or none
 - **Product ID and Course ID** cannot be changed after creation
 - **Archive not delete** — products and courses are archived, never hard deleted
+- **Announcement ID** is TEXT PRIMARY KEY — must be supplied on insert as `ANN_` + timestamp
+- **Announcement scopes work as AND** — student must match ALL conditions set
+- **Dashboard strip shows max 2 unread** — pinned first, then by priority. "View all" link shows full count
+- **Cohort targeting** uses a lean single-column query on users table — not getUsers()
 
 ## RLS
 Enabled on all tables with `dev_allow_all` policy.
@@ -128,17 +140,21 @@ Replace with proper policies before going live.
 - Landing page (index.html)
 - Images folder with logo
 - js/api.js — shared data layer
-- admin/users.html — full user management (search, filters, side panel, assign subscription, password reset, activate/deactivate)
-- admin/subscriptions.html — full CRUD, visual grouping, 7 stat cards, 6 filters, edit modal, payment reference column
-- admin/products.html — full CRUD, course picker, Telegram group key tag input, archive/restore
-- admin/courses.html — combined courses & programmes, two tabs, full CRUD for both
-- Programme-specific trials (auto-assigned on registration based on programme)
-- Stacked subscription logic (multiple active subs merged per course)
-- 20 test users seeded with realistic data across all programmes
+- admin/users.html — full user management
+- admin/subscriptions.html — full CRUD, 7 stat cards, 6 filters
+- admin/products.html — full CRUD, course picker, Telegram group keys
+- admin/courses.html — combined courses & programmes, two tabs
+- Programme-specific trials (auto-assigned on registration)
+- Stacked subscription logic
+- 20 test users seeded
+- admin/announcements.html — full CRUD, all 8 scopes, live audience summary, engagement tracking
+- student/announcements.html — full student view, read/clicked/dismissed states, tabs, "View all" link
+- student/dashboard.html — announcements strip updated (max 2 unread, upsert dismiss, "View all" footer)
 
-### Next Session ⏭️
-- admin/announcements.html — full announcement management with targeting, scheduling, rich content
-- /announcements.html — student view of all announcements
+### Pending — Scope Testing ⏭️
+- Create two test students (Test Alice: RN/L300/2024/PAID, Test Ben: RM/L100/2023/TRIAL)
+- Create varied announcements covering all scope combinations
+- Verify correct announcements show/hide for each student
 
 ### After That
 - Quiz engine: admin/fixed-quizzes.html, fixed-quizzes.html, runner/instant.html, runner/timed.html, history.html
@@ -147,17 +163,15 @@ Replace with proper policies before going live.
 - Messaging: messages.html, admin messages
 - Downloads: downloads.html (offline packs)
 - Telegram: bot integration, telegram.html
-- My Teacher feature (intentionally deferred to later phase)
+- My Teacher feature (intentionally deferred)
 
 ### Intentionally Skipped (for now)
-- Teacher features (classes, question banks, teacher quizzes, results)
-- Will be built as a separate phase after core student experience is complete
+- Teacher features — separate phase after core student experience
 
 ## Automation Notes
 The platform is fully data-driven:
 - Add a new programme → insert row in `programs` table
 - Add a new course → insert row in `courses` table
 - Add a new product → insert row in `products` table
-- Assign courses to a product → update `courses_included` array
-- Archive a product → set status = archived (stops appearing for new subscriptions)
+- Add a new announcement → fill form on admin/announcements.html
 - Everything reflects on frontend automatically — no code changes needed
