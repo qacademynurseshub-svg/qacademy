@@ -1148,7 +1148,10 @@
         .update(payload)
         .eq('announcement_id', editingId));
     } else {
-      // Insert new — Supabase auto-generates the announcement_id (UUID)
+      // Insert new — generate a unique ID using timestamp
+      // announcement_id is TEXT PRIMARY KEY so we must supply it ourselves
+      // Format: ANN_1710432000000 — always unique, readable in the DB
+      payload.announcement_id = 'ANN_' + Date.now();
       ({ error } = await db
         .from('announcements')
         .insert(payload));
