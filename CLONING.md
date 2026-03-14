@@ -413,7 +413,38 @@ Key functions:
 | admin/config.html | Shell — to be built later |
 
 ---
+| admin/announcements.html | Full CRUD — create/edit/archive announcements, all 8 scope fields,
+live audience summary sentence, engagement counts (read/clicked/dismissed) |
+| student/announcements.html | Student view — All/Unread/Read tabs, Mark as Read, Dismiss,
+CTA button click tracking |
 
+### Announcement ID generation
+announcement_id is TEXT PRIMARY KEY — Supabase does not auto-generate it.
+Must be supplied on insert as: 'ANN_' + Date.now()
+Example: ANN_1710432000000
+
+### Announcement scopes — AND logic
+All scope fields work as intersection (AND).
+A student must match every condition set to see the announcement.
+Leave all scopes blank = shown to everyone.
+
+### user_notice_state unique constraint
+Required for upsert to work correctly on dismiss/read/clicked actions.
+Run once in Supabase SQL editor:
+ALTER TABLE user_notice_state
+ADD CONSTRAINT unique_user_notice UNIQUE (user_id, item_type, item_id);
+
+### Dashboard strip rules
+- Shows max 2 unread announcements (pinned first, then by priority)
+- Read/clicked announcements hidden from strip, visible on announcements page
+- Dismissed announcements hidden everywhere permanently
+- "View all" footer link shows total unread count if more than 2
+
+### Cohort targeting query
+Cohort values are fetched with a lean single-column query — NOT getUsers().
+This avoids loading all user data just to populate a dropdown.
+Query: SELECT cohort FROM users WHERE cohort IS NOT NULL
+Deduplication done client-side with Set.
 ## Step 11 — Create First Admin Account
 
 1. Register a new account via /register.html
