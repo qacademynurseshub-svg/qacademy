@@ -243,8 +243,9 @@
         <div class="sep"></div>
         <button type="button" onclick="insertQuizPlaceholder()" style="opacity:0.5;" disabled>📝 Quiz Link</button>
       </div>
-      <textarea id="fieldBody" style="width:100%;box-sizing:border-box;" rows="6"
-        placeholder="Write your announcement body here." oninput="refreshPreview()"></textarea>
+     <textarea id="fieldBody" style="width:100%;box-sizing:border-box;" rows="6"
+  placeholder="Write your announcement body here." oninput="refreshPreview(); updateCharCount()"></textarea>
+<p class="form-hint" style="text-align:right;" id="bodyCharCount">0 characters</p>
     </div>
 
     <div class="form-group">
@@ -259,14 +260,17 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label>Status</label>
-        <select id="fieldStatus">
-          <option value="draft">Draft — not visible yet</option>
-          <option value="active">Active — visible now</option>
-          <option value="scheduled">Scheduled — goes live at start date</option>
-          <option value="archived">Archived — hidden</option>
-        </select>
-      </div>
+  <label>Status</label>
+  <select id="fieldStatus" onchange="refreshStatusWarning()">
+    <option value="draft">Draft — not visible yet</option>
+    <option value="active">Active — visible now</option>
+    <option value="scheduled">Scheduled — goes live at start date</option>
+    <option value="archived">Archived — hidden</option>
+  </select>
+  <div id="statusWarning" style="display:none; margin-top:8px; padding:8px 12px; background:#fff7ed; border:1px solid #fed7aa; border-radius:var(--radius); font-size:12px; color:var(--warning);">
+    ⚠️ This announcement is set to <strong>Draft</strong> — students will not see it until you change the status to Active.
+  </div>
+</div>
       <div class="form-group">
         <label>Priority</label>
         <input type="number" id="fieldPriority" value="1" min="0" max="99" />
@@ -463,7 +467,7 @@
   function buildPickers() {
     // Programmes
     document.getElementById('programPicker').innerHTML = allPrograms.length
-      ? allPrograms.map(p => `<label><input type="checkbox" class="prog-checkbox" value="${p.program_id}" onchange="refreshSummary()" /> ${escapeHtml(p.name || p.program_id)}</label>`).join('')
+? allPrograms.map(p => `<label><input type="checkbox" class="prog-checkbox" value="${p.program_id}" onchange="refreshSummary()" /> ${escapeHtml(p.program_name || p.program_id)}</label>`).join('')
       : '<span style="font-size:13px;color:var(--text-muted);">No programmes found</span>';
 
     // Courses
@@ -631,8 +635,10 @@
     document.querySelectorAll('.prog-checkbox,.course-checkbox,.level-checkbox,.product-checkbox')
       .forEach(cb => cb.checked = false);
     renderUserTags();
-    refreshPreview();
-    refreshSummary();
+refreshPreview();
+refreshSummary();
+refreshStatusWarning();
+updateCharCount();
   }
 
   // ── Fill form ─────────────────────────────────────────────
@@ -664,8 +670,10 @@
     // This is acceptable for edit mode
     selectedUsers = (a.scope_user_ids || []).map(uid => ({ user_id: uid, name: uid }));
     renderUserTags();
-    refreshPreview();
-    refreshSummary();
+   refreshPreview();
+refreshSummary();
+refreshStatusWarning();
+updateCharCount();
   }
 
   // ── Live Audience Summary ─────────────────────────────────
@@ -781,6 +789,36 @@
     document.getElementById('fieldUserIds').value = selectedUsers.map(u => u.user_id).join(',');
   }
 
+// ── Status warning ────────────────────────────────────────
+// Shows a warning when admin sets status to Draft or Archived
+// so they don't accidentally save something students can't see
+function refreshStatusWarning() {
+  const status  = document.getElementById('fieldStatus').value;
+  const warning = document.getElementById('statusWarning');
+  if (status === 'draft' || status === 'archived') {
+    const label = status === 'draft' ? 'Draft' : 'Archived';
+    warning.innerHTML = `⚠️ This announcement is set to <strong>${label}</strong> — students will not see it until you change the status to Active.`;
+    warning.style.display = 'block';
+  } else {
+    warning.style.display = 'none';
+  }
+}
+  
+// ── Character count ───────────────────────────────────────
+// Shows live character count below the body textarea
+// Counts plain text only (not HTML tags)
+function updateCharCount() {
+  const raw = document.getElementById('fieldBody').value || '';
+  // Strip HTML tags to count visible characters only
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = raw;
+  const textOnly = tempDiv.textContent || raw;
+  const count = textOnly.length;
+  const el = document.getElementById('bodyCharCount');
+  el.textContent = `${count} character${count !== 1 ? 's' : ''}`;
+  // Warn if getting long
+  el.style.color = count > 500 ? 'var(--warning)' : count > 800 ? 'var(--danger)' : 'var(--text-muted)';
+}
   // ── Body preview ──────────────────────────────────────────
 function refreshPreview() {
     const raw = document.getElementById('fieldBody').value || '';
@@ -909,16 +947,26 @@ function newlinesToParagraphs(text) {
       end_at:                  endAt   || null,
     };
 
-    const editingId = document.getElementById('editingId').value;
-    let error;
+const editingId = document.getElementById('editingId').value;
+let error;
 
-    if (editingId) {
-      ({ error } = await db.from('announcements').update(payload).eq('announcement_id', editingId));
-    } else {
-      // TEXT PRIMARY KEY — must supply ID ourselves
-      payload.announcement_id = 'ANN_' + Date.now();
-      ({ error } = await db.from('announcements').insert(payload));
-    }
+if (editingId) {
+  ({ error } = await db.from('announcements').update(payload).eq('announcement_id', editingId));
+} else {
+  // Check for duplicate title before inserting
+  const duplicate = allAnnouncements.find(a =>
+    a.title.trim().toLowerCase() === title.trim().toLowerCase() &&
+    a.status !== 'archived'
+  );
+  if (duplicate) {
+    showPanelError(`An announcement with this title already exists: "${duplicate.title}". Please use a different title or edit the existing one.`);
+    btn.disabled = false; btn.textContent = 'Save Announcement';
+    return;
+  }
+  // TEXT PRIMARY KEY — must supply ID ourselves
+  payload.announcement_id = 'ANN_' + Date.now();
+  ({ error } = await db.from('announcements').insert(payload));
+}
 
     btn.disabled = false; btn.textContent = 'Save Announcement';
     if (error) { showPanelError('Save failed: ' + error.message); return; }
