@@ -6,50 +6,172 @@
   <title>Dashboard — QAcademy Nurses Hub</title>
   <link rel="stylesheet" href="/css/style.css" />
   <style>
-    .announcements-strip { margin-bottom: 24px; }
+  /* ── Announcements block ── */
+.announcements-block {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
 
-    .announcement-item {
-      background: #fffbeb;
-      border: 1px solid #fcd34d;
-      border-radius: var(--radius);
-      padding: 12px 16px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-    }
+.announcements-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
 
-    .announcement-item.pinned {
-      background: var(--primary-light);
-      border-color: var(--primary);
-    }
+.announcements-block-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
-    .announcement-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
-    .announcement-body  { font-size: 13px; color: var(--text-muted); }
+.announcements-block-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
 
-    .announcement-dismiss {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text-muted);
-      font-size: 18px;
-      line-height: 1;
-      padding: 0;
-      flex-shrink: 0;
-    }
-    .announcement-dismiss:hover { color: var(--danger); }
+/* Empty state inside block */
+.announcements-empty {
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
 
-    /* "View all" link at the bottom of the strip */
-    .announcements-footer {
-      font-size: 13px;
-      color: var(--accent);
-      font-weight: 500;
-      padding: 4px 0 8px;
-      display: block;
-      text-decoration: none;
-    }
-    .announcements-footer:hover { text-decoration: underline; }
+/* Individual announcement item */
+.announcement-item {
+  border-bottom: 1px solid var(--border);
+}
+.announcement-item:last-of-type {
+  border-bottom: none;
+}
+.announcement-item.pinned .announcement-item-header {
+  background: var(--primary-light);
+  border-left: 4px solid var(--accent);
+}
+
+/* Header row — always visible, click to expand */
+.announcement-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  gap: 12px;
+  transition: background 0.15s;
+}
+.announcement-item-header:hover {
+  background: var(--bg);
+}
+
+.announcement-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  flex: 1;
+}
+
+.announcement-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.announcement-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+  transition: transform 0.2s;
+}
+.announcement-expand-btn.open {
+  transform: rotate(180deg);
+}
+
+.announcement-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+}
+.announcement-dismiss:hover { color: var(--danger); }
+
+/* Expandable body */
+.announcement-item-body {
+  display: none;
+  padding: 0 16px 14px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.65;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.announcement-item-body.open {
+  display: block;
+}
+
+/* Body HTML styles */
+.announcement-item-body p  { margin: 0 0 8px; }
+.announcement-item-body p:last-child { margin-bottom: 0; }
+.announcement-item-body strong { font-weight: 700; }
+.announcement-item-body em { font-style: italic; }
+.announcement-item-body a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.announcement-item-body a[data-qa="btn"] {
+  display: inline-block;
+  padding: 8px 18px;
+  background: var(--accent);
+  color: white !important;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+  transition: background 0.15s;
+}
+.announcement-item-body a[data-qa="btn"]:hover {
+  background: var(--primary);
+}
+
+/* "Read more" link when body is long */
+.announcement-read-more {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+  margin-top: 8px;
+  display: inline-block;
+  text-decoration: none;
+}
+.announcement-read-more:hover { text-decoration: underline; }
+
+/* "View all" footer link */
+.announcements-footer {
+  display: block;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.announcements-footer:hover { background: var(--bg); text-decoration: none; }
 
     .subscription-bar {
       background: var(--white);
@@ -213,8 +335,14 @@
       </div>
     </div>
 
-    <!-- Announcements Strip -->
-    <div class="announcements-strip" id="announcementsStrip"></div>
+    <!-- Announcements Block -->
+<div class="announcements-block" id="announcementsBlock">
+  <div class="announcements-block-header">
+    <span class="announcements-block-title">📢 Announcements</span>
+    <span class="announcements-block-count" id="announcementsCount"></span>
+  </div>
+  <div id="announcementsStrip"></div>
+</div>
 
     <!-- Subscription Status Bar -->
     <div id="subscriptionBar"></div>
@@ -333,130 +461,183 @@
       </div>`;
   }
 
-  // ── Announcements strip ───────────────────────────────────
-  // Rules:
-  // - Only show UNREAD announcements (no row in user_notice_state for this user)
-  // - Max 2 shown on the strip — pinned first, then by priority
-  // - If total unread > 2, show "View all (X unread)" footer link
-  // - Dismissed and Read announcements are hidden from the strip
-  async function loadAnnouncements(profile) {
-    // getAnnouncements() from api.js — returns active, in-schedule announcements
-const announcements = await getAnnouncements();
+// ── Announcements block ───────────────────────────────────
+// Rules:
+// - Block is ALWAYS visible — shows empty state if nothing to show
+// - Only show UNREAD announcements (no row in user_notice_state)
+// - Max 2 shown — pinned auto-expands, others collapsed
+// - Two empty states:
+//   "Nothing from us yet" = no announcements exist at all
+//   "You're all caught up!" = announcements exist but all seen/dismissed
+async function loadAnnouncements(profile) {
+  const strip = document.getElementById('announcementsStrip');
+  const countEl = document.getElementById('announcementsCount');
+  strip.innerHTML = '';
 
-// Get student's active subscription kind and product for scope filtering
-let subscriptionKind = 'FREE';
-let activeProductId  = '';
+  // Fetch all active in-schedule announcements
+  const announcements = await getAnnouncements();
 
-const { data: activeSub } = await db
-  .from('subscriptions')
-  .select('product_id, products(kind)')
-  .eq('user_id', profile.user_id)
-  .eq('status', 'ACTIVE')
-  .order('expires_utc', { ascending: false })
-  .limit(1)
-  .maybeSingle();
+  // Get subscription kind for scope filtering
+  let subscriptionKind = 'FREE';
+  let activeProductId  = '';
 
-if (activeSub) {
-  subscriptionKind          = activeSub.products?.kind || 'FREE';
-  activeProductId           = activeSub.product_id || '';
-  profile.activeProductId   = activeProductId;
-}
+  const { data: activeSub } = await db
+    .from('subscriptions')
+    .select('product_id, products(kind)')
+    .eq('user_id', profile.user_id)
+    .eq('status', 'ACTIVE')
+    .order('expires_utc', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-// Filter announcements to only those this student qualifies for
-const filtered = filterAnnouncementsForStudent(announcements, profile, subscriptionKind);
-    // Fetch ALL states for this user (dismissed, read, clicked)
-    // We want to hide anything that already has ANY state
-    const { data: stateRows } = await db
-      .from('user_notice_state')
-      .select('item_id')
-      .eq('user_id', profile.user_id)
-      .eq('item_type', 'ANNOUNCEMENT');
+  if (activeSub) {
+    subscriptionKind        = activeSub.products?.kind || 'FREE';
+    activeProductId         = activeSub.product_id || '';
+    profile.activeProductId = activeProductId;
+  }
 
-    // Build a Set of announcement IDs the student has already interacted with
-    const interactedIds = new Set((stateRows || []).map(r => r.item_id));
+  // Filter to only announcements this student qualifies for
+  const filtered = filterAnnouncementsForStudent(announcements, profile, subscriptionKind);
 
-    // Filter to only truly unread announcements
-const unread = filtered.filter(a => !interactedIds.has(a.announcement_id));    const totalUnread = unread.length;
+  // Fetch all interaction states for this user
+  const { data: stateRows } = await db
+    .from('user_notice_state')
+    .select('item_id')
+    .eq('user_id', profile.user_id)
+    .eq('item_type', 'ANNOUNCEMENT');
 
-    // Take max 2 for the strip (api.js already orders pinned first, then priority)
-    const toShow = unread.slice(0, 2);
+  const interactedIds = new Set((stateRows || []).map(r => r.item_id));
 
-    const strip = document.getElementById('announcementsStrip');
-    strip.innerHTML = '';
+  // Filter to only unread
+  const unread = filtered.filter(a => !interactedIds.has(a.announcement_id));
+  const totalUnread = unread.length;
 
-    if (toShow.length === 0) {
-      // Nothing to show — strip stays empty, no clutter
-      return;
-    }
+  // Update count badge
+  countEl.textContent = totalUnread > 0 ? `${totalUnread} unread` : '';
 
-    // Render up to 2 announcement items
-    toShow.forEach(a => {
-      const item = document.createElement('div');
-      item.className = `announcement-item ${a.pinned ? 'pinned' : ''}`;
-      item.id = `strip-item-${a.announcement_id}`;
-      item.innerHTML = `
-        <div>
-          <div class="announcement-title">${escapeHtml(a.title)}</div>
-          ${a.body_text
-            ? `<div class="announcement-body">${escapeHtml(a.body_text.slice(0, 120))}${a.body_text.length > 120 ? '…' : ''}</div>`
-            : ''
-          }
-        </div>
-        ${a.dismissible
-          ? `<button class="announcement-dismiss"
-               onclick="dismissFromStrip('${a.announcement_id}', this)"
-               title="Dismiss">×</button>`
-          : ''
-        }`;
-      strip.appendChild(item);
-    });
+  // ── Empty state: no announcements exist at all
+  if (filtered.length === 0) {
+    strip.innerHTML = `
+      <div class="announcements-empty">
+        🔔 Nothing from us yet — check back soon.
+      </div>`;
+    return;
+  }
 
-    // "View all" footer link — always shown when there are any unread
-    // Shows count if more than 2 unread so student knows there's more
+  // ── Empty state: announcements exist but all seen/dismissed
+  if (unread.length === 0) {
+    strip.innerHTML = `
+      <div class="announcements-empty">
+        🎉 You're all caught up!
+      </div>`;
+    // Still show "View all" so student can see their history
     const footer = document.createElement('a');
     footer.href = '/student/announcements.html';
     footer.className = 'announcements-footer';
-    footer.textContent = totalUnread > 2
-      ? `View all announcements (${totalUnread} unread) →`
-      : `View all announcements →`;
+    footer.textContent = 'View all announcements →';
     strip.appendChild(footer);
+    return;
   }
 
-  // ── Dismiss from strip ────────────────────────────────────
-  // When student clicks × on the strip, we:
-  // 1. Write state = 'dismissed' to user_notice_state using upsert
-  //    (upsert = insert if new, update if already exists — no duplicates)
-  // 2. Remove the card from the strip immediately
-  async function dismissFromStrip(announcementId, btn) {
-    btn.disabled = true;
+  // ── Render up to 2 unread announcements
+  const toShow = unread.slice(0, 2);
 
-    const { error } = await db
-      .from('user_notice_state')
-      .upsert({
-        user_id:    currentProfile.user_id,
-        item_type:  'ANNOUNCEMENT',
-        item_id:    announcementId,
-        state:      'dismissed',
-        seen_at:    new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,item_type,item_id'
-      });
+  toShow.forEach((a, index) => {
+    // Pinned announcements auto-expand, others start collapsed
+    const autoExpand = !!a.pinned;
+    const bodyHtml = sanitiseBodyHtml(a.body_html || a.body_text || '');
 
-    if (error) {
-      console.error('dismissFromStrip:', error);
-      btn.disabled = false;
-      return;
-    }
+    const item = document.createElement('div');
+    item.className = `announcement-item ${a.pinned ? 'pinned' : ''}`;
+    item.id = `strip-item-${a.announcement_id}`;
 
-    // Remove this item from the strip
-    const item = document.getElementById(`strip-item-${announcementId}`);
-    if (item) {
-      item.style.transition = 'opacity 0.25s';
-      item.style.opacity = '0';
-      setTimeout(() => item.remove(), 250);
+    item.innerHTML = `
+      <div class="announcement-item-header"
+           onclick="toggleExpand('${a.announcement_id}')">
+        <div class="announcement-title">${escapeHtml(a.title)}</div>
+        <div class="announcement-item-actions">
+          ${a.dismissible
+            ? `<button class="announcement-dismiss"
+                 onclick="event.stopPropagation(); dismissFromStrip('${a.announcement_id}', this)"
+                 title="Dismiss">×</button>`
+            : ''
+          }
+          <button class="announcement-expand-btn ${autoExpand ? 'open' : ''}"
+                  id="expand-btn-${a.announcement_id}"
+                  onclick="event.stopPropagation(); toggleExpand('${a.announcement_id}')"
+                  title="Expand">▼</button>
+        </div>
+      </div>
+      <div class="announcement-item-body ${autoExpand ? 'open' : ''}"
+           id="expand-body-${a.announcement_id}">
+        ${bodyHtml || '<p style="color:var(--text-muted);">No content.</p>'}
+        <a href="/student/announcements.html" class="announcement-read-more">
+          View on announcements page →
+        </a>
+      </div>`;
+
+    strip.appendChild(item);
+  });
+
+  // "View all" footer
+  const footer = document.createElement('a');
+  footer.href = '/student/announcements.html';
+  footer.className = 'announcements-footer';
+  footer.textContent = totalUnread > 2
+    ? `View all announcements (${totalUnread} unread) →`
+    : `View all announcements →`;
+  strip.appendChild(footer);
+}
+
+// ── Toggle expand/collapse ────────────────────────────────
+function toggleExpand(announcementId) {
+  const body = document.getElementById(`expand-body-${announcementId}`);
+  const btn  = document.getElementById(`expand-btn-${announcementId}`);
+  if (!body) return;
+  body.classList.toggle('open');
+  btn.classList.toggle('open');
+}
+
+// ── Sanitise HTML for body rendering ─────────────────────
+// Allows safe HTML tags including data-qa="btn" for buttons
+function sanitiseBodyHtml(raw) {
+  if (!raw) return '';
+  const allowed = ['p','br','strong','em','b','i','ul','ol','li','a','code','img'];
+  const div = document.createElement('div');
+  div.innerHTML = raw;
+
+  function clean(node) {
+    if (node.nodeType === Node.TEXT_NODE) return;
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const tag = node.tagName.toLowerCase();
+      if (!allowed.includes(tag)) {
+        node.replaceWith(document.createTextNode(node.textContent));
+        return;
+      }
+      if (tag === 'a') {
+        const href   = node.getAttribute('href') || '';
+        const dataQa = node.getAttribute('data-qa') || '';
+        Array.from(node.attributes).forEach(attr => node.removeAttribute(attr.name));
+        if (href)   node.setAttribute('href', href);
+        if (dataQa) node.setAttribute('data-qa', dataQa);
+        node.setAttribute('target', '_blank');
+        node.setAttribute('rel', 'noopener');
+      }
+      if (tag === 'img') {
+        const src = node.getAttribute('src') || '';
+        const alt = node.getAttribute('alt') || '';
+        Array.from(node.attributes).forEach(attr => node.removeAttribute(attr.name));
+        if (src) node.setAttribute('src', src);
+        if (alt) node.setAttribute('alt', alt);
+        node.style.maxWidth = '100%';
+      }
+      Array.from(node.childNodes).forEach(clean);
     }
   }
+
+  Array.from(div.childNodes).forEach(clean);
+  return div.innerHTML;
+}
 
   // ── Courses ───────────────────────────────────────────────
   async function loadCourses() {
