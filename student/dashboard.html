@@ -341,8 +341,29 @@
   // - Dismissed and Read announcements are hidden from the strip
   async function loadAnnouncements(profile) {
     // getAnnouncements() from api.js — returns active, in-schedule announcements
-    const announcements = await getAnnouncements();
+const announcements = await getAnnouncements();
 
+// Get student's active subscription kind and product for scope filtering
+let subscriptionKind = 'FREE';
+let activeProductId  = '';
+
+const { data: activeSub } = await db
+  .from('subscriptions')
+  .select('product_id, products(kind)')
+  .eq('user_id', profile.user_id)
+  .eq('status', 'ACTIVE')
+  .order('expires_utc', { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
+if (activeSub) {
+  subscriptionKind          = activeSub.products?.kind || 'FREE';
+  activeProductId           = activeSub.product_id || '';
+  profile.activeProductId   = activeProductId;
+}
+
+// Filter announcements to only those this student qualifies for
+const filtered = filterAnnouncementsForStudent(announcements, profile, subscriptionKind);
     // Fetch ALL states for this user (dismissed, read, clicked)
     // We want to hide anything that already has ANY state
     const { data: stateRows } = await db
@@ -355,8 +376,7 @@
     const interactedIds = new Set((stateRows || []).map(r => r.item_id));
 
     // Filter to only truly unread announcements
-    const unread = announcements.filter(a => !interactedIds.has(a.announcement_id));
-    const totalUnread = unread.length;
+const unread = filtered.filter(a => !interactedIds.has(a.announcement_id));    const totalUnread = unread.length;
 
     // Take max 2 for the strip (api.js already orders pinned first, then priority)
     const toShow = unread.slice(0, 2);
