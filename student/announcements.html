@@ -220,11 +220,12 @@
     </div>
 
     <!-- Tab filter -->
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tabAll"    onclick="setTab('all')">All</button>
-      <button class="tab-btn"        id="tabUnread" onclick="setTab('unread')">Unread</button>
-      <button class="tab-btn"        id="tabRead"   onclick="setTab('read')">Read</button>
-    </div>
+<div class="tab-bar">
+  <button class="tab-btn active" id="tabAll"       onclick="setTab('all')">All</button>
+  <button class="tab-btn"        id="tabUnread"    onclick="setTab('unread')">Unread</button>
+  <button class="tab-btn"        id="tabRead"      onclick="setTab('read')">Read</button>
+  <button class="tab-btn"        id="tabDismissed" onclick="setTab('dismissed')">Dismissed</button>
+</div>
 
     <!-- Announcements list -->
     <div class="announce-list" id="announceList">
@@ -320,39 +321,41 @@ allAnnouncements = filterAnnouncementsForStudent(raw, currentProfile, subscripti
   }
 
   // ─── Tab control ──────────────────────────────────────────
-  function setTab(tab) {
-    currentTab = tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
-    renderList();
-  }
+function setTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
+  renderList();
+}
 
   // ─── Render list ──────────────────────────────────────────
   function renderList() {
     const list = document.getElementById('announceList');
 
     // Filter by tab
-    let visible = allAnnouncements.filter(a => {
-      const state = userStates[a.announcement_id];
-      // Dismissed announcements never show on this page
-      if (state === 'dismissed') return false;
-      if (currentTab === 'unread') return !state;
-      if (currentTab === 'read')   return state === 'read' || state === 'clicked';
-      return true; // 'all' tab shows everything except dismissed
-    });
+ let visible = allAnnouncements.filter(a => {
+  const state = userStates[a.announcement_id];
+  if (currentTab === 'dismissed') return state === 'dismissed';
+  if (currentTab === 'unread')    return !state;
+  if (currentTab === 'read')      return state === 'read' || state === 'clicked';
+  // 'all' tab — shows everything except dismissed
+  return state !== 'dismissed';
+});
 
     if (!visible.length) {
-      list.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">📭</div>
-          <p>${
-            currentTab === 'unread'
-              ? 'You\'re all caught up — no unread announcements.'
-              : currentTab === 'read'
-              ? 'No read announcements yet.'
-              : 'No announcements at the moment.'
-          }</p>
-        </div>`;
+   list.innerHTML = `
+  <div class="empty-state">
+    <div class="empty-icon">${currentTab === 'dismissed' ? '🗑️' : currentTab === 'unread' ? '🎉' : '📭'}</div>
+    <p>${
+      currentTab === 'unread'
+        ? 'You\'re all caught up — no unread announcements.'
+        : currentTab === 'read'
+        ? 'No read announcements yet.'
+        : currentTab === 'dismissed'
+        ? 'No dismissed announcements.'
+        : 'No announcements at the moment.'
+    }</p>
+  </div>`;
       return;
     }
 
@@ -443,23 +446,28 @@ allAnnouncements = filterAnnouncementsForStudent(raw, currentProfile, subscripti
   }
 
   // ─── Dismiss ──────────────────────────────────────────────
-  async function dismiss(announcementId, btn) {
-    btn.disabled = true;
-    btn.textContent = 'Dismissing…';
+async function dismiss(announcementId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Dismissing…';
 
-    await recordState(announcementId, 'dismissed');
+  await recordState(announcementId, 'dismissed');
 
-    // Remove card from view immediately
-    const card = document.getElementById(`card-${announcementId}`);
-    if (card) {
-      card.style.transition = 'opacity 0.3s';
-      card.style.opacity = '0';
-      setTimeout(() => {
-        userStates[announcementId] = 'dismissed';
-        renderList();
-      }, 300);
-    }
+  // Update local state and re-render
+  // Card moves to Dismissed tab — not removed permanently
+  const card = document.getElementById(`card-${announcementId}`);
+  if (card) {
+    card.style.transition = 'opacity 0.3s';
+    card.style.opacity = '0';
+    setTimeout(() => {
+      userStates[announcementId] = 'dismissed';
+      renderList();
+      // Update subtitle
+      const unread = allAnnouncements.filter(a => !userStates[a.announcement_id]).length;
+      document.getElementById('pageSubtitle').textContent =
+        `${allAnnouncements.length} announcement${allAnnouncements.length !== 1 ? 's' : ''} · ${unread} unread`;
+    }, 300);
   }
+}
 
   // ─── Record state to DB ───────────────────────────────────
   // This is the single function that writes to user_notice_state.
