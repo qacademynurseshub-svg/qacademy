@@ -782,14 +782,14 @@
   }
 
   // ── Body preview ──────────────────────────────────────────
-  function refreshPreview() {
+function refreshPreview() {
     const raw = document.getElementById('fieldBody').value || '';
     const preview = document.getElementById('bodyPreview');
     if (!raw.trim()) {
       preview.innerHTML = '<span style="color:var(--text-muted);font-size:13px;">Preview will appear here as you type…</span>';
       return;
     }
-    preview.innerHTML = sanitiseHtml(raw);
+    preview.innerHTML = sanitiseHtml(newlinesToParagraphs(raw));
   }
 
   // ── Editor tools ──────────────────────────────────────────
@@ -815,7 +815,27 @@
     ta.focus(); refreshPreview();
   }
   function insertQuizPlaceholder() { alert('Quiz link insertion will be available once the quiz engine is built.'); }
-
+// ── Convert newlines to paragraphs ────────────────────────
+// When admin presses Enter in the textarea, it creates \n characters.
+// HTML ignores \n so we convert them to <p> tags before rendering.
+// This runs before sanitiseHtml() so the output is clean HTML.
+function newlinesToParagraphs(text) {
+  // Split on one or more blank lines to get paragraphs
+  // Then wrap each non-empty chunk in <p> tags
+  // Preserve existing HTML tags (links, buttons etc.) as-is
+  return text
+    .split(/\n\n+/)
+    .map(block => {
+      // Replace single newlines within a block with <br>
+      const inner = block.trim().replace(/\n/g, '<br>');
+      if (!inner) return '';
+      // If block already starts with an HTML tag, don't wrap in <p>
+      if (inner.startsWith('<')) return inner;
+      return `<p>${inner}</p>`;
+    })
+    .filter(Boolean)
+    .join('\n');
+}
   // ── Sanitise HTML ─────────────────────────────────────────
   function sanitiseHtml(raw) {
     const allowed = ['p','br','strong','em','b','i','ul','ol','li','a','code','img'];
@@ -861,7 +881,7 @@
     const scopeUserIds  = selectedUsers.map(u => u.user_id);
 
     const bodyRaw  = document.getElementById('fieldBody').value.trim();
-    const bodyHtml = sanitiseHtml(bodyRaw);
+    const bodyHtml = sanitiseHtml(newlinesToParagraphs(bodyRaw));
     const tempDiv  = document.createElement('div');
     tempDiv.innerHTML = bodyHtml;
     const bodyText = tempDiv.textContent || '';
