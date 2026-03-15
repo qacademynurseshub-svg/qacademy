@@ -11,13 +11,13 @@
 // Used by: register page, admin filters, quiz builder
 // ------------------------------------------------------------
 async function getPrograms() {
-  const { data, error } = await db
-    .from('programs')
-    .select('program_id, program_name')
-    .order('program_name');
+    const { data, error } = await db
+        .from('programs')
+        .select('program_id, program_name, trial_product_id')
+        .order('program_name');
 
-  if (error) { console.error('getPrograms:', error); return []; }
-  return data || [];
+    if (error) { console.error('getPrograms:', error); return []; }
+    return data || [];
 }
 
 
