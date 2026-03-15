@@ -267,8 +267,29 @@
   async function loadAnnouncements() {
     // getAnnouncements() from api.js — returns active, in-schedule announcements
     // ordered pinned first, then by priority
-    allAnnouncements = await getAnnouncements();
+const raw = await getAnnouncements();
 
+// Get student's active subscription kind and product for scope filtering
+let subscriptionKind = 'FREE';
+let activeProductId  = '';
+
+const { data: activeSub } = await db
+  .from('subscriptions')
+  .select('product_id, products(kind)')
+  .eq('user_id', currentProfile.user_id)
+  .eq('status', 'ACTIVE')
+  .order('expires_utc', { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
+if (activeSub) {
+  subscriptionKind                  = activeSub.products?.kind || 'FREE';
+  activeProductId                   = activeSub.product_id || '';
+  currentProfile.activeProductId    = activeProductId;
+}
+
+// Filter to only announcements this student qualifies for
+allAnnouncements = filterAnnouncementsForStudent(raw, currentProfile, subscriptionKind);
     // Load this student's state for all announcements
     // We need all states (read, clicked, dismissed) not just dismissed
     const { data: stateRows } = await db
