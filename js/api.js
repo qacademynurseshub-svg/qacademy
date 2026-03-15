@@ -236,7 +236,7 @@ async function assignSubscription(userId, productId, startDate = null) {
       product_id      : productId,
       start_utc       : start.toISOString(),
       expires_utc     : expires.toISOString(),
-      status          : product.kind === 'ACTIVE',
+      status          : 'ACTIVE',
       source          : 'ADMIN',
       source_ref      : 'admin_grant',
       expiry_reminded : false
