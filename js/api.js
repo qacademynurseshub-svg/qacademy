@@ -410,3 +410,90 @@ async function getStudentCourseAccess(userId) {
 
   return courseMap;
 }
+
+
+
+// ------------------------------------------------------------
+// FILTER ANNOUNCEMENTS FOR STUDENT
+// Takes all announcements + student profile and returns only
+// the ones this specific student qualifies to see.
+//
+// All scope fields work as AND logic:
+// - Every condition set must be matched
+// - Empty/null scope = no restriction on that field
+//
+// Used by: student dashboard strip, student announcements page
+// ------------------------------------------------------------
+function filterAnnouncementsForStudent(announcements, profile, subscriptionKind) {
+  return announcements.filter(a => {
+
+    // ── 1. Audience ──────────────────────────────────────
+    // If scope_audience is STUDENTS, only students see it
+    // Admins/Teachers are already on different pages so this
+    // is mainly a safety check
+    if (a.scope_audience === 'STUDENTS' && profile.role !== 'STUDENT') {
+      return false;
+    }
+
+    // ── 2. Programme ─────────────────────────────────────
+    // scope_programs is an array e.g. ['RN', 'RM']
+    // If set, student's program_id must be in the list
+    if (a.scope_programs && a.scope_programs.length > 0) {
+      if (!a.scope_programs.includes(profile.program_id)) {
+        return false;
+      }
+    }
+
+    // ── 3. Level ─────────────────────────────────────────
+    // scope_level is stored as a comma-separated string e.g. 'L100,L300'
+    // If set, student's level must be in the list
+    if (a.scope_level && a.scope_level.trim() !== '') {
+      const allowedLevels = a.scope_level.split(',').map(s => s.trim());
+      if (!allowedLevels.includes(profile.level)) {
+        return false;
+      }
+    }
+
+    // ── 4. Cohort ─────────────────────────────────────────
+    // scope_cohort is a single value e.g. '2024'
+    // If set, student's cohort must match exactly
+    if (a.scope_cohort && a.scope_cohort.trim() !== '') {
+      if (profile.cohort !== a.scope_cohort.trim()) {
+        return false;
+      }
+    }
+
+    // ── 5. Subscription Kind ──────────────────────────────
+    // scope_subscription_kind e.g. 'TRIAL' | 'PAID' | 'FREE'
+    // If set, student's active subscription kind must match
+    if (a.scope_subscription_kind && a.scope_subscription_kind.trim() !== '') {
+      if (subscriptionKind !== a.scope_subscription_kind.trim()) {
+        return false;
+      }
+    }
+
+    // ── 6. Specific Products ──────────────────────────────
+    // scope_product_ids is an array e.g. ['RN_FULL', 'RN_TRIAL']
+    // If set, student must have an active subscription to one
+    // of these specific products
+    if (a.scope_product_ids && a.scope_product_ids.length > 0) {
+      // subscriptionKind alone is not enough here — we need product_id
+      // We pass it separately as activeProductId
+      if (!a.scope_product_ids.includes(profile.activeProductId)) {
+        return false;
+      }
+    }
+
+    // ── 7. Specific Users ─────────────────────────────────
+    // scope_user_ids is an array of specific user_ids
+    // If set, only those exact users see it
+    if (a.scope_user_ids && a.scope_user_ids.length > 0) {
+      if (!a.scope_user_ids.includes(profile.user_id)) {
+        return false;
+      }
+    }
+
+    // ── Passed all checks ─────────────────────────────────
+    return true;
+  });
+}
