@@ -558,8 +558,8 @@ async function loadAnnouncements(profile) {
         <div class="announcement-item-actions">
           ${a.dismissible
             ? `<button class="announcement-dismiss"
-                 onclick="event.stopPropagation(); dismissFromStrip('${a.announcement_id}', this)"
-                 title="Dismiss">×</button>`
+onclick="event.stopPropagation(); clearFromStrip('${a.announcement_id}', this)"
+title="Dismiss">×</button>`
             : ''
           }
           <button class="announcement-expand-btn ${autoExpand ? 'open' : ''}"
@@ -588,7 +588,40 @@ async function loadAnnouncements(profile) {
     : `View all announcements →`;
   strip.appendChild(footer);
 }
+// ── Clear from strip (marks as Read) ─────────────────────
+// Clicking ✕ on the strip marks the announcement as Read
+// — clears it from the dashboard strip
+// — moves it to the Read tab on the announcements page
+async function clearFromStrip(announcementId, btn) {
+  btn.disabled = true;
 
+  const { error } = await db
+    .from('user_notice_state')
+    .upsert({
+      user_id:    currentProfile.user_id,
+      item_type:  'ANNOUNCEMENT',
+      item_id:    announcementId,
+      state:      'read',
+      seen_at:    new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,item_type,item_id'
+    });
+
+  if (error) {
+    console.error('clearFromStrip:', error);
+    btn.disabled = false;
+    return;
+  }
+
+  // Remove this item from the strip with a fade
+  const item = document.getElementById(`strip-item-${announcementId}`);
+  if (item) {
+    item.style.transition = 'opacity 0.25s';
+    item.style.opacity = '0';
+    setTimeout(() => item.remove(), 250);
+  }
+}
 // ── Toggle expand/collapse ────────────────────────────────
 function toggleExpand(announcementId) {
   const body = document.getElementById(`expand-body-${announcementId}`);
