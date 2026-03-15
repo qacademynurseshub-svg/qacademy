@@ -81,32 +81,27 @@
 <script src="/js/api.js"></script>
 <script>
 
-  // ── Map programme to its trial product ──────────────────
-  // This is the only place this mapping lives.
-  // Add a new programme here when you add one to the DB.
-  const TRIAL_PRODUCTS = {
-    'RN':     'RN_TRIAL',
-    'RM':     'RM_TRIAL',
-    'RPHN':   'RPHN_TRIAL',
-    'RMHN':   'RMHN_TRIAL',
-    'NACNAP': 'NACNAP_TRIAL'
-  };
-
-  // ── Load programmes from DB into dropdown ───────────────
-  async function loadPrograms() {
+// ── Load programmes from DB into dropdown ───────────────
+// Also stores trial_product_id on each option as a data attribute
+// so we can read it on form submit without a second DB call
+async function loadPrograms() {
     const programs = await getPrograms();
     const select = document.getElementById('program');
 
     if (!programs.length) {
-      select.innerHTML = '<option value="">Could not load programmes</option>';
-      return;
+        select.innerHTML = '<option value="">Could not load programmes</option>';
+        return;
     }
 
     select.innerHTML = '<option value="">Select your programme</option>';
     programs.forEach(p => {
-      select.innerHTML += `<option value="${p.program_id}">${p.program_name}</option>`;
+        select.innerHTML += `<option 
+            value="${p.program_id}" 
+            data-trial="${p.trial_product_id || ''}">
+            ${p.program_name}
+        </option>`;
     });
-  }
+}
 
   // ── Generate a user ID ──────────────────────────────────
   function generateUserId() {
@@ -184,15 +179,15 @@
       return;
     }
 
-    // ── Step 3: Auto-assign programme trial ─────────────
-    // Look up the correct trial product for this programme
-    const trialProductId = TRIAL_PRODUCTS[program_id];
+// ── Step 3: Auto-assign programme trial ─────────────
+// Read trial_product_id directly from the selected option
+// No hardcoded map needed — it comes from the database
+const selectedOption = document.getElementById('program').selectedOptions[0];
+const trialProductId = selectedOption?.dataset?.trial || '';
 
-    if (trialProductId) {
-      // Use assignSubscription from api.js — it calculates
-      // the expiry date automatically from product.duration_days
-      await assignSubscription(userId, trialProductId);
-    }
+if (trialProductId) {
+    await assignSubscription(userId, trialProductId);
+}
 
     // ── Step 4: Success ──────────────────────────────────
     successAlert.textContent = 'Account created! Redirecting to login...';
