@@ -60,6 +60,7 @@ qacademy-gamma/
 │   ├── payments.html
 │   ├── announcements.html
 │   ├── fixed-quizzes.html
+│   ├── question-bank.html
 │   └── config.html
 └── runner/
     ├── instant.html
@@ -78,7 +79,7 @@ qacademy-gamma/
 - TEACHER → /teacher/dashboard.html (coming soon)
 - ADMIN → /admin/dashboard.html
 
-## Database Tables (Portal DB)
+## Database Tables
 | Table | Purpose | Has Data |
 |---|---|---|
 | programs | Nursing programmes | ✅ 5 rows |
@@ -89,49 +90,55 @@ qacademy-gamma/
 | subscriptions | Course access grants | ✅ live |
 | announcements | Platform announcements | ✅ live |
 | user_notice_state | Per-user announcement state | ✅ live |
-| config | Platform-wide settings (key/value) | ⏳ next |
-| quizzes | Fixed quiz definitions | ⏳ next |
-| attempts | Student quiz attempts | ⏳ next |
-| items_gp | General Paper question bank | ⏳ next |
-| items_rn_med | Medicine & Medical Nursing questions | ⏳ future |
-| items_rn_surg | Surgery & Surgical Nursing questions | ⏳ future |
-| items_rm_ped_obs_hrn | Paediatric, Obstetric & HRN questions | ⏳ future |
-| items_rm_mid | Midwifery questions | ⏳ future |
-| items_rphn_pphn | Public Health Nursing questions | ⏳ future |
-| items_rphn_disease_ctrl | Disease Management questions | ⏳ future |
-| items_rmhn_psych_nurs | Psychiatric Nursing questions | ⏳ future |
-| items_rmhn_psych_ppharm | Psychopharmacology questions | ⏳ future |
-| items_nac_basic_clin | Basic Clinical Nursing questions | ⏳ future |
-| items_nac_basic_prev | Basic Preventive Nursing questions | ⏳ future |
+| config | Platform-wide settings (key/value) | ✅ 3 rows |
+| quizzes | Fixed quiz definitions | ✅ 13 sample quizzes |
+| attempts | Student quiz attempts | ✅ live |
+| items_gp | General Paper question bank | ✅ 10 sample questions |
+| items_rn_med | Medicine & Medical Nursing | ✅ 10 sample questions |
+| items_rn_surg | Surgery & Surgical Nursing | ✅ 10 sample questions |
+| items_rm_ped_obs_hrn | Paediatric, Obstetric & HRN | ✅ 10 sample questions |
+| items_rm_mid | Midwifery | ✅ 10 sample questions |
+| items_rphn_pphn | Public Health Nursing | ✅ 10 sample questions |
+| items_rphn_disease_ctrl | Disease Management | ✅ 10 sample questions |
+| items_rmhn_psych_nurs | Psychiatric Nursing | ✅ 10 sample questions |
+| items_rmhn_psych_ppharm | Psychopharmacology | ✅ 10 sample questions |
+| items_nac_basic_clin | Basic Clinical Nursing | ✅ 10 sample questions |
+| items_nac_basic_prev | Basic Preventive Nursing | ✅ 10 sample questions |
 
-## Quiz Engine Architecture (planned & locked — March 2026)
+## Quiz Engine Architecture
 
 ### Items Tables
 - One separate table per course: `items_{course_id}` (e.g. `items_gp`)
-- Item IDs are globally unique and course-prefixed (e.g. `GP_001`, `RN_MED_001`)
-- Columns: `item_id, question_type, stem, option_a–f, fb_a–f, correct, rationale, rationale_img, subject, maintopic, subtopic, difficulty, marks, batch_id, shuffle_options`
+- Item IDs are globally unique and course-prefixed: `GP_001`, `RN_MED_001`
 - `question_type`: MCQ | TF | SATA
 - `correct`: single letter for MCQ/TF, comma-separated for SATA (e.g. `"a,c,e"`)
-- `maintopic` + `subtopic` replace old single `topic` column (colon-format removed)
-- `batch_id`: tag for bulk import grouping — used in admin item picker for fast selection
+- `maintopic` + `subtopic` replace old single `topic` column
+- `batch_id`: tag for bulk import grouping
 - `shuffle_options`: per-item boolean, default true. Set false to preserve option order.
+- All sample questions tagged `batch_id = SAMPLE_BATCH_001` for easy cleanup
 
 ### Quizzes Table
 - One shared table for all courses (filtered by `course_id`)
-- `item_ids TEXT[]` — ordered array of item IDs assigned to quiz (NOT on items anymore)
+- `item_ids TEXT[]` — ordered array of item IDs assigned to quiz
 - `allowed_modes`: BOTH | INSTANT_ONLY | TIMED_ONLY (default BOTH)
 - `shuffle BOOLEAN` — shuffle question order at spawn (default false)
 - `time_limit_sec` — for timed mode. If null: n × 60 seconds
+- `status`: draft | active | archived
+- `published`: boolean master switch
+- `publish_at` / `unpublish_at`: scheduling for UPCOMING / CLOSED states
 
-### Quiz Modes
-- Student picks mode at launch: **Practice** (instant) or **Exam** (timed)
-- Two independent buttons per quiz card on student/fixed-quizzes.html
-- Each mode has its own in-progress slot, stats, resume/retake/review state
-- Two separate runners: runner/instant.html and runner/timed.html
+### Quiz Availability State Machine
+Used by both `student/fixed-quizzes.html` and `admin/fixed-quizzes.html`
+via `getQuizAvailability(quiz)` in `api.js`:
+1. `status !== 'active'` → HIDDEN
+2. `published !== true` → HIDDEN
+3. `now < publish_at` → UPCOMING (card visible, buttons disabled)
+4. `now > unpublish_at` → CLOSED (card visible, buttons disabled)
+5. All clear → ACTIVE (fully playable)
 
 ### Attempts Table
 - One shared table for all courses
-- `mode`: instant | timed (set at spawn from student choice)
+- `mode`: instant | timed
 - `source`: fixed | builder | retake
 - `status`: in_progress | completed | abandoned
 - `answers_json`: array of `{item_id, chosen, correct, is_correct, flagged, time_spent_s}`
@@ -139,17 +146,26 @@ qacademy-gamma/
   - SATA: `chosen` and `correct` are arrays e.g. `["a","c","e"]`
 
 ### Runners
-- Both runners support MCQ (radio), TF (radio 2 options), SATA (checkboxes)
-- Option shuffling: client-side, deterministic seed (`attempt_id + item_id`). On for all types unless `shuffle_options = false` on item.
-- Questions per page: read from `config` table key `runner_questions_per_page` (default 1)
-- Preview mode: `?preview=1` — no attempt recorded, admin use only
-- Progress bar: animated stripes, stops on submit, colour changes by score (green/amber/red)
-- "Send feedback" button per question — wired to /student/messages.html (coming soon)
-- `time_spent_s` per question: null for this build (back-and-forth navigation makes it unreliable)
-- `time_taken_s` on attempt: accurately tracked
+- Both runners support MCQ (radio), TF (radio 2 options), SATA (checkboxes A–F)
+- Option shuffling: client-side, deterministic seed (`attempt_id + item_id`)
+- Questions per page: read from `config` table key `runner_questions_per_page`
+- Preview mode: `?preview=1` — no attempt recorded, admin only
+- Progress bar: animated stripes, stops on submit, green/amber/red by score
+- Feedback modes (instant runner + post-submit timed): Inline | Standalone | Hide
+  - **Inline**: per-option feedback shown directly under each option
+  - **Standalone**: all option feedbacks grouped below the question
+  - **Hide**: correct/wrong chips only, no explanations
+- Rationale image: thumbnail shown in rationale block, tap to enlarge full-screen
+- Send feedback button per question — wired to /student/messages.html (coming soon)
+- Grid overlay: floating ☰ button, question grid with answered/flagged/correct states
+- Exit overlay: Save & Resume Later | Submit & Exit | Cancel
+- Preflight screen: quiz details before starting, "Don't show again" per runner
+- Autosave: configurable interval from config table
+- Timed runner: countdown timer, amber <20%, red+pulse <10%, auto-submit at zero
+- 10-check preflight: auth, URL params, attempt exists, ownership, course access,
+  mode match, attempt status, review check, preview check, items loaded
 
 ### Config Table
-Simple key-value store for platform settings.
 ```sql
 CREATE TABLE config (
   key TEXT PRIMARY KEY,
@@ -158,7 +174,7 @@ CREATE TABLE config (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
-Initial rows:
+Current rows:
 - `runner_questions_per_page` = `1`
 - `builder_max_questions` = `50`
 - `runner_autosave_interval_sec` = `60`
@@ -174,6 +190,43 @@ Replace with proper policies before going live.
 | STUDENT | Albert Owusu-Ansah | RN / L300 / 2024 cohort / TRIAL |
 | STUDENT | Justice Asiamah | RM / L100 / 2023 cohort / TRIAL |
 
+## api.js Functions
+
+### Existing (pre-quiz engine)
+- `getPrograms()` — all programmes
+- `getProducts()` — active products (student-facing)
+- `getAllProducts()` — all products including archived (admin)
+- `getCourses()` — active courses (student-facing)
+- `getAllCourses()` — all courses including archived (admin)
+- `getCourseById(courseId)` — single course
+- `getUsers()` — filtered user list
+- `getUserById()` — full user + subscription history
+- `assignSubscription()` — grants subscription
+- `deactivateUser()` / `activateUser()`
+- `sendPasswordReset()`
+- `updateUserProfile()`
+- `getAnnouncements()` — active in-schedule announcements
+- `getDismissedAnnouncements(userId)`
+- `getStudentCourseAccess(userId)` — stacked course expiry map
+- `filterAnnouncementsForStudent()` — client-side scope filter
+
+### Quiz Engine (added this session)
+- `getConfig()` — config table as key-value object
+- `getQuizzes(courseId, adminMode)` — quizzes for a course
+- `getAllQuizzes()` — all quizzes (admin)
+- `getQuizById(quizId)` — single quiz
+- `getItemsByIds(courseId, itemIds)` — fetch questions in order
+- `getItemsByFilters(courseId, filters)` — filtered item search (admin picker)
+- `getItemFilterOptions(courseId)` — distinct filter values for dropdowns
+- `getQuizAvailability(quiz)` — HIDDEN | UPCOMING | ACTIVE | CLOSED
+- `spawnFixedAttempt(userId, quiz, mode)` — create or resume fixed attempt
+- `spawnBuilderAttempt(userId, courseId, itemIds, mode)` — builder attempt
+- `saveAttemptProgress(attemptId, answersJson)` — autosave
+- `finishAttempt(attemptId, answersJson, scoreRaw, scoreTotal, scorePct, timeTakenS)` — submit
+- `retakeAttempt(originAttempt, userId)` — new attempt from completed
+- `getAttemptForReview(attemptId)` — attempt + items for review mode
+- `getStudentAttempts(userId, courseId)` — attempt history
+
 ## Build Progress
 
 ### Done ✅
@@ -184,38 +237,47 @@ Replace with proper policies before going live.
 - Brand colours (Navy + Teal)
 - Landing page (index.html)
 - Images folder with logo
-- js/api.js — shared data layer
+- js/api.js — shared data layer (existing + full quiz engine functions)
 - admin/users.html — full user management
 - admin/subscriptions.html — full CRUD, 7 stat cards, 6 filters
 - admin/products.html — full CRUD, course picker, Telegram group keys
 - admin/courses.html — combined courses & programmes, two tabs
 - Programme-specific trials (auto-assigned on registration via SELF_TRIAL_SIGNUP)
-- trial_product_id moved to programs table — fully data-driven, no hardcoded map
+- trial_product_id moved to programs table — fully data-driven
 - Stacked subscription logic
-- admin/announcements.html — full CRUD, all 8 scopes, live audience summary, engagement tracking
+- admin/announcements.html — full CRUD, all 8 scopes, live audience summary
 - student/announcements.html — 4 tabs, Mark as Read, Dismiss, CTA tracking
 - student/dashboard.html — announcements block, course cards, recent attempts
-- filterAnnouncementsForStudent() — client-side scope filtering in api.js
+- filterAnnouncementsForStudent() — client-side scope filtering
 - Shared sidebar architecture — js/admin-sidebar.js + js/student-sidebar.js
 - student/course.html — dynamic course page, access check, 4 sections
-- student/fixed-quizzes.html — accordion layout, shells (not yet wired)
-- student/learning-history.html — table structure, filters, shells (not yet wired)
 - Full announcement feature signed off ✅
-- Quiz engine fully planned and designed ✅ (March 2026)
+- config table — created + 3 rows inserted ✅
+- items tables — all 11 courses created + 10 sample questions each ✅
+- quizzes table — created with full schema ✅
+- attempts table — created with full schema ✅
+- api.js quiz engine functions — all added ✅
+- admin/fixed-quizzes.html — 4-pane flow, auto quiz ID, item picker, publish toggle ✅
+- student/fixed-quizzes.html — fully wired, card state machine, availability states ✅
+- runner/instant.html — practice mode runner, full feature set ✅
+- runner/timed.html — exam mode runner, countdown timer, auto-submit ✅
+- Sample quizzes inserted — 11 active + 2 test quizzes (UPCOMING, CLOSED) ✅
 
-### Next Up ⏭️ (Quiz Engine — Build Order)
-1. Create `config` table + insert initial rows
-2. Create `items_gp` table + import GP CSV (split topic → maintopic/subtopic)
-3. Update `quizzes` table schema (add item_ids, allowed_modes, shuffle etc.)
-4. Update `api.js` (add quiz engine functions)
-5. `admin/fixed-quizzes.html` — full CRUD with item picker
-6. `student/fixed-quizzes.html` — wire real quizzes, two-section cards
-7. `runner/instant.html` — practice mode runner
-8. `runner/timed.html` — exam mode runner
-9. `student/learning-history.html` — wire real attempts
-10. `student/quiz-builder.html` — 4-step wizard
-11. `admin/config.html` — config table UI
-12. Import remaining 10 course item tables
+### Known Issues / Runner Polish Needed ⚠️
+- Runner issues identified during testing — to be fixed next session
+- Admin fixed-quizzes: draft/published state enforcement UI fixes pending
+- Admin question-bank.html — stub page needed in sidebar
+
+### Next Up ⏭️
+1. Fix runner issues found during testing
+2. Add `admin/question-bank.html` stub to sidebar
+3. `student/learning-history.html` — wire real attempts
+4. `student/quiz-builder.html` — 4-step wizard
+5. `admin/config.html` — config table UI
+6. Supabase Storage setup for rationale images
+7. `admin/question-bank.html` — full CRUD for question management + image upload
+8. Bulk CSV import script for real question banks
+9. `admin/question-bank.html` — add question bank to admin sidebar
 
 ### After Quiz Engine
 - Payments: Paystack webhook, admin/payments.html
@@ -225,8 +287,8 @@ Replace with proper policies before going live.
 - My Teacher feature (intentionally deferred)
 
 ### Intentionally Skipped (for now)
-- Teacher features — separate phase after core student experience
-- Sequential runner mode — future feature (enables clean per-question timing)
+- Teacher features — separate phase
+- Sequential runner mode — future feature
 
 ## Automation Notes
 The platform is fully data-driven:
@@ -237,4 +299,14 @@ The platform is fully data-driven:
 - Add a new fixed quiz → fill form on admin/fixed-quizzes.html
 - Change platform settings → update row in `config` table
 - Everything reflects on frontend automatically — no code changes needed
-- Add a new sidebar link → update js/student-sidebar.js or js/admin-sidebar.js once
+
+## Before Going Live Checklist
+- [ ] Replace dev_allow_all RLS policies with proper role-based policies
+- [ ] Set up custom SMTP for emails
+- [ ] Turn on email confirmation in Supabase Auth
+- [ ] Set up custom domain on Cloudflare
+- [ ] Set up Paystack webhook
+- [ ] Set up Supabase Storage bucket for rationale images
+- [ ] Remove test accounts
+- [ ] Rotate Supabase anon key if ever committed publicly
+- [ ] Remove SAMPLE_BATCH_001 questions and replace with real question banks
