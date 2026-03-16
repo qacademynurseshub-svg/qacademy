@@ -507,20 +507,23 @@
       right: 16px;
       z-index: 40;
       display: none;
-      width: 48px; height: 48px;
-      border-radius: 50%;
+      border-radius: 24px;
       background: var(--primary);
       color: white;
       border: none;
-      font-size: 20px;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
       box-shadow: 0 4px 16px rgba(0,0,0,0.25);
       align-items: center;
       justify-content: center;
+      padding: 10px 16px;
+      gap: 6px;
+      white-space: nowrap;
     }
     #fabGrid.show { display: flex; }
 
-    /* ── Overlays ────────────────────────────────────────── */
+    /* ── Overlays (mobile default) ───────────────────────── */
     .overlay-backdrop {
       display: none;
       position: fixed;
@@ -555,6 +558,72 @@
     .grid-cell.correct    { background: #dcfce7; border-color: #16a34a; }
     .grid-cell.incorrect  { background: #fee2e2; border-color: var(--danger); }
     .grid-cell.current    { box-shadow: 0 0 0 2px var(--accent); }
+
+    /* ── Desktop sidebar toggle ───────────────────────────── */
+    #gridSidebarToggle { display: none; }
+
+    /* ── Desktop: Grid as fixed right sidebar ─────────────── */
+    @media (min-width: 768px) {
+      #fabGrid { display: none !important; }
+
+      #gridOverlay {
+        display: block !important;
+        position: fixed;
+        top: 0; right: 0; bottom: 0;
+        left: auto;
+        width: 280px;
+        background: none;
+        z-index: 50;
+        align-items: stretch;
+        justify-content: flex-end;
+        transition: width 0.25s ease;
+        pointer-events: none;
+      }
+      #gridOverlay.desktop-collapsed {
+        width: 0;
+      }
+      #gridOverlay .grid-panel {
+        position: absolute;
+        top: 0; right: 0; bottom: 0;
+        width: 280px;
+        max-width: none;
+        max-height: none;
+        height: 100%;
+        border-radius: 0;
+        box-shadow: -2px 0 12px rgba(0,0,0,0.1);
+        padding: 70px 14px 16px;
+        overflow-y: auto;
+        pointer-events: auto;
+        transition: transform 0.25s ease;
+      }
+      #gridOverlay.desktop-collapsed .grid-panel {
+        transform: translateX(100%);
+      }
+      #gridOverlay .grid-close { display: none; }
+
+      #gridSidebarToggle {
+        display: flex;
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        right: 280px;
+        z-index: 51;
+        width: 24px; height: 48px;
+        border-radius: 6px 0 0 6px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+        transition: right 0.25s ease;
+      }
+      #gridSidebarToggle.collapsed {
+        right: 0;
+      }
+    }
 
     /* Exit panel */
     .exit-panel { background: var(--white); border-radius: 14px; width: 90%; max-width: 380px; padding: 24px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); }
@@ -598,7 +667,7 @@
     <div class="header-brand">QAcademy</div>
     <div class="header-title" id="headerTitle">Exam Quiz</div>
     <div class="header-actions">
-      <button class="hbtn hbtn-ghost" onclick="openGridOverlay()">☰</button>
+      <button class="hbtn hbtn-ghost" onclick="openGridOverlay()">📋 Question Grid</button>
       <button class="hbtn hbtn-danger" id="exitBtn" onclick="handleExit()">Exit</button>
     </div>
   </div>
@@ -706,7 +775,10 @@
 </div>
 
 <!-- ── Floating Grid Button ───────────────────────────────── -->
-<button id="fabGrid" onclick="openGridOverlay()">☰</button>
+<button id="fabGrid" onclick="openGridOverlay()">📋 Question Grid</button>
+
+<!-- ── Desktop Sidebar Toggle ─────────────────────────────── -->
+<button id="gridSidebarToggle" onclick="toggleDesktopGrid()">‹</button>
 
 <!-- ── Grid Overlay ───────────────────────────────────────── -->
 <div class="overlay-backdrop" id="gridOverlay" onclick="handleGridBackdropClick(event)">
@@ -1006,6 +1078,7 @@ function startQuiz() {
   document.getElementById('preflightCard').style.display = 'none';
   document.getElementById('quizCard').style.display = 'block';
   document.getElementById('fabGrid').classList.add('show');
+  initDesktopGrid();
 
   if (!QUIZ_STARTED_AT) QUIZ_STARTED_AT = Date.now();
 
@@ -1084,6 +1157,7 @@ function initReviewMode() {
   document.getElementById('preflightCard').style.display = 'none';
   document.getElementById('quizCard').style.display = 'block';
   document.getElementById('fabGrid').classList.add('show');
+  initDesktopGrid();
 
   PAGE      = 0;
   VIEW_MODE = 'ALL';
@@ -1578,9 +1652,50 @@ async function submitAndExit() {
 
 // ══ GRID OVERLAY ═════════════════════════════════════════════
 
-function openGridOverlay() { buildGrid(); document.getElementById('gridOverlay').classList.add('show'); }
-function closeGridOverlay() { document.getElementById('gridOverlay').classList.remove('show'); }
-function handleGridBackdropClick(e) { if (e.target === document.getElementById('gridOverlay')) closeGridOverlay(); }
+function isDesktop() { return window.matchMedia('(min-width: 768px)').matches; }
+
+function openGridOverlay() {
+  buildGrid();
+  if (isDesktop()) {
+    document.getElementById('gridOverlay').classList.remove('desktop-collapsed');
+    document.getElementById('gridSidebarToggle').classList.remove('collapsed');
+    document.getElementById('gridSidebarToggle').textContent = '‹';
+  } else {
+    document.getElementById('gridOverlay').classList.add('show');
+  }
+}
+
+function closeGridOverlay() {
+  if (isDesktop()) {
+    document.getElementById('gridOverlay').classList.add('desktop-collapsed');
+    document.getElementById('gridSidebarToggle').classList.add('collapsed');
+    document.getElementById('gridSidebarToggle').textContent = '›';
+  } else {
+    document.getElementById('gridOverlay').classList.remove('show');
+  }
+}
+
+function handleGridBackdropClick(e) {
+  if (!isDesktop() && e.target === document.getElementById('gridOverlay')) closeGridOverlay();
+}
+
+function toggleDesktopGrid() {
+  const overlay = document.getElementById('gridOverlay');
+  if (overlay.classList.contains('desktop-collapsed')) {
+    openGridOverlay();
+  } else {
+    closeGridOverlay();
+  }
+}
+
+function initDesktopGrid() {
+  if (isDesktop()) {
+    buildGrid();
+    document.getElementById('gridOverlay').classList.remove('desktop-collapsed');
+    document.getElementById('gridSidebarToggle').classList.remove('collapsed');
+    document.getElementById('gridSidebarToggle').textContent = '‹';
+  }
+}
 
 function buildGrid() {
   const body = document.getElementById('gridBody');
@@ -1614,7 +1729,8 @@ function buildGrid() {
       const i = globalSrc.indexOf(item);
       if (i >= 0) PAGE = Math.floor(i / QUESTIONS_PER_PAGE);
       renderPage();
-      closeGridOverlay();
+      if (!isDesktop()) closeGridOverlay();
+      else buildGrid(); // refresh current highlight on desktop
     });
 
     body.appendChild(cell);
