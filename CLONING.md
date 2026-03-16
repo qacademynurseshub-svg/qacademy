@@ -613,6 +613,184 @@ UPDATE programs SET trial_product_id = 'RMHN_TRIAL'   WHERE program_id = 'RMHN';
 UPDATE programs SET trial_product_id = 'NACNAP_TRIAL' WHERE program_id = 'NACNAP';
 ---
 
+
+## Quiz Engine — Database Setup (Step 9)
+
+Run all SQL blocks below in Supabase → SQL Editor → New Query, in order.
+
+---
+
+### config table
+
+```sql
+CREATE TABLE config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  description TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO config (key, value, description) VALUES
+  ('runner_questions_per_page', '1', 'Number of questions shown per page in both instant and timed runners'),
+  ('builder_max_questions', '50', 'Maximum number of questions a student can request in the quiz builder'),
+  ('runner_autosave_interval_sec', '60', 'How often runners autosave in-progress attempts in seconds');
+
+ALTER TABLE config ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON config FOR ALL USING (true) WITH CHECK (true);
+```
+
+---
+
+### quizzes table (updated schema)
+
+```sql
+ALTER TABLE quizzes
+  ADD COLUMN IF NOT EXISTS item_ids TEXT[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS allowed_modes TEXT NOT NULL DEFAULT 'BOTH',
+  ADD COLUMN IF NOT EXISTS shuffle BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS time_limit_sec INTEGER,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- Remove old columns no longer needed
+ALTER TABLE quizzes DROP COLUMN IF EXISTS type;
+
+-- allowed_modes values: BOTH | INSTANT_ONLY | TIMED_ONLY
+-- shuffle: false = fixed order (item_ids order), true = shuffle at spawn
+-- time_limit_sec: null = n × 60 seconds default
+```
+
+---
+
+### items_gp table (General Paper — first course)
+
+```sql
+CREATE TABLE items_gp (
+  item_id TEXT PRIMARY KEY,
+  question_type TEXT NOT NULL DEFAULT 'MCQ',
+  stem TEXT NOT NULL,
+  option_a TEXT,
+  fb_a TEXT,
+  option_b TEXT,
+  fb_b TEXT,
+  option_c TEXT,
+  fb_c TEXT,
+  option_d TEXT,
+  fb_d TEXT,
+  option_e TEXT,
+  fb_e TEXT,
+  option_f TEXT,
+  fb_f TEXT,
+  correct TEXT NOT NULL,
+  rationale TEXT,
+  rationale_img TEXT,
+  subject TEXT,
+  maintopic TEXT,
+  subtopic TEXT,
+  difficulty TEXT,
+  marks NUMERIC NOT NULL DEFAULT 1,
+  batch_id TEXT,
+  shuffle_options BOOLEAN NOT NULL DEFAULT true
+);
+
+-- Indexes for fast filtering
+CREATE INDEX idx_items_gp_maintopic ON items_gp(maintopic);
+CREATE INDEX idx_items_gp_subtopic ON items_gp(subtopic);
+CREATE INDEX idx_items_gp_subject ON items_gp(subject);
+CREATE INDEX idx_items_gp_difficulty ON items_gp(difficulty);
+CREATE INDEX idx_items_gp_question_type ON items_gp(question_type);
+CREATE INDEX idx_items_gp_batch_id ON items_gp(batch_id);
+
+ALTER TABLE items_gp ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON items_gp FOR ALL USING (true) WITH CHECK (true);
+```
+
+Repeat the items table pattern for each course, replacing `gp` with the course_id in lowercase:
+- `items_rn_med`
+- `items_rn_surg`
+- `items_rm_ped_obs_hrn`
+- `items_rm_mid`
+- `items_rphn_pphn`
+- `items_rphn_disease_ctrl`
+- `items_rmhn_psych_nurs`
+- `items_rmhn_psych_ppharm`
+- `items_nac_basic_clin`
+- `items_nac_basic_prev`
+
+---
+
+### attempts table (already exists — verify columns)
+
+```sql
+-- attempts table should already exist. Verify it has these columns:
+-- user_id, attempt_id, ts_iso, course_id, quiz_id, mode, duration_min,
+-- n, seed, source, item_ids, status, score_raw, score_total, score_pct,
+-- time_taken_s, origin_attempt_id, display_label, answers_json
+
+-- mode values: instant | timed
+-- source values: fixed | builder | retake
+-- status values: in_progress | completed | abandoned
+
+ALTER TABLE attempts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON attempts FOR ALL USING (true) WITH CHECK (true);
+```
+
+---
+
+## Quiz Engine — Key Design Decisions (March 2026)
+
+### Items Architecture
+- One separate table per course: `items_{course_id}` (e.g. `items_gp`)
+- Item IDs are globally unique and course-prefixed: `GP_001`, `RN_MED_001`
+- `question_type`: MCQ | TF | SATA
+- `correct`: single letter for MCQ/TF. Comma-separated for SATA e.g. `"a,c,e"`
+- `maintopic` + `subtopic` replace old single `topic` column (no more colon format)
+- `batch_id`: admin tags a group of items at import for fast quiz building
+- `shuffle_options`: false = preserve option order for that item
+
+### Quiz Modes
+- Student picks mode at launch: Practice (instant) or Exam (timed)
+- `allowed_modes` on quiz controls which modes are available: BOTH | INSTANT_ONLY | TIMED_ONLY
+- Two separate runners: runner/instant.html and runner/timed.html
+- In-progress slots are independent per mode — student can have one in-progress instant AND one in-progress timed for same quiz
+
+### Card State Machine (per mode section on student/fixed-quizzes.html)
+- Not started → Start Practice / Start Exam
+- In progress → Resume Practice / Resume Exam
+- Completed → Retake | Review
+- UPCOMING → disabled
+- CLOSED → disabled
+
+### Shuffling
+- Question order: `shuffle BOOLEAN` on quizzes. Happens at spawn only. Resume/review follow stored item_ids.
+- Option order: client-side in runner. Deterministic seed: `attempt_id + item_id`. On for MCQ/TF/SATA. Override per item with `shuffle_options = false`.
+
+### answers_json structure
+```json
+// MCQ / TF
+{"item_id":"GP_001","chosen":"C","correct":"C","is_correct":true,"flagged":false,"time_spent_s":null}
+
+// SATA
+{"item_id":"GP_055","chosen":["A","C","E"],"correct":["A","C","E"],"is_correct":true,"flagged":false,"time_spent_s":null}
+```
+
+### Runner features
+- Progress bar: animated stripes, stops on submit, green/amber/red by score
+- "Send feedback" per question: passes course_id, attempt_id, quiz_id, question_id, ref_text to /student/messages.html
+- Preview mode: ?preview=1 — no attempt recorded
+- Config table drives: questions per page, max builder questions, autosave interval
+
+### Quiz Builder (student/quiz-builder.html) — 4 steps
+1. Course
+2. Topics/Subtopics + keyword search
+3. Difficulty + Count + Question type filter
+4. Review + Mode choice (Practice or Exam) + Launch
+
+### Admin Fixed Quizzes (admin/fixed-quizzes.html)
+- Item picker filters: Subject, Main Topic, Subtopic, Difficulty, Question Type, Batch ID, Keyword search
+- Keyword search covers: stem, all options, all feedbacks, rationale, maintopic, subtopic, subject
+- Select All after filtering — admin never picks items one by one
+- Preview: launches runner with ?preview=1
 ## Before Going Live Checklist
 - [ ] Replace dev_allow_all RLS policies with proper role-based policies
 - [ ] Set up custom SMTP for emails
