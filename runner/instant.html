@@ -306,6 +306,17 @@
       border-radius: 6px;
       border: 1px solid #fde68a;
     }
+        .sata-check-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .sata-check-note {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
 
     /* ── Options ─────────────────────────────────────────── */
     .opts { display: grid; gap: 10px; }
@@ -919,6 +930,7 @@ let ITEMS        = [];     // question items in order
 let ANSW         = {};     // { item_id: chosen } MCQ/TF=letter, SATA=array
 let FLAGS        = {};     // { item_id: true/false }
 let SHUF         = {};     // { item_id: shuffled options array }
+let SATA_EVAL   = {};     // { item_id: true/false } true only after learner clicks "Check Answer"
 let LOCKED       = false;  // true after submission
 let REVIEW_MODE  = false;  // true when ?review=1
 let PREVIEW_MODE = false;  // true when ?preview=1
@@ -1103,8 +1115,10 @@ async function getAttemptById(attemptId) {
 
 // ── Hydrate saved answers ──────────────────────────────────────
 function hydrateAnswers() {
-  ANSW  = {};
-  FLAGS = {};
+  ANSW      = {};
+  FLAGS     = {};
+  SATA_EVAL = {};
+
   try {
     const saved = JSON.parse(ATT.answers_json || '[]');
     saved.forEach(a => {
@@ -1314,6 +1328,36 @@ function buildQuestionBlock(item, globalIdx) {
   });
   wrap.appendChild(optsWrap);
 
+  // SATA check-answer row
+  if (item.question_type === 'SATA' && !LOCKED && !REVIEW_MODE) {
+    const checkRow = document.createElement('div');
+    checkRow.className = 'sata-check-row';
+
+    const checkBtn = document.createElement('button');
+    checkBtn.type = 'button';
+    checkBtn.className = 'btn btn-primary';
+    checkBtn.id = `sata_check_${item.item_id}`;
+
+    checkBtn.addEventListener('click', () => {
+      const chosen = ANSW[item.item_id];
+      if (!Array.isArray(chosen) || chosen.length === 0) return;
+
+      SATA_EVAL[item.item_id] = true;
+      updateQuestionFeedback(item.item_id);
+      updateSataCheckButton(item.item_id);
+    });
+
+    const checkNote = document.createElement('div');
+    checkNote.className = 'sata-check-note';
+    checkNote.textContent = 'Select all answers first, then click Check Answer.';
+
+    checkRow.appendChild(checkBtn);
+    checkRow.appendChild(checkNote);
+    wrap.appendChild(checkRow);
+
+    syncSataCheckButton(checkBtn, item.item_id);
+  }
+
   // Rationale block
   const rat = document.createElement('div');
   rat.className = 'rationale-block';
@@ -1398,19 +1442,28 @@ function buildOptionRow(item, opt, j) {
 
   input.addEventListener('change', () => {
     if (LOCKED || REVIEW_MODE) return;
+
     if (isSATA) {
       let chosen = Array.isArray(ANSW[item.item_id]) ? [...ANSW[item.item_id]] : [];
+
       if (input.checked) {
         if (!chosen.includes(opt.letter)) chosen.push(opt.letter);
       } else {
         chosen = chosen.filter(l => l !== opt.letter);
       }
-      ANSW[item.item_id] = chosen.length > 0 ? chosen : undefined;
-      if (chosen.length === 0) delete ANSW[item.item_id];
+
+      if (chosen.length > 0) ANSW[item.item_id] = chosen;
+      else delete ANSW[item.item_id];
+
+      // SATA should only reveal after learner confirms
+      SATA_EVAL[item.item_id] = false;
+      clearQuestionFeedback(item.item_id);
+      updateSataCheckButton(item.item_id);
     } else {
       ANSW[item.item_id] = opt.letter;
+      updateQuestionFeedback(item.item_id);
     }
-    updateQuestionFeedback(item.item_id);
+
     renderProgress();
   });
 
@@ -1436,7 +1489,51 @@ function buildOptionRow(item, opt, j) {
 }
 
 // ══ FEEDBACK ═════════════════════════════════════════════════
+function clearQuestionFeedback(itemId) {
+  const qBlock = document.getElementById(`q_${itemId}`);
+  if (!qBlock) return;
 
+  qBlock.querySelectorAll('.opt').forEach(el => {
+    el.classList.remove('correct', 'wrong', 'selected');
+  });
+
+  qBlock.querySelectorAll('.opt-title .chip').forEach(el => el.remove());
+
+  qBlock.querySelectorAll('.opt-fb').forEach(el => {
+    el.textContent = '';
+    el.classList.remove('show');
+  });
+
+  const ratEl = document.getElementById(`rat_${itemId}`);
+  if (ratEl) {
+    ratEl.innerHTML = '';
+    ratEl.classList.remove('show');
+  }
+}
+
+function syncSataCheckButton(btn, itemId) {
+  if (!btn) return;
+
+  const chosen    = ANSW[itemId];
+  const hasChoice = Array.isArray(chosen) && chosen.length > 0;
+  const checked   = !!SATA_EVAL[itemId];
+
+  btn.disabled = !hasChoice || checked;
+  btn.textContent = checked ? '✓ Answer checked' : 'Check Answer';
+}
+
+function updateSataCheckButton(itemId) {
+  const btn = document.getElementById(`sata_check_${itemId}`);
+  syncSataCheckButton(btn, itemId);
+}
+  function refreshVisibleFeedback() {
+  document.querySelectorAll('#qList .q-block').forEach(block => {
+    const itemId = block.id.replace('q_', '');
+    clearQuestionFeedback(itemId);
+    updateQuestionFeedback(itemId);
+    updateSataCheckButton(itemId);
+  });
+}
 function updateQuestionFeedback(itemId) {
   const item = ITEMS.find(i => i.item_id === itemId);
   if (!item) return;
@@ -1448,11 +1545,19 @@ function updateQuestionFeedback(itemId) {
   const chosenRaw   = ANSW[itemId];
   const isSATA      = item.question_type === 'SATA';
   const showAlways  = LOCKED || REVIEW_MODE || FINISH_SENT;
-  const hasAnswer   = isSATA
+
+  const hasAnswer = isSATA
     ? (Array.isArray(chosenRaw) && chosenRaw.length > 0)
     : !!chosenRaw;
 
-  if (!hasAnswer && !showAlways) return;
+  const canReveal = isSATA
+    ? (showAlways || (hasAnswer && !!SATA_EVAL[itemId]))
+    : (showAlways || hasAnswer);
+
+  if (!canReveal) {
+    clearQuestionFeedback(itemId);
+    return;
+  }
 
   const ratEl = document.getElementById(`rat_${itemId}`);
 
@@ -1914,7 +2019,18 @@ function setFeedbackMode(mode) {
   feedbackMode = mode;
   saveFeedbackMode(mode);
   updateFeedbackModeUI();
-  if (ITEMS.length) renderPage();
+
+  // Update preflight card immediately if it is visible
+  if (document.getElementById('preflightCard').style.display === 'block') {
+    showPreflight();
+  }
+
+  // Update the currently visible question(s) instantly
+  if (document.querySelector('#qList .q-block')) {
+    refreshVisibleFeedback();
+  } else if (ITEMS.length) {
+    renderPage();
+  }
 }
 
 function updateFeedbackModeUI() {
