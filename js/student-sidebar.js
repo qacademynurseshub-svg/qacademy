@@ -81,16 +81,18 @@
   // ── C) Auto-mark active link ────────────────────────────────
   const path = window.location.pathname;
 
-  container.querySelectorAll('.sidebar-nav > a').forEach(function (a) {
-    if (a.getAttribute('href') === path) {
-      a.classList.add('active');
+  // Highlight active nav link
+  document.querySelectorAll('#sidebar .sidebar-nav a').forEach(link => {
+    const href = link.getAttribute('href').replace('.html', '');
+    if (path === href || path.startsWith(href + '?')) {
+      link.classList.add('active');
     }
   });
 
-  // If on a course page, activate the dropdown toggle and open it
+  // Handle My Courses dropdown
+  const toggle = document.getElementById('sidebarCoursesToggle');
+  const dropdown = document.getElementById('sidebarCoursesDropdown');
   if (path.startsWith('/student/course')) {
-    var toggle = document.getElementById('sidebarCoursesToggle');
-    var dropdown = document.getElementById('sidebarCoursesDropdown');
     if (toggle) toggle.classList.add('active');
     if (dropdown) dropdown.classList.add('open');
   }

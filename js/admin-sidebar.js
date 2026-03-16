@@ -28,9 +28,11 @@
 
   // Mark the active link
   const path = window.location.pathname;
-  container.querySelectorAll('.sidebar-nav a').forEach(function (a) {
-    if (a.getAttribute('href') === path) {
-      a.classList.add('active');
+
+  document.querySelectorAll('#sidebar .sidebar-nav a').forEach(link => {
+    const href = link.getAttribute('href').replace('.html', '');
+    if (path === href || path.startsWith(href + '?')) {
+      link.classList.add('active');
     }
   });
 })();
