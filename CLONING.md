@@ -791,6 +791,286 @@ CREATE POLICY "dev_allow_all" ON attempts FOR ALL USING (true) WITH CHECK (true)
 - Keyword search covers: stem, all options, all feedbacks, rationale, maintopic, subtopic, subject
 - Select All after filtering — admin never picks items one by one
 - Preview: launches runner with ?preview=1
+
+- ## Quiz Engine — Database Setup (March 2026)
+
+Run all SQL blocks below in Supabase → SQL Editor → New Query, in order.
+
+---
+
+### config table
+
+```sql
+CREATE TABLE config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  description TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO config (key, value, description) VALUES
+  ('runner_questions_per_page', '1', 'Number of questions shown per page in both instant and timed runners'),
+  ('builder_max_questions', '50', 'Maximum number of questions a student can request in the quiz builder'),
+  ('runner_autosave_interval_sec', '60', 'How often runners autosave in-progress attempts in seconds');
+
+ALTER TABLE config ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON config FOR ALL USING (true) WITH CHECK (true);
+```
+
+---
+
+### quizzes table
+
+```sql
+CREATE TABLE quizzes (
+  quiz_id          TEXT PRIMARY KEY,
+  course_id        TEXT NOT NULL REFERENCES courses(course_id),
+  title            TEXT NOT NULL,
+  item_ids         TEXT[] NOT NULL DEFAULT '{}',
+  n                INTEGER NOT NULL DEFAULT 0,
+  allowed_modes    TEXT NOT NULL DEFAULT 'BOTH',
+  shuffle          BOOLEAN NOT NULL DEFAULT false,
+  time_limit_sec   INTEGER,
+  published        BOOLEAN NOT NULL DEFAULT false,
+  publish_at       TIMESTAMPTZ,
+  unpublish_at     TIMESTAMPTZ,
+  status           TEXT NOT NULL DEFAULT 'draft',
+  notes            TEXT,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- allowed_modes values: BOTH | INSTANT_ONLY | TIMED_ONLY
+-- status values: draft | active | archived
+-- published: false = hidden from students, true = visible
+-- publish_at / unpublish_at: drive UPCOMING / CLOSED states on student page
+
+CREATE INDEX ON quizzes (course_id);
+CREATE INDEX ON quizzes (status);
+CREATE INDEX ON quizzes (published);
+
+ALTER TABLE quizzes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON quizzes FOR ALL USING (true) WITH CHECK (true);
+```
+
+---
+
+### attempts table
+
+```sql
+CREATE TABLE attempts (
+  attempt_id         TEXT PRIMARY KEY,
+  user_id            TEXT NOT NULL REFERENCES users(user_id),
+  quiz_id            TEXT,
+  course_id          TEXT NOT NULL REFERENCES courses(course_id),
+  mode               TEXT NOT NULL,
+  source             TEXT NOT NULL,
+  item_ids           TEXT NOT NULL,
+  n                  INTEGER NOT NULL,
+  seed               TEXT,
+  duration_min       INTEGER,
+  status             TEXT NOT NULL DEFAULT 'in_progress',
+  score_raw          NUMERIC,
+  score_total        NUMERIC,
+  score_pct          NUMERIC,
+  time_taken_s       INTEGER,
+  origin_attempt_id  TEXT,
+  display_label      TEXT,
+  answers_json       TEXT NOT NULL DEFAULT '[]',
+  ts_iso             TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- mode values: instant | timed
+-- source values: fixed | builder | retake
+-- status values: in_progress | completed | abandoned
+-- answers_json: array of {item_id, chosen, correct, is_correct, flagged, time_spent_s}
+--   MCQ/TF: chosen = single letter e.g. "a"
+--   SATA: chosen = array e.g. ["a","c","d"]
+
+CREATE INDEX ON attempts (user_id);
+CREATE INDEX ON attempts (quiz_id);
+CREATE INDEX ON attempts (course_id);
+CREATE INDEX ON attempts (status);
+CREATE INDEX ON attempts (user_id, quiz_id, mode, status);
+
+ALTER TABLE attempts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON attempts FOR ALL USING (true) WITH CHECK (true);
+```
+
+---
+
+### items tables (one per course)
+
+All 11 course items tables follow the same schema.
+Run the block below once for each course, replacing `items_gp` and the index prefix with the correct course table name.
+
+Course table names:
+- items_gp
+- items_rn_med
+- items_rn_surg
+- items_rm_ped_obs_hrn
+- items_rm_mid
+- items_rphn_pphn
+- items_rphn_disease_ctrl
+- items_rmhn_psych_nurs
+- items_rmhn_psych_ppharm
+- items_nac_basic_clin
+- items_nac_basic_prev
+
+```sql
+-- Replace items_gp with the correct table name for each course
+CREATE TABLE items_gp (
+  item_id          TEXT PRIMARY KEY,
+  question_type    TEXT NOT NULL DEFAULT 'MCQ',
+  stem             TEXT NOT NULL,
+  option_a         TEXT,
+  fb_a             TEXT,
+  option_b         TEXT,
+  fb_b             TEXT,
+  option_c         TEXT,
+  fb_c             TEXT,
+  option_d         TEXT,
+  fb_d             TEXT,
+  option_e         TEXT,
+  fb_e             TEXT,
+  option_f         TEXT,
+  fb_f             TEXT,
+  correct          TEXT NOT NULL,
+  rationale        TEXT,
+  rationale_img    TEXT,
+  subject          TEXT,
+  maintopic        TEXT,
+  subtopic         TEXT,
+  difficulty       TEXT,
+  marks            NUMERIC NOT NULL DEFAULT 1,
+  batch_id         TEXT,
+  shuffle_options  BOOLEAN NOT NULL DEFAULT true
+);
+
+-- question_type: MCQ | TF | SATA
+-- correct: single letter for MCQ/TF e.g. "a". Comma-separated for SATA e.g. "a,c,d"
+-- rationale_img: URL to image stored in Supabase Storage (rationale-images bucket)
+-- shuffle_options: false = preserve option order (use for TF questions)
+-- batch_id: tag for bulk import grouping e.g. SAMPLE_BATCH_001, GP_BATCH_001
+
+CREATE INDEX ON items_gp (maintopic);
+CREATE INDEX ON items_gp (subtopic);
+CREATE INDEX ON items_gp (subject);
+CREATE INDEX ON items_gp (difficulty);
+CREATE INDEX ON items_gp (question_type);
+CREATE INDEX ON items_gp (batch_id);
+
+ALTER TABLE items_gp ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON items_gp FOR ALL USING (true) WITH CHECK (true);
+```
+
+---
+
+## Quiz Engine — Key Design Decisions (March 2026)
+
+### Items Architecture
+- One separate table per course: `items_{course_id}` (e.g. `items_gp`)
+- Item IDs are globally unique and course-prefixed: `GP_001`, `RN_MED_001`
+- `question_type`: MCQ | TF | SATA
+- `correct`: single letter for MCQ/TF. Comma-separated for SATA e.g. `"a,c,e"`
+- `maintopic` + `subtopic` replace old single `topic` column (no more colon format)
+- `batch_id`: tag for bulk import grouping
+- `shuffle_options`: per-item boolean, default true. Set false to preserve option order.
+- Sample questions tagged `SAMPLE_BATCH_001` — delete before going live
+
+### Quiz Availability State Machine
+`getQuizAvailability(quiz)` in api.js — returns HIDDEN | UPCOMING | ACTIVE | CLOSED:
+1. status !== 'active' → HIDDEN
+2. published !== true → HIDDEN
+3. now < publish_at → UPCOMING
+4. now > unpublish_at → CLOSED
+5. all clear → ACTIVE
+
+### Quiz Modes
+- Student picks at launch: Practice (instant) or Exam (timed)
+- `allowed_modes` on quiz: BOTH | INSTANT_ONLY | TIMED_ONLY
+- Two separate runners: runner/instant.html and runner/timed.html
+- In-progress slots independent per mode — one in_progress instant + one timed per quiz
+
+### Feedback Modes (instant runner + post-submit timed)
+- **Inline**: per-option feedback text shown directly under each option row
+- **Standalone**: all feedbacks grouped below the question as "Why the options:"
+- **Hide**: correct/wrong chips only — no explanations shown
+- Feedback mode stored in localStorage — persists across sessions
+- Timed runner: feedback buttons hidden during active exam, shown after submit/review
+
+### Shuffling
+- Question order: `shuffle BOOLEAN` on quizzes. Happens at spawn only.
+- Option order: client-side, deterministic seed (attempt_id + item_id). Same order every resume/review.
+- `shuffle_options = false` on item overrides option shuffling for that question.
+
+### answers_json structure
+```json
+// MCQ / TF
+{"item_id":"GP_001","chosen":"c","correct":"c","is_correct":true,"flagged":false,"time_spent_s":null}
+
+// SATA
+{"item_id":"GP_009","chosen":["a","c","d"],"correct":["a","c","d"],"is_correct":true,"flagged":false,"time_spent_s":null}
+```
+
+### Runner Preflight Checks (10 checks in sequence)
+1. Authentication — guardPage('STUDENT')
+2. URL params — attempt_id present
+3. Attempt exists — fetched from DB
+4. Ownership — attempt.user_id === currentProfile.user_id
+5. Course access — student subscribed to attempt.course_id
+6. Mode match — instant runner expects mode=instant, timed expects mode=timed
+7. Attempt status — abandoned → error, completed without review → redirect to review
+8. Review check — ?review=1 only allowed on completed attempts
+9. Preview check — ?preview=1 only allowed for ADMIN role
+10. Items loaded — getItemsByIds() returns at least one item
+
+### Supabase Storage (rationale images) — TO SET UP
+- Create bucket: `rationale-images`
+- Set bucket to public
+- Admin uploads image via question bank page → auto URL saved to `rationale_img`
+- URL format: https://[project].supabase.co/storage/v1/object/public/rationale-images/[filename]
+- This feature is planned for next session
+
+---
+
+## Admin Pages Reference (March 2026)
+
+| Page | Status | Notes |
+|---|---|---|
+| admin/dashboard.html | ✅ Done | Stats, recent users, quick links |
+| admin/users.html | ✅ Done | Full CRUD, side panel, assign subscription |
+| admin/subscriptions.html | ✅ Done | Full CRUD, 7 stat cards, 6 filters |
+| admin/products.html | ✅ Done | Full CRUD, course picker, Telegram keys |
+| admin/courses.html | ✅ Done | Two tabs: Programmes + Courses |
+| admin/announcements.html | ✅ Done | Full CRUD, 8 scopes, audience summary |
+| admin/fixed-quizzes.html | ✅ Done | 4-pane flow: List → Details → Picker → Review |
+| admin/question-bank.html | ⏳ Next | Stub needed. Full CRUD + image upload later |
+| admin/payments.html | ⏳ Later | Shell only |
+| admin/config.html | ⏳ Next | Config table UI |
+
+## Student Pages Reference (March 2026)
+
+| Page | Status | Notes |
+|---|---|---|
+| student/dashboard.html | ✅ Done | Courses, announcements, recent attempts |
+| student/announcements.html | ✅ Done | 4 tabs, Mark as Read, Dismiss |
+| student/course.html | ✅ Done | Dynamic course page, access check |
+| student/fixed-quizzes.html | ✅ Done | Fully wired, card state machine |
+| student/learning-history.html | ⏳ Next | Shell exists — wire real attempts |
+| student/quiz-builder.html | ⏳ Next | Shell exists — build 4-step wizard |
+
+## Runner Reference (March 2026)
+
+| Runner | Status | Notes |
+|---|---|---|
+| runner/instant.html | ✅ Done | Practice mode, 3 feedback modes, full feature set |
+| runner/timed.html | ✅ Done | Exam mode, countdown timer, auto-submit |
+
+Both runners accessed via:
+- `/runner/instant.html?attempt_id=ATT_xxx` — normal play
+- `/runner/instant.html?attempt_id=ATT_xxx&review=1` — review completed attempt
+- `/runner/instant.html?quiz_id=GP_Q001&preview=1` — admin preview (no DB write)
 ## Before Going Live Checklist
 - [ ] Replace dev_allow_all RLS policies with proper role-based policies
 - [ ] Set up custom SMTP for emails
