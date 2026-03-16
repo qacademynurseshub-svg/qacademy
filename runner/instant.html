@@ -567,70 +567,96 @@
     .grid-cell.incorrect { background: #fee2e2; border-color: var(--danger); }
     .grid-cell.current   { box-shadow: 0 0 0 2px var(--accent); }
 
-    /* ── Desktop sidebar toggle ───────────────────────────── */
-    #gridSidebarToggle { display: none; }
+    /* ── Desktop flex layout ──────────────────────────────── */
+    #desktopFlexWrap { display: none; }
+    #desktopGridCard { display: none; }
+    #showGridBtn { display: none; }
 
-    /* ── Desktop: Grid as fixed right sidebar ─────────────── */
     @media (min-width: 768px) {
       #fabGrid { display: none !important; }
 
-      #gridOverlay {
-        display: block !important;
-        position: fixed;
-        top: 0; right: 0; bottom: 0;
-        left: auto;
-        width: 280px;
-        background: none;
-        z-index: 50;
-        align-items: stretch;
-        justify-content: flex-end;
-        transition: width 0.25s ease;
-        pointer-events: none;
-      }
-      #gridOverlay.desktop-collapsed {
-        width: 0;
-      }
-      #gridOverlay .grid-panel {
-        position: absolute;
-        top: 0; right: 0; bottom: 0;
-        width: 280px;
-        max-width: none;
-        max-height: none;
-        height: 100%;
-        border-radius: 0;
-        box-shadow: -2px 0 12px rgba(0,0,0,0.1);
-        padding: 70px 14px 16px;
-        overflow-y: auto;
-        pointer-events: auto;
-        transition: transform 0.25s ease;
-      }
-      #gridOverlay.desktop-collapsed .grid-panel {
-        transform: translateX(100%);
-      }
-      #gridOverlay .grid-close { display: none; }
-
-      #gridSidebarToggle {
+      #desktopFlexWrap {
         display: flex;
-        position: fixed;
-        top: 50%;
-        transform: translateY(-50%);
-        right: 280px;
-        z-index: 51;
-        width: 24px; height: 48px;
-        border-radius: 6px 0 0 6px;
-        background: var(--primary);
-        color: white;
-        border: none;
-        font-size: 16px;
-        cursor: pointer;
+        gap: 24px;
+        align-items: flex-start;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px 14px;
+      }
+      #desktopFlexWrap > .runner-wrap {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        max-width: none;
+      }
+      #desktopGridCard {
+        display: block;
+        width: 260px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 24px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      }
+      #desktopGridCard.hidden { display: none; }
+      #desktopGridCard .dg-header {
+        display: flex;
         align-items: center;
-        justify-content: center;
-        box-shadow: -2px 0 8px rgba(0,0,0,0.15);
-        transition: right 0.25s ease;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
       }
-      #gridSidebarToggle.collapsed {
-        right: 0;
+      #desktopGridCard .dg-header h3 {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--primary);
+        margin: 0;
       }
+      #desktopGridCard .dg-score {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent);
+        margin-left: 8px;
+      }
+      #desktopGridCard .dg-hide-btn {
+        background: none;
+        border: none;
+        font-size: 12px;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: inherit;
+      }
+      #desktopGridCard .dg-hide-btn:hover { background: #f1f5f9; }
+      #desktopGridCard .dg-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+        gap: 6px;
+      }
+
+      #showGridBtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-family: inherit;
+        margin-bottom: 12px;
+      }
+      #showGridBtn:hover { background: #f1f5f9; }
+      #showGridBtn.hidden { display: none; }
     }
 
     /* ── Exit Overlay ────────────────────────────────────── */
@@ -759,6 +785,9 @@
   </div>
 </div>
 
+<!-- ── Desktop Flex Wrapper ────────────────────────────────── -->
+<div id="desktopFlexWrap">
+
 <!-- ── Main Content ───────────────────────────────────────── -->
 <div class="runner-wrap">
 
@@ -792,6 +821,9 @@
     📖 Review Mode — Answers are read-only. You are reviewing a completed attempt.
   </div>
 
+  <!-- Show Grid Button (desktop, appears when grid is hidden) -->
+  <button id="showGridBtn" class="hidden" onclick="showDesktopGrid()">📋 Show Grid</button>
+
   <!-- Quiz Card -->
   <div id="quizCard">
     <div id="qList"></div>
@@ -824,13 +856,22 @@
 
 </div><!-- /.runner-wrap -->
 
-<!-- ── Floating Grid Button ───────────────────────────────── -->
+<!-- ── Desktop Grid Card (right column) ──────────────────── -->
+<div id="desktopGridCard">
+  <div class="dg-header">
+    <h3>Question Grid</h3>
+    <span class="dg-score" id="desktopGridScore"></span>
+    <button class="dg-hide-btn" onclick="hideDesktopGrid()">✕ Hide</button>
+  </div>
+  <div class="dg-grid" id="desktopGridBody"></div>
+</div>
+
+</div><!-- /#desktopFlexWrap -->
+
+<!-- ── Floating Grid Button (mobile only) ─────────────────── -->
 <button id="fabGrid" onclick="openGridOverlay()">📋 Question Grid</button>
 
-<!-- ── Desktop Sidebar Toggle ─────────────────────────────── -->
-<button id="gridSidebarToggle" onclick="toggleDesktopGrid()">‹</button>
-
-<!-- ── Grid Overlay ───────────────────────────────────────── -->
+<!-- ── Grid Overlay (mobile only) ─────────────────────────── -->
 <div class="overlay-backdrop" id="gridOverlay" onclick="handleGridBackdropClick(event)">
   <div class="grid-panel">
     <div class="grid-panel-header">
@@ -1742,59 +1783,41 @@ function isDesktop() { return window.matchMedia('(min-width: 768px)').matches; }
 function openGridOverlay() {
   buildGrid();
   if (isDesktop()) {
-    // Desktop: uncollapse sidebar
-    document.getElementById('gridOverlay').classList.remove('desktop-collapsed');
-    document.getElementById('gridSidebarToggle').classList.remove('collapsed');
-    document.getElementById('gridSidebarToggle').textContent = '‹';
+    showDesktopGrid();
   } else {
     document.getElementById('gridOverlay').classList.add('show');
   }
 }
 
 function closeGridOverlay() {
-  if (isDesktop()) {
-    // On desktop, collapse the sidebar
-    document.getElementById('gridOverlay').classList.add('desktop-collapsed');
-    document.getElementById('gridSidebarToggle').classList.add('collapsed');
-    document.getElementById('gridSidebarToggle').textContent = '›';
-  } else {
-    document.getElementById('gridOverlay').classList.remove('show');
-  }
+  document.getElementById('gridOverlay').classList.remove('show');
 }
 
 function handleGridBackdropClick(e) {
-  // Only close on mobile when clicking backdrop
-  if (!isDesktop() && e.target === document.getElementById('gridOverlay')) closeGridOverlay();
+  if (e.target === document.getElementById('gridOverlay')) closeGridOverlay();
 }
 
-function toggleDesktopGrid() {
-  const overlay = document.getElementById('gridOverlay');
-  if (overlay.classList.contains('desktop-collapsed')) {
-    openGridOverlay();
-  } else {
-    closeGridOverlay();
-  }
+function hideDesktopGrid() {
+  document.getElementById('desktopGridCard').classList.add('hidden');
+  document.getElementById('showGridBtn').classList.remove('hidden');
+}
+
+function showDesktopGrid() {
+  buildGrid();
+  document.getElementById('desktopGridCard').classList.remove('hidden');
+  document.getElementById('showGridBtn').classList.add('hidden');
 }
 
 function initDesktopGrid() {
   if (isDesktop()) {
     buildGrid();
-    // Start open on desktop
-    document.getElementById('gridOverlay').classList.remove('desktop-collapsed');
-    document.getElementById('gridSidebarToggle').classList.remove('collapsed');
-    document.getElementById('gridSidebarToggle').textContent = '‹';
+    document.getElementById('desktopGridCard').classList.remove('hidden');
+    document.getElementById('showGridBtn').classList.add('hidden');
   }
 }
 
-function buildGrid() {
-  const body = document.getElementById('gridBody');
-  body.innerHTML = '';
-
-  const score = LOCKED ? computeScore() : null;
-  if (score) {
-    document.getElementById('gridScore').textContent = `${score.raw}/${score.total} (${score.pct}%)`;
-  }
-
+function buildGridCells(container) {
+  container.innerHTML = '';
   ITEMS.forEach((item, idx) => {
     const cell = document.createElement('button');
     cell.className = 'grid-cell';
@@ -1804,7 +1827,6 @@ function buildGrid() {
       (item.question_type === 'SATA' ? (Array.isArray(ANSW[item.item_id]) && ANSW[item.item_id].length > 0) : !!ANSW[item.item_id]);
 
     if (LOCKED || REVIEW_MODE) {
-      // Show correct/incorrect
       const ansJson = buildAnswersJson();
       const a = ansJson.find(x => x.item_id === item.item_id);
       if (a && a.chosen !== null) {
@@ -1815,7 +1837,6 @@ function buildGrid() {
       if (FLAGS[item.item_id]) cell.classList.add('flagged');
     }
 
-    // Highlight current page
     const src = getCurrentSource();
     const srcIdx = src.indexOf(item);
     if (srcIdx >= 0 && Math.floor(srcIdx / QUESTIONS_PER_PAGE) === PAGE) {
@@ -1828,11 +1849,30 @@ function buildGrid() {
       if (i >= 0) PAGE = Math.floor(i / QUESTIONS_PER_PAGE);
       renderPage();
       if (!isDesktop()) closeGridOverlay();
-      else buildGrid(); // refresh current highlight on desktop
+      else buildGrid();
     });
 
-    body.appendChild(cell);
+    container.appendChild(cell);
   });
+}
+
+function buildGrid() {
+  const score = LOCKED ? computeScore() : null;
+  const scoreText = score ? `${score.raw}/${score.total} (${score.pct}%)` : '';
+
+  // Mobile overlay grid
+  const mobileBody = document.getElementById('gridBody');
+  if (mobileBody) {
+    if (score) document.getElementById('gridScore').textContent = scoreText;
+    buildGridCells(mobileBody);
+  }
+
+  // Desktop card grid
+  const desktopBody = document.getElementById('desktopGridBody');
+  if (desktopBody) {
+    if (score) document.getElementById('desktopGridScore').textContent = scoreText;
+    buildGridCells(desktopBody);
+  }
 }
 
 // ══ IMAGE OVERLAY ════════════════════════════════════════════
