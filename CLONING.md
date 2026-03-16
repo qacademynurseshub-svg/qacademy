@@ -413,10 +413,9 @@ Key functions:
 | admin/config.html | Shell — to be built later |
 
 ---
-| admin/announcements.html | Full CRUD — create/edit/archive announcements, all 8 scope fields,
-live audience summary sentence, engagement counts (read/clicked/dismissed) |
-| student/announcements.html | Student view — All/Unread/Read tabs, Mark as Read, Dismiss,
-CTA button click tracking |
+| admin/announcements.html | Full CRUD — create/edit/archive announcements, all 8 scope fields, live audience summary, engagement counts, duplicate title protection, character count, draft/archived status warning |
+| student/announcements.html | Student view — 4 tabs (All/Unread/Read/Dismissed), Mark as Read, Dismiss (permanent, moves to Dismissed tab), CTA button/link click tracking |
+| student/dashboard.html | Always-visible announcements block, max 2 unread, collapsed by default (pinned auto-expands), full HTML body render, ✕ marks as Read not Dismissed, two empty states |
 
 ### Announcement ID generation
 announcement_id is TEXT PRIMARY KEY — Supabase does not auto-generate it.
@@ -427,18 +426,45 @@ Example: ANN_1710432000000
 All scope fields work as intersection (AND).
 A student must match every condition set to see the announcement.
 Leave all scopes blank = shown to everyone.
+### Student announcements page — 4 tabs
+- All — shows everything except dismissed
+- Unread — no interaction yet
+- Read — marked as read or cleared from dashboard strip
+- Dismissed — permanently dismissed from announcements page
+Expired announcements (past end_at date) disappear from all tabs automatically.
 
+### Announcement button styling
+Buttons in announcement bodies use data-qa="btn" attribute — NOT inline styles.
+The CSS on each page handles button appearance automatically.
+Example: <a href="https://..." data-qa="btn">Start Exam</a>
+Never use inline style="background:..." for announcement buttons.
+
+### Body text formatting
+Admin types plain text in the body textarea.
+newlinesToParagraphs() converts newlines to <p> and <br> tags before saving.
+This runs in both refreshPreview() and saveAnnouncement() in admin/announcements.html.
+Single Enter = <br> within same paragraph.
+Double Enter = new <p> paragraph.
+Lines starting with HTML tags are not wrapped in <p> to avoid double-wrapping buttons/links.
 ### user_notice_state unique constraint
 Required for upsert to work correctly on dismiss/read/clicked actions.
 Run once in Supabase SQL editor:
 ALTER TABLE user_notice_state
 ADD CONSTRAINT unique_user_notice UNIQUE (user_id, item_type, item_id);
 
-### Dashboard strip rules
+### Dashboard announcements block rules
+- Block is ALWAYS visible — never disappears even when empty
+- Two empty states:
+  - "Nothing from us yet — check back soon" = no announcements exist at all
+  - "You're all caught up! 🎉" = announcements exist but student has seen/cleared them all
 - Shows max 2 unread announcements (pinned first, then by priority)
-- Read/clicked announcements hidden from strip, visible on announcements page
-- Dismissed announcements hidden everywhere permanently
-- "View all" footer link shows total unread count if more than 2
+- Cards are collapsed by default — click header to expand/collapse
+- Pinned announcements auto-expand on load
+- Full body HTML renders inside expanded card including links and buttons
+- ✕ button marks announcement as Read (not Dismissed) — clears from strip, visible on Read tab
+- Dismiss is only available on the announcements page — moves to Dismissed tab permanently
+- "View all announcements →" footer always shown
+- Shows unread count in footer if more than 2 unread
 
 ### Cohort targeting query
 Cohort values are fetched with a lean single-column query — NOT getUsers().
@@ -518,6 +544,39 @@ before building the payload and add it to the tgKeys array automatically.
 `tgKeys` array used by the tag input.
 **Fix:** Renamed local render variables to `tgTagsHtml` and `tgGroupsHtml`.
 
+### Issue: Trial subscription writing 'false' to status column
+**Cause:** register.html was calling assignSubscription() which had
+`status: product.kind === 'TRIAL' ? 'TRIAL' : 'ACTIVE'` — writing the
+string 'TRIAL' which Supabase coerced to 'false' in some contexts.
+**Fix:** Registration now does its own direct insert with `status: 'ACTIVE'`
+and `source: 'SELF_TRIAL_SIGNUP'`. Never use assignSubscription() for
+registration trial assignment.
+
+### Issue: All students seeing all announcements regardless of scope
+**Cause:** getAnnouncements() in api.js fetches all active announcements
+without any scope filtering. Scope fields were saved to DB but never checked.
+**Fix:** Added filterAnnouncementsForStudent(announcements, profile, subscriptionKind)
+to api.js. Called on both student/dashboard.html and student/announcements.html
+after fetching announcements. Requires student's active subscription kind and
+product_id to be fetched separately before filtering.
+
+### Issue: Announcement body text rendering as one continuous line
+**Cause:** HTML ignores newline characters (\n) from textarea input.
+**Fix:** Added newlinesToParagraphs() function in admin/announcements.html.
+Called in both refreshPreview() and saveAnnouncement() before sanitiseHtml().
+
+### Issue: trial_product_id hardcoded in register.html
+**Cause:** TRIAL_PRODUCTS map was hardcoded in register.html — adding a new
+programme required a code change.
+**Fix:** Added trial_product_id column to programs table. register.html reads
+it from the selected option's data-trial attribute set during loadPrograms().
+SQL to add column:
+ALTER TABLE programs ADD COLUMN trial_product_id TEXT REFERENCES products(product_id);
+UPDATE programs SET trial_product_id = 'RN_TRIAL'     WHERE program_id = 'RN';
+UPDATE programs SET trial_product_id = 'RM_TRIAL'     WHERE program_id = 'RM';
+UPDATE programs SET trial_product_id = 'RPHN_TRIAL'   WHERE program_id = 'RPHN';
+UPDATE programs SET trial_product_id = 'RMHN_TRIAL'   WHERE program_id = 'RMHN';
+UPDATE programs SET trial_product_id = 'NACNAP_TRIAL' WHERE program_id = 'NACNAP';
 ---
 
 ## Before Going Live Checklist
