@@ -126,15 +126,16 @@ Replace with proper policies before going live.
 ## Test Accounts
 | Role | Email | Notes |
 |---|---|---|
-| STUDENT | (your test email) | Has RN_FULL subscription |
 | ADMIN | samquatleumas@gmail.com | role=ADMIN in users table |
+| STUDENT | Albert Owusu-Ansah | RN / L300 / 2024 cohort / TRIAL |
+| STUDENT | Justice Asiamah | RM / L100 / 2023 cohort / TRIAL |
 
 ## Build Progress
 
 ### Done ✅
 - Foundation (Supabase, Cloudflare, GitHub)
 - Auth pages (login, register, forgot password, reset password)
-- Student dashboard (courses, subscription bar, announcements strip, quick links)
+- Student dashboard (courses, subscription bar, announcements block, quick links)
 - Admin dashboard (stats, recent users, quick links)
 - Brand colours (Navy + Teal)
 - Landing page (index.html)
@@ -144,21 +145,22 @@ Replace with proper policies before going live.
 - admin/subscriptions.html — full CRUD, 7 stat cards, 6 filters
 - admin/products.html — full CRUD, course picker, Telegram group keys
 - admin/courses.html — combined courses & programmes, two tabs
-- Programme-specific trials (auto-assigned on registration)
+- Programme-specific trials (auto-assigned on registration via SELF_TRIAL_SIGNUP)
+- trial_product_id moved to programs table — fully data-driven, no hardcoded map
 - Stacked subscription logic
-- 20 test users seeded
-- admin/announcements.html — full CRUD, all 8 scopes, live audience summary, engagement tracking
-- student/announcements.html — full student view, read/clicked/dismissed states, tabs, "View all" link
-- student/dashboard.html — announcements strip updated (max 2 unread, upsert dismiss, "View all" footer)
+- admin/announcements.html — full CRUD, all 8 scopes, live audience summary, engagement tracking, duplicate protection, character count, draft warning
+- student/announcements.html — 4 tabs (All/Unread/Read/Dismissed), Mark as Read, Dismiss, CTA button/link tracking
+- student/dashboard.html — always-visible announcements block, collapsed cards (pinned auto-expands), full HTML render, two empty states, ✕ marks as Read
+- filterAnnouncementsForStudent() — client-side scope filtering in api.js
+- newlinesToParagraphs() — body text formatting fix
+- data-qa="btn" — consistent button styling across all pages
+- Full announcement feature tested and signed off ✅
 
-### Pending — Scope Testing ⏭️
-- Create two test students (Test Alice: RN/L300/2024/PAID, Test Ben: RM/L100/2023/TRIAL)
-- Create varied announcements covering all scope combinations
-- Verify correct announcements show/hide for each student
+### Next Up ⏭️
+- Quiz engine: admin/fixed-quizzes.html, student/fixed-quizzes.html, runner/instant.html, runner/timed.html, history.html
+- Quiz builder: quiz-builder.html
 
 ### After That
-- Quiz engine: admin/fixed-quizzes.html, fixed-quizzes.html, runner/instant.html, runner/timed.html, history.html
-- Quiz builder: quiz-builder.html
 - Payments: Paystack webhook, admin/payments.html
 - Messaging: messages.html, admin messages
 - Downloads: downloads.html (offline packs)
