@@ -3,48 +3,453 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Fixed Quizzes — QAcademy Nurses Hub</title>
+  <title>Fixed Quizzes — QAcademy Admin</title>
   <link rel="stylesheet" href="/css/style.css" />
   <style>
+
+    /* ── Top Nav ─────────────────────────────────────────── */
     .top-nav {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 28px;
     }
-    .user-menu {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
     .logout-btn {
-      font-size: 13px;
-      color: var(--text-muted);
-      cursor: pointer;
-      background: none;
-      border: none;
+      font-size: 13px; color: var(--text-muted);
+      cursor: pointer; background: none; border: none;
       font-family: 'Inter', sans-serif;
     }
-    .logout-btn:hover {
-      color: var(--danger);
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── Tabs ────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 24px;
     }
+    .tab-btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .tab-btn:hover { color: var(--primary); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── Filters Bar ─────────────────────────────────────── */
+    .filters-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+      margin-bottom: 20px;
+      padding: 16px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .filter-group input,
+    .filter-group select {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--primary);
+      min-width: 140px;
+    }
+    .filter-actions { display: flex; gap: 8px; align-items: flex-end; margin-left: auto; }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.88; }
+    .btn-primary { background: var(--accent); color: var(--white); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-danger { background: var(--danger); color: var(--white); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    /* ── Table ───────────────────────────────────────────── */
+    .table-wrapper {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-header h3 { font-size: 15px; font-weight: 700; color: var(--primary); }
+    .result-count { font-size: 13px; color: var(--text-muted); }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; cursor: pointer; }
+    tbody tr.archived-row { opacity: 0.55; }
+
+    /* ── Chips ───────────────────────────────────────────── */
+    .chip {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .chip.active    { background: #dcfce7; color: #15803d; }
+    .chip.draft     { background: #fef9c3; color: #854d0e; }
+    .chip.archived  { background: #f1f5f9; color: #64748b; }
+    .chip.BOTH         { background: var(--primary-light); color: var(--primary); }
+    .chip.INSTANT_ONLY { background: #f0fdf4; color: #15803d; }
+    .chip.TIMED_ONLY   { background: #fef2f2; color: #dc2626; }
+
+    /* ── Publish Toggle ──────────────────────────────────── */
+    .toggle-wrap { display: flex; align-items: center; gap: 6px; }
+    .toggle {
+      position: relative;
+      width: 36px; height: 20px;
+      cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #cbd5e1;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+
+    /* ── Side Panel ──────────────────────────────────────── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 100;
+    }
+    .overlay.show { display: block; }
+    .side-panel {
+      position: fixed;
+      top: 0; right: -520px;
+      width: 520px;
+      height: 100vh;
+      background: var(--white);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+      z-index: 101;
+      transition: right 0.25s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .side-panel.open { right: 0; }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .panel-header h3 { font-size: 16px; font-weight: 700; color: var(--primary); }
+    .panel-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted); line-height: 1; }
+    .panel-body { flex: 1; overflow-y: auto; padding: 24px; }
+    .panel-actions { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
+
+    /* ── Modal ───────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--white);
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 760px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 700; color: var(--primary); }
+    .modal-body { flex: 1; overflow-y: auto; padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; flex-shrink: 0; }
+
+    /* ── Form ────────────────────────────────────────────── */
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: var(--primary);
+      box-sizing: border-box;
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .form-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 20px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Alert ───────────────────────────────────────────── */
+    .alert { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; display: none; }
+    .alert.show { display: block; }
+    .alert-error { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+    /* ── Wizard Steps ────────────────────────────────────── */
+    .wizard-steps {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+    }
+    .wizard-step {
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+    .wizard-step.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .wizard-step.done { color: var(--primary); }
+    .wizard-pane { display: none; }
+    .wizard-pane.active { display: block; }
+
+    /* ── Item Picker ─────────────────────────────────────── */
+    .picker-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .picker-filters select,
+    .picker-filters input {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+    }
+    .picker-table-wrap {
+      max-height: 320px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .picker-table { width: 100%; border-collapse: collapse; }
+    .picker-table th {
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    .picker-table td {
+      padding: 8px 12px;
+      font-size: 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .picker-table tr:last-child td { border-bottom: none; }
+    .picker-table tr.selected-row td { background: #ecfdf5; }
+    .picker-table tr:hover td { background: #f0fdf4; cursor: pointer; }
+    .item-stem-cell { max-width: 320px; }
+    .item-stem-short {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 300px;
+      display: block;
+    }
+    .picker-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .selected-count { font-weight: 700; color: var(--accent); }
+
+    /* ── Selected Items List (Step 3) ────────────────────── */
+    .selected-list { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .selected-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .selected-item:last-child { border-bottom: none; }
+    .selected-item-id { font-family: monospace; font-size: 11px; color: var(--text-muted); min-width: 90px; }
+    .selected-item-stem { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .selected-item-remove { background: none; border: none; cursor: pointer; color: var(--danger); font-size: 16px; line-height: 1; flex-shrink: 0; }
+
+    /* ── Question Bank Tab ───────────────────────────────── */
+    .qb-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-end;
+      margin-bottom: 16px;
+      padding: 14px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .qb-filters select,
+    .qb-filters input { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif; }
+    .qb-table-wrap {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .qb-table { width: 100%; border-collapse: collapse; }
+    .qb-table th {
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    .qb-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .qb-table tr:last-child td { border-bottom: none; }
+    .qb-table tr.qb-selected td { background: #ecfdf5; }
+
+    /* ── Bulk Action Bar ─────────────────────────────────── */
+    .bulk-bar {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: var(--white);
+      padding: 14px 24px;
+      border-radius: 40px;
+      box-shadow: 0 8px 32px rgba(30,58,95,0.35);
+      z-index: 50;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .bulk-bar.show { display: flex; }
+    .bulk-bar select {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+    }
+    .bulk-bar .btn { padding: 7px 18px; font-size: 13px; }
+
+    /* ── Panel Detail Rows ───────────────────────────────── */
+    .detail-row { display: flex; gap: 8px; margin-bottom: 10px; font-size: 13px; }
+    .detail-label { font-weight: 600; color: var(--text-muted); min-width: 130px; flex-shrink: 0; }
+    .detail-value { color: var(--primary); }
+
+    /* ── Stats Row ───────────────────────────────────────── */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+    .stat-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 22px; font-weight: 700; color: var(--primary); }
+    .stat-box .stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .empty-state { padding: 48px 24px; text-align: center; color: var(--text-muted); font-size: 14px; }
   </style>
 </head>
 <body>
 
 <div class="dashboard-wrapper">
-
-  <!-- Sidebar -->
   <div id="sidebar"></div>
 
-  <!-- Main Content -->
   <main class="main-content">
 
     <!-- Top Nav -->
     <div class="top-nav">
       <div class="page-header" style="margin-bottom:0">
         <h1>Fixed Quizzes</h1>
-        <p>Manage pre-built quiz assessments</p>
+        <p>Build and manage pre-set quiz assessments for all courses</p>
       </div>
       <div class="user-menu">
         <span style="font-size:14px; font-weight:500;" id="adminName"></span>
@@ -52,12 +457,341 @@
       </div>
     </div>
 
-    <!-- Page Content -->
-    <div class="card">
-      <p style="color:var(--text-muted); font-size:14px;">This section is under construction.</p>
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('quizzes', this)">📝 Quizzes</button>
+      <button class="tab-btn" onclick="switchTab('qbank', this)">📚 Question Bank</button>
+    </div>
+
+    <!-- ══ TAB 1: QUIZZES ══════════════════════════════════ -->
+    <div class="tab-pane active" id="tab-quizzes">
+
+      <!-- Filters -->
+      <div class="filters-bar">
+        <div class="filter-group">
+          <label>Search</label>
+          <input type="text" id="qFilterSearch" placeholder="Quiz title or ID…" oninput="applyQuizFilters()" />
+        </div>
+        <div class="filter-group">
+          <label>Course</label>
+          <select id="qFilterCourse" onchange="applyQuizFilters()">
+            <option value="">All courses</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="qFilterStatus" onchange="applyQuizFilters()">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="draft">Draft</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Mode</label>
+          <select id="qFilterMode" onchange="applyQuizFilters()">
+            <option value="">All modes</option>
+            <option value="BOTH">Both</option>
+            <option value="INSTANT_ONLY">Practice only</option>
+            <option value="TIMED_ONLY">Exam only</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Published</label>
+          <select id="qFilterPublished" onchange="applyQuizFilters()">
+            <option value="">All</option>
+            <option value="true">Published</option>
+            <option value="false">Unpublished</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn btn-ghost" onclick="clearQuizFilters()">Clear</button>
+          <button class="btn btn-primary" onclick="openNewQuizModal()">+ New Quiz</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <div class="table-header">
+          <h3>All Quizzes</h3>
+          <span class="result-count" id="qResultCount">Loading…</span>
+        </div>
+        <div id="qTableArea"><div class="empty-state">Loading quizzes…</div></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 2: QUESTION BANK ════════════════════════════ -->
+    <div class="tab-pane" id="tab-qbank">
+
+      <!-- Filters -->
+      <div class="qb-filters">
+        <div class="filter-group">
+          <label>Course</label>
+          <select id="qbCourse" onchange="loadQuestionBank()">
+            <option value="">Select a course…</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Type</label>
+          <select id="qbType" onchange="applyQBFilters()">
+            <option value="">All types</option>
+            <option value="MCQ">MCQ</option>
+            <option value="TF">True/False</option>
+            <option value="SATA">SATA</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Difficulty</label>
+          <select id="qbDifficulty" onchange="applyQBFilters()">
+            <option value="">All difficulties</option>
+            <option value="Easy">Easy</option>
+            <option value="Moderate">Moderate</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Main Topic</label>
+          <select id="qbMaintopic" onchange="applyQBFilters()">
+            <option value="">All topics</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Batch ID</label>
+          <select id="qbBatch" onchange="applyQBFilters()">
+            <option value="">All batches</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Keyword</label>
+          <input type="text" id="qbKeyword" placeholder="Search stems, options…" oninput="applyQBFilters()" style="min-width:180px;" />
+        </div>
+        <div class="filter-actions">
+          <button class="btn btn-ghost" onclick="clearQBFilters()">Clear</button>
+        </div>
+      </div>
+
+      <!-- Select All + Count -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding:0 4px;">
+        <label style="font-size:13px; font-weight:600; color:var(--primary); display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="qbSelectAll" onchange="toggleSelectAll(this)" />
+          Select all visible
+        </label>
+        <span class="result-count" id="qbResultCount">—</span>
+      </div>
+
+      <!-- Table -->
+      <div class="qb-table-wrap">
+        <table class="qb-table">
+          <thead>
+            <tr>
+              <th style="width:36px;"></th>
+              <th>Item ID</th>
+              <th>Type</th>
+              <th>Stem</th>
+              <th>Main Topic</th>
+              <th>Difficulty</th>
+              <th>Marks</th>
+            </tr>
+          </thead>
+          <tbody id="qbTableBody">
+            <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:32px;">Select a course above to browse questions.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </main>
+</div>
+
+<!-- ══ BULK ACTION BAR (Question Bank) ═══════════════════════ -->
+<div class="bulk-bar" id="bulkBar">
+  <span><span id="bulkCount">0</span> questions selected</span>
+  <select id="bulkTargetQuiz">
+    <option value="">Add to quiz…</option>
+  </select>
+  <button class="btn btn-primary" onclick="addSelectedToQuiz()">Add to Quiz</button>
+  <button class="btn btn-ghost" style="color:white; border-color:rgba(255,255,255,0.3);" onclick="clearQBSelection()">Clear</button>
+</div>
+
+<!-- ══ OVERLAY + SIDE PANEL ══════════════════════════════════ -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="side-panel" id="sidePanel">
+  <div class="panel-header">
+    <h3 id="panelTitle">Quiz Details</h3>
+    <button class="panel-close" onclick="closePanel()">×</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="panel-actions" id="panelActions"></div>
+</div>
+
+<!-- ══ QUIZ MODAL (Create / Edit) ════════════════════════════ -->
+<div class="modal-overlay" id="quizModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="quizModalTitle">New Quiz</h3>
+      <button class="panel-close" onclick="closeQuizModal()">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="alert alert-error" id="quizModalError"></div>
+      <div class="alert alert-success" id="quizModalSuccess"></div>
+      <input type="hidden" id="editQuizId" />
+
+      <!-- Wizard Step Indicators -->
+      <div class="wizard-steps">
+        <div class="wizard-step active" id="wstep1">1. Details</div>
+        <div class="wizard-step" id="wstep2">2. Pick Questions</div>
+        <div class="wizard-step" id="wstep3">3. Review & Save</div>
+      </div>
+
+      <!-- ── Step 1: Quiz Details ── -->
+      <div class="wizard-pane active" id="wpane1">
+        <div class="form-row">
+          <div class="form-group" id="quizIdGroup">
+            <label>Quiz ID *</label>
+            <input type="text" id="fieldQuizId" placeholder="e.g. GP_Q001" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase().replace(/\s/g,'_')" />
+            <p class="form-hint">Unique. Course-prefixed. Cannot change after creation.</p>
+          </div>
+          <div class="form-group">
+            <label>Course *</label>
+            <select id="fieldCourse" onchange="onCourseChange()">
+              <option value="">Select course…</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Quiz Title *</label>
+          <input type="text" id="fieldTitle" placeholder="e.g. General Paper Practice Quiz 1" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Allowed Modes</label>
+            <select id="fieldModes">
+              <option value="BOTH">Both Practice and Exam</option>
+              <option value="INSTANT_ONLY">Practice only</option>
+              <option value="TIMED_ONLY">Exam only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="fieldStatus">
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Time Limit (seconds)</label>
+            <input type="number" id="fieldTimeLimit" placeholder="Leave blank = 1 min per question" min="60" />
+            <p class="form-hint">Optional. e.g. 3600 = 1 hour.</p>
+          </div>
+          <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" id="fieldShuffle" /> Shuffle question order
+            </label>
+            <p class="form-hint" style="margin-top:10px;">If checked, questions appear in random order for each student.</p>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Publish At</label>
+            <input type="datetime-local" id="fieldPublishAt" />
+            <p class="form-hint">Optional scheduled publish date.</p>
+          </div>
+          <div class="form-group">
+            <label>Unpublish At</label>
+            <input type="datetime-local" id="fieldUnpublishAt" />
+            <p class="form-hint">Optional scheduled unpublish date.</p>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes (admin only)</label>
+          <textarea id="fieldNotes" placeholder="Internal notes. Students never see this."></textarea>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+          <label style="font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="fieldPublished" /> Published (visible to students)
+          </label>
+        </div>
+      </div>
+
+      <!-- ── Step 2: Item Picker ── -->
+      <div class="wizard-pane" id="wpane2">
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+          Filter questions from <strong id="pickerCourseLabel">the selected course</strong> and select the ones to include.
+        </p>
+
+        <!-- Picker Filters -->
+        <div class="picker-filters">
+          <select id="pickerMaintopic" onchange="applyPickerFilters()">
+            <option value="">All topics</option>
+          </select>
+          <select id="pickerSubtopic" onchange="applyPickerFilters()">
+            <option value="">All subtopics</option>
+          </select>
+          <select id="pickerDifficulty" onchange="applyPickerFilters()">
+            <option value="">All difficulties</option>
+            <option value="Easy">Easy</option>
+            <option value="Moderate">Moderate</option>
+            <option value="Hard">Hard</option>
+          </select>
+          <select id="pickerType" onchange="applyPickerFilters()">
+            <option value="">All types</option>
+            <option value="MCQ">MCQ</option>
+            <option value="TF">True/False</option>
+            <option value="SATA">SATA</option>
+          </select>
+          <select id="pickerBatch" onchange="applyPickerFilters()">
+            <option value="">All batches</option>
+          </select>
+          <input type="text" id="pickerKeyword" placeholder="Keyword search…" oninput="applyPickerFilters()" style="min-width:160px;" />
+          <button class="btn btn-ghost btn-sm" onclick="clearPickerFilters()">Clear</button>
+          <button class="btn btn-primary btn-sm" onclick="selectAllVisible()">Select all visible</button>
+        </div>
+
+        <!-- Picker Table -->
+        <div class="picker-table-wrap">
+          <table class="picker-table">
+            <thead>
+              <tr>
+                <th style="width:36px;"></th>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Stem</th>
+                <th>Topic</th>
+                <th>Diff</th>
+              </tr>
+            </thead>
+            <tbody id="pickerBody">
+              <tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Loading questions…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="picker-summary">
+          <span>Showing <strong id="pickerVisibleCount">0</strong> questions</span>
+          <span class="selected-count"><span id="pickerSelectedCount">0</span> selected</span>
+        </div>
+      </div>
+
+      <!-- ── Step 3: Review & Save ── -->
+      <div class="wizard-pane" id="wpane3">
+        <div class="form-section-title">Quiz Summary</div>
+        <div id="reviewSummary"></div>
+
+        <div class="form-section-title" style="margin-top:20px;">Selected Questions (<span id="reviewCount">0</span>)</div>
+        <div id="reviewList" class="selected-list"></div>
+      </div>
+
+    </div>
+    <div class="modal-footer" id="quizModalFooter">
+      <button class="btn btn-ghost" id="wizardBackBtn" onclick="wizardBack()" style="display:none;">← Back</button>
+      <button class="btn btn-ghost" onclick="closeQuizModal()">Cancel</button>
+      <button class="btn btn-primary" id="wizardNextBtn" onclick="wizardNext()">Next →</button>
+    </div>
+  </div>
 </div>
 
 <!-- Supabase -->
@@ -65,14 +799,713 @@
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
 <script src="/js/admin-sidebar.js"></script>
+<script src="/js/api.js"></script>
 <script>
-  async function initPage() {
-    const profile = await guardPage('ADMIN');
-    if (!profile) return;
-    document.getElementById('adminName').textContent = profile.forename || profile.name || profile.email;
-  }
-  initPage();
-</script>
 
+// ── State ──────────────────────────────────────────────────────
+let allQuizzes    = [];   // all quizzes loaded from DB
+let allCourses    = [];   // all courses
+let currentQuiz   = null; // quiz open in side panel
+
+let pickerAllItems     = [];  // all items loaded for picker course
+let pickerFiltered     = [];  // items after filters applied
+let pickerSelected     = {};  // { item_id: item } — selected in picker
+
+let qbAllItems     = [];  // all items loaded for question bank
+let qbFiltered     = [];  // after filters
+let qbSelected     = {};  // { item_id: item } — selected in question bank
+
+let wizardStep    = 1;    // current wizard step (1, 2, 3)
+let isEditMode    = false;
+
+// ── Init ───────────────────────────────────────────────────────
+async function initPage() {
+  const profile = await guardPage('ADMIN');
+  if (!profile) return;
+  document.getElementById('adminName').textContent = profile.forename || profile.name || profile.email;
+
+  // Load courses for filters and modals
+  allCourses = await getAllCourses();
+  populateCourseFilters();
+
+  // Load all quizzes
+  allQuizzes = await getAllQuizzes();
+  applyQuizFilters();
+}
+
+// ── Course Filter Population ───────────────────────────────────
+function populateCourseFilters() {
+  const filterSel   = document.getElementById('qFilterCourse');
+  const modalSel    = document.getElementById('fieldCourse');
+  const qbSel       = document.getElementById('qbCourse');
+  const bulkSel     = document.getElementById('bulkTargetQuiz');
+
+  allCourses.forEach(c => {
+    filterSel.innerHTML += `<option value="${c.course_id}">${c.title}</option>`;
+    modalSel.innerHTML  += `<option value="${c.course_id}">${c.title} (${c.course_id})</option>`;
+    qbSel.innerHTML     += `<option value="${c.course_id}">${c.title}</option>`;
+  });
+}
+
+// ── Tab Switching ──────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ══ TAB 1: QUIZZES ════════════════════════════════════════════
+
+// ── Apply Quiz Filters ─────────────────────────────────────────
+function applyQuizFilters() {
+  const search    = document.getElementById('qFilterSearch').value.toLowerCase().trim();
+  const course    = document.getElementById('qFilterCourse').value;
+  const status    = document.getElementById('qFilterStatus').value;
+  const mode      = document.getElementById('qFilterMode').value;
+  const published = document.getElementById('qFilterPublished').value;
+
+  const filtered = allQuizzes.filter(q => {
+    if (search && !q.title.toLowerCase().includes(search) && !q.quiz_id.toLowerCase().includes(search)) return false;
+    if (course && q.course_id !== course) return false;
+    if (status && q.status !== status) return false;
+    if (mode && q.allowed_modes !== mode) return false;
+    if (published !== '' && String(q.published) !== published) return false;
+    return true;
+  });
+
+  document.getElementById('qResultCount').textContent = `${filtered.length} quiz${filtered.length !== 1 ? 'zes' : ''}`;
+  renderQuizTable(filtered);
+}
+
+function clearQuizFilters() {
+  document.getElementById('qFilterSearch').value = '';
+  document.getElementById('qFilterCourse').value = '';
+  document.getElementById('qFilterStatus').value = '';
+  document.getElementById('qFilterMode').value = '';
+  document.getElementById('qFilterPublished').value = '';
+  applyQuizFilters();
+}
+
+// ── Render Quiz Table ──────────────────────────────────────────
+function renderQuizTable(quizzes) {
+  const area = document.getElementById('qTableArea');
+
+  if (!quizzes.length) {
+    area.innerHTML = `<div class="empty-state">No quizzes match your filters. Click <strong>+ New Quiz</strong> to create one.</div>`;
+    return;
+  }
+
+  const rows = quizzes.map(q => {
+    const course = allCourses.find(c => c.course_id === q.course_id);
+    return `
+      <tr class="${q.status === 'archived' ? 'archived-row' : ''}" onclick="openQuizPanel('${q.quiz_id}')">
+        <td>
+          <div style="font-weight:600; font-size:13px;">${escapeHtml(q.title)}</div>
+          <div style="font-size:11px; color:var(--text-muted); font-family:monospace; margin-top:2px;">${q.quiz_id}</div>
+        </td>
+        <td style="font-size:13px;">${course ? course.title : q.course_id}</td>
+        <td><span class="chip ${q.allowed_modes}">${formatMode(q.allowed_modes)}</span></td>
+        <td style="font-size:13px; font-weight:600;">${q.n}</td>
+        <td><span class="chip ${q.status}">${q.status}</span></td>
+        <td onclick="event.stopPropagation()">
+          <label class="toggle" title="${q.published ? 'Published' : 'Unpublished'}">
+            <input type="checkbox" ${q.published ? 'checked' : ''} onchange="togglePublish('${q.quiz_id}', this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </td>
+        <td onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm" onclick="openEditQuizModal('${q.quiz_id}')">Edit</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  area.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Quiz</th>
+          <th>Course</th>
+          <th>Modes</th>
+          <th>Questions</th>
+          <th>Status</th>
+          <th>Published</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function formatMode(m) {
+  if (m === 'BOTH') return 'Both';
+  if (m === 'INSTANT_ONLY') return 'Practice';
+  if (m === 'TIMED_ONLY') return 'Exam';
+  return m;
+}
+
+// ── Publish Toggle ─────────────────────────────────────────────
+async function togglePublish(quizId, published) {
+  const { error } = await db.from('quizzes').update({ published, updated_at: new Date().toISOString() }).eq('quiz_id', quizId);
+  if (error) { alert('Failed to update publish state: ' + error.message); return; }
+  const q = allQuizzes.find(x => x.quiz_id === quizId);
+  if (q) q.published = published;
+}
+
+// ── Side Panel ─────────────────────────────────────────────────
+async function openQuizPanel(quizId) {
+  currentQuiz = allQuizzes.find(q => q.quiz_id === quizId);
+  if (!currentQuiz) return;
+
+  const course = allCourses.find(c => c.course_id === currentQuiz.course_id);
+
+  // Load attempt stats for this quiz
+  const { data: attempts } = await db
+    .from('attempts')
+    .select('attempt_id, status, score_pct, mode')
+    .eq('quiz_id', quizId);
+
+  const total      = (attempts || []).length;
+  const completed  = (attempts || []).filter(a => a.status === 'completed').length;
+  const avgScore   = completed > 0
+    ? Math.round((attempts || []).filter(a => a.status === 'completed').reduce((s, a) => s + (a.score_pct || 0), 0) / completed)
+    : 0;
+
+  document.getElementById('panelTitle').textContent = currentQuiz.title;
+  document.getElementById('panelBody').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Quiz ID</span><span class="detail-value" style="font-family:monospace;">${currentQuiz.quiz_id}</span></div>
+    <div class="detail-row"><span class="detail-label">Course</span><span class="detail-value">${course ? course.title : currentQuiz.course_id}</span></div>
+    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="chip ${currentQuiz.status}">${currentQuiz.status}</span></span></div>
+    <div class="detail-row"><span class="detail-label">Published</span><span class="detail-value">${currentQuiz.published ? '✅ Yes' : '❌ No'}</span></div>
+    <div class="detail-row"><span class="detail-label">Questions</span><span class="detail-value">${currentQuiz.n}</span></div>
+    <div class="detail-row"><span class="detail-label">Modes</span><span class="detail-value">${formatMode(currentQuiz.allowed_modes)}</span></div>
+    <div class="detail-row"><span class="detail-label">Shuffle</span><span class="detail-value">${currentQuiz.shuffle ? 'Yes' : 'No'}</span></div>
+    <div class="detail-row"><span class="detail-label">Time Limit</span><span class="detail-value">${currentQuiz.time_limit_sec ? currentQuiz.time_limit_sec + 's (' + Math.round(currentQuiz.time_limit_sec/60) + ' min)' : 'Auto (1 min/Q)'}</span></div>
+    ${currentQuiz.notes ? `<div class="detail-row"><span class="detail-label">Notes</span><span class="detail-value">${escapeHtml(currentQuiz.notes)}</span></div>` : ''}
+
+    <div class="form-section-title" style="margin-top:20px;">Attempt Stats</div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-val">${total}</div><div class="stat-lbl">Total Attempts</div></div>
+      <div class="stat-box"><div class="stat-val">${completed}</div><div class="stat-lbl">Completed</div></div>
+      <div class="stat-box"><div class="stat-val">${completed > 0 ? avgScore + '%' : '—'}</div><div class="stat-lbl">Avg Score</div></div>
+    </div>
+
+    <div class="form-section-title">Item IDs</div>
+    <div style="font-family:monospace; font-size:12px; color:var(--text-muted); line-height:1.8;">
+      ${(currentQuiz.item_ids || []).map(id => `<span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; margin:2px; display:inline-block;">${id}</span>`).join('')}
+    </div>`;
+
+  document.getElementById('panelActions').innerHTML = `
+    <button class="btn btn-primary" onclick="openEditQuizModal('${quizId}')">Edit Quiz</button>
+    <button class="btn btn-ghost" onclick="previewQuiz('${quizId}')">Preview</button>
+    <button class="btn btn-ghost" onclick="archiveQuiz('${quizId}')">${currentQuiz.status === 'archived' ? 'Restore' : 'Archive'}</button>`;
+
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sidePanel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('sidePanel').classList.remove('open');
+}
+
+function previewQuiz(quizId) {
+  window.open(`/runner/instant.html?quiz_id=${quizId}&preview=1`, '_blank');
+}
+
+async function archiveQuiz(quizId) {
+  const q = allQuizzes.find(x => x.quiz_id === quizId);
+  if (!q) return;
+  const newStatus = q.status === 'archived' ? 'active' : 'archived';
+  if (!confirm(`${newStatus === 'archived' ? 'Archive' : 'Restore'} this quiz?`)) return;
+
+  const { error } = await db.from('quizzes').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('quiz_id', quizId);
+  if (error) { alert('Error: ' + error.message); return; }
+
+  q.status = newStatus;
+  closePanel();
+  applyQuizFilters();
+}
+
+// ══ QUIZ MODAL — WIZARD ════════════════════════════════════════
+
+function openNewQuizModal() {
+  isEditMode = false;
+  wizardStep = 1;
+  pickerSelected = {};
+  document.getElementById('editQuizId').value = '';
+  document.getElementById('quizIdGroup').style.display = 'block';
+  document.getElementById('quizModalTitle').textContent = 'New Quiz';
+  clearModalFields();
+  showWizardStep(1);
+  showModal('quizModal');
+}
+
+async function openEditQuizModal(quizId) {
+  const q = allQuizzes.find(x => x.quiz_id === quizId);
+  if (!q) return;
+  isEditMode = true;
+  wizardStep = 1;
+
+  // Pre-load picker selected from existing item_ids
+  pickerSelected = {};
+  document.getElementById('editQuizId').value = q.quiz_id;
+  document.getElementById('quizIdGroup').style.display = 'none';
+  document.getElementById('quizModalTitle').textContent = 'Edit Quiz';
+
+  document.getElementById('fieldCourse').value    = q.course_id;
+  document.getElementById('fieldTitle').value     = q.title;
+  document.getElementById('fieldModes').value     = q.allowed_modes;
+  document.getElementById('fieldStatus').value    = q.status;
+  document.getElementById('fieldTimeLimit').value = q.time_limit_sec || '';
+  document.getElementById('fieldShuffle').checked = q.shuffle;
+  document.getElementById('fieldPublished').checked = q.published;
+  document.getElementById('fieldNotes').value     = q.notes || '';
+  document.getElementById('fieldPublishAt').value   = q.publish_at ? q.publish_at.slice(0,16) : '';
+  document.getElementById('fieldUnpublishAt').value = q.unpublish_at ? q.unpublish_at.slice(0,16) : '';
+
+  // Load picker items so we can pre-select
+  await loadPickerItems(q.course_id);
+  (q.item_ids || []).forEach(id => {
+    const item = pickerAllItems.find(i => i.item_id === id);
+    if (item) pickerSelected[id] = item;
+  });
+
+  showWizardStep(1);
+  showModal('quizModal');
+  closePanel();
+}
+
+function clearModalFields() {
+  ['fieldQuizId','fieldTitle','fieldTimeLimit','fieldNotes','fieldPublishAt','fieldUnpublishAt'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('fieldCourse').value    = '';
+  document.getElementById('fieldModes').value     = 'BOTH';
+  document.getElementById('fieldStatus').value    = 'draft';
+  document.getElementById('fieldShuffle').checked = false;
+  document.getElementById('fieldPublished').checked = false;
+  clearAlert('quizModalError');
+  clearAlert('quizModalSuccess');
+}
+
+function showWizardStep(step) {
+  wizardStep = step;
+  [1,2,3].forEach(i => {
+    document.getElementById('wpane' + i).classList.toggle('active', i === step);
+    const stepEl = document.getElementById('wstep' + i);
+    stepEl.classList.toggle('active', i === step);
+    stepEl.classList.toggle('done', i < step);
+  });
+  document.getElementById('wizardBackBtn').style.display = step > 1 ? 'inline-block' : 'none';
+  document.getElementById('wizardNextBtn').textContent = step === 3 ? '💾 Save Quiz' : 'Next →';
+
+  if (step === 2) loadPickerForCurrentCourse();
+  if (step === 3) buildReviewStep();
+}
+
+async function wizardNext() {
+  clearAlert('quizModalError');
+
+  if (wizardStep === 1) {
+    // Validate step 1
+    const courseId = document.getElementById('fieldCourse').value;
+    const title    = document.getElementById('fieldTitle').value.trim();
+    const quizId   = document.getElementById('fieldQuizId').value.trim();
+
+    if (!courseId) return showAlert('quizModalError', 'Please select a course.');
+    if (!title)    return showAlert('quizModalError', 'Please enter a quiz title.');
+    if (!isEditMode && !quizId) return showAlert('quizModalError', 'Please enter a Quiz ID.');
+
+    showWizardStep(2);
+
+  } else if (wizardStep === 2) {
+    if (Object.keys(pickerSelected).length === 0) {
+      return showAlert('quizModalError', 'Please select at least one question.');
+    }
+    showWizardStep(3);
+
+  } else if (wizardStep === 3) {
+    await saveQuiz();
+  }
+}
+
+function wizardBack() {
+  if (wizardStep > 1) showWizardStep(wizardStep - 1);
+}
+
+// ── Picker ─────────────────────────────────────────────────────
+async function loadPickerForCurrentCourse() {
+  const courseId = document.getElementById('fieldCourse').value;
+  if (!courseId) return;
+  await loadPickerItems(courseId);
+  document.getElementById('pickerCourseLabel').textContent = allCourses.find(c => c.course_id === courseId)?.title || courseId;
+  populatePickerFilterDropdowns();
+  applyPickerFilters();
+}
+
+async function loadPickerItems(courseId) {
+  if (!courseId) return;
+  pickerAllItems = await getItemsByFilters(courseId, {});
+}
+
+function populatePickerFilterDropdowns() {
+  const maintopics = [...new Set(pickerAllItems.map(i => i.maintopic).filter(Boolean))].sort();
+  const batches    = [...new Set(pickerAllItems.map(i => i.batch_id).filter(Boolean))].sort();
+
+  const mtSel = document.getElementById('pickerMaintopic');
+  const btSel = document.getElementById('pickerBatch');
+  mtSel.innerHTML = '<option value="">All topics</option>';
+  btSel.innerHTML = '<option value="">All batches</option>';
+  maintopics.forEach(m => mtSel.innerHTML += `<option value="${m}">${m}</option>`);
+  batches.forEach(b => btSel.innerHTML += `<option value="${b}">${b}</option>`);
+
+  // Subtopics depend on maintopic
+  applyPickerSubtopics();
+}
+
+function applyPickerSubtopics() {
+  const mt = document.getElementById('pickerMaintopic').value;
+  const subtopics = [...new Set(
+    pickerAllItems.filter(i => !mt || i.maintopic === mt).map(i => i.subtopic).filter(Boolean)
+  )].sort();
+  const stSel = document.getElementById('pickerSubtopic');
+  stSel.innerHTML = '<option value="">All subtopics</option>';
+  subtopics.forEach(s => stSel.innerHTML += `<option value="${s}">${s}</option>`);
+}
+
+function applyPickerFilters() {
+  applyPickerSubtopics();
+  const mt   = document.getElementById('pickerMaintopic').value;
+  const st   = document.getElementById('pickerSubtopic').value;
+  const diff = document.getElementById('pickerDifficulty').value;
+  const type = document.getElementById('pickerType').value;
+  const batch= document.getElementById('pickerBatch').value;
+  const kw   = document.getElementById('pickerKeyword').value.toLowerCase().trim();
+
+  pickerFiltered = pickerAllItems.filter(i => {
+    if (mt   && i.maintopic     !== mt)   return false;
+    if (st   && i.subtopic      !== st)   return false;
+    if (diff && i.difficulty    !== diff) return false;
+    if (type && i.question_type !== type) return false;
+    if (batch && i.batch_id     !== batch)return false;
+    if (kw && !JSON.stringify(i).toLowerCase().includes(kw)) return false;
+    return true;
+  });
+
+  renderPickerTable();
+}
+
+function clearPickerFilters() {
+  ['pickerMaintopic','pickerSubtopic','pickerDifficulty','pickerType','pickerBatch'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pickerKeyword').value = '';
+  applyPickerFilters();
+}
+
+function selectAllVisible() {
+  pickerFiltered.forEach(i => { pickerSelected[i.item_id] = i; });
+  renderPickerTable();
+}
+
+function renderPickerTable() {
+  const body = document.getElementById('pickerBody');
+  document.getElementById('pickerVisibleCount').textContent = pickerFiltered.length;
+  document.getElementById('pickerSelectedCount').textContent = Object.keys(pickerSelected).length;
+
+  if (!pickerFiltered.length) {
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">No questions match your filters.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = pickerFiltered.map(i => {
+    const sel = !!pickerSelected[i.item_id];
+    return `
+      <tr class="${sel ? 'selected-row' : ''}" onclick="togglePickerItem('${i.item_id}')">
+        <td><input type="checkbox" ${sel ? 'checked' : ''} onclick="event.stopPropagation(); togglePickerItem('${i.item_id}')" /></td>
+        <td style="font-family:monospace; font-size:11px;">${i.item_id}</td>
+        <td><span class="chip" style="background:#f1f5f9; color:var(--primary);">${i.question_type}</span></td>
+        <td class="item-stem-cell"><span class="item-stem-short" title="${escapeHtml(i.stem)}">${escapeHtml(i.stem)}</span></td>
+        <td style="font-size:12px; color:var(--text-muted);">${i.maintopic || '—'}</td>
+        <td><span class="chip" style="background:#f1f5f9; color:var(--primary); font-size:10px;">${i.difficulty || '—'}</span></td>
+      </tr>`;
+  }).join('');
+}
+
+function togglePickerItem(itemId) {
+  const item = pickerAllItems.find(i => i.item_id === itemId);
+  if (!item) return;
+  if (pickerSelected[itemId]) delete pickerSelected[itemId];
+  else pickerSelected[itemId] = item;
+  renderPickerTable();
+}
+
+// ── Step 3: Review ─────────────────────────────────────────────
+function buildReviewStep() {
+  const courseId = document.getElementById('fieldCourse').value;
+  const title    = document.getElementById('fieldTitle').value;
+  const modes    = document.getElementById('fieldModes').value;
+  const status   = document.getElementById('fieldStatus').value;
+  const published= document.getElementById('fieldPublished').checked;
+  const shuffle  = document.getElementById('fieldShuffle').checked;
+  const timeLimit= document.getElementById('fieldTimeLimit').value;
+  const items    = Object.values(pickerSelected);
+
+  document.getElementById('reviewCount').textContent = items.length;
+
+  const course = allCourses.find(c => c.course_id === courseId);
+  document.getElementById('reviewSummary').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Title</span><span class="detail-value">${escapeHtml(title)}</span></div>
+    <div class="detail-row"><span class="detail-label">Course</span><span class="detail-value">${course ? course.title : courseId}</span></div>
+    <div class="detail-row"><span class="detail-label">Modes</span><span class="detail-value">${formatMode(modes)}</span></div>
+    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">${status}</span></div>
+    <div class="detail-row"><span class="detail-label">Published</span><span class="detail-value">${published ? 'Yes' : 'No'}</span></div>
+    <div class="detail-row"><span class="detail-label">Shuffle</span><span class="detail-value">${shuffle ? 'Yes' : 'No'}</span></div>
+    <div class="detail-row"><span class="detail-label">Time Limit</span><span class="detail-value">${timeLimit ? timeLimit + 's' : 'Auto (1 min/Q)'}</span></div>
+    <div class="detail-row"><span class="detail-label">Questions</span><span class="detail-value">${items.length}</span></div>`;
+
+  document.getElementById('reviewList').innerHTML = items.map((item, idx) => `
+    <div class="selected-item">
+      <span style="color:var(--text-muted); font-size:12px; min-width:24px;">${idx + 1}.</span>
+      <span class="selected-item-id">${item.item_id}</span>
+      <span class="selected-item-stem">${escapeHtml(item.stem)}</span>
+      <button class="selected-item-remove" onclick="removeFromSelected('${item.item_id}')" title="Remove">×</button>
+    </div>`).join('');
+}
+
+function removeFromSelected(itemId) {
+  delete pickerSelected[itemId];
+  buildReviewStep();
+}
+
+// ── Save Quiz ──────────────────────────────────────────────────
+async function saveQuiz() {
+  const quizId    = isEditMode ? document.getElementById('editQuizId').value : document.getElementById('fieldQuizId').value.trim().toUpperCase();
+  const courseId  = document.getElementById('fieldCourse').value;
+  const title     = document.getElementById('fieldTitle').value.trim();
+  const modes     = document.getElementById('fieldModes').value;
+  const status    = document.getElementById('fieldStatus').value;
+  const published = document.getElementById('fieldPublished').checked;
+  const shuffle   = document.getElementById('fieldShuffle').checked;
+  const timeLimit = document.getElementById('fieldTimeLimit').value ? parseInt(document.getElementById('fieldTimeLimit').value) : null;
+  const notes     = document.getElementById('fieldNotes').value.trim() || null;
+  const publishAt = document.getElementById('fieldPublishAt').value || null;
+  const unpublishAt = document.getElementById('fieldUnpublishAt').value || null;
+  const itemIds   = Object.keys(pickerSelected);
+  const n         = itemIds.length;
+
+  const payload = {
+    course_id:      courseId,
+    title,
+    item_ids:       itemIds,
+    n,
+    allowed_modes:  modes,
+    shuffle,
+    time_limit_sec: timeLimit,
+    published,
+    publish_at:     publishAt,
+    unpublish_at:   unpublishAt,
+    status,
+    notes,
+    updated_at:     new Date().toISOString()
+  };
+
+  let error;
+  if (isEditMode) {
+    ({ error } = await db.from('quizzes').update(payload).eq('quiz_id', quizId));
+  } else {
+    payload.quiz_id    = quizId;
+    payload.created_at = new Date().toISOString();
+    ({ error } = await db.from('quizzes').insert(payload));
+  }
+
+  if (error) {
+    showAlert('quizModalError', 'Error saving quiz: ' + error.message);
+    return;
+  }
+
+  showAlert('quizModalSuccess', isEditMode ? 'Quiz updated successfully.' : 'Quiz created successfully.');
+  allQuizzes = await getAllQuizzes();
+  applyQuizFilters();
+
+  setTimeout(closeQuizModal, 1200);
+}
+
+function closeQuizModal() {
+  document.getElementById('quizModal').classList.remove('show');
+  pickerSelected = {};
+  pickerAllItems = [];
+}
+
+// ══ TAB 2: QUESTION BANK ══════════════════════════════════════
+
+async function loadQuestionBank() {
+  const courseId = document.getElementById('qbCourse').value;
+  if (!courseId) return;
+
+  clearQBSelection();
+  document.getElementById('qbTableBody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">Loading questions…</td></tr>`;
+
+  qbAllItems = await getItemsByFilters(courseId, {});
+
+  // Populate filter dropdowns
+  const opts = await getItemFilterOptions(courseId);
+  const mtSel = document.getElementById('qbMaintopic');
+  const btSel = document.getElementById('qbBatch');
+  mtSel.innerHTML = '<option value="">All topics</option>';
+  btSel.innerHTML = '<option value="">All batches</option>';
+  opts.maintopics.forEach(m => mtSel.innerHTML += `<option value="${m}">${m}</option>`);
+  opts.batch_ids.forEach(b => btSel.innerHTML += `<option value="${b}">${b}</option>`);
+
+  // Populate bulk bar quiz dropdown
+  const bulkSel = document.getElementById('bulkTargetQuiz');
+  const courseQuizzes = allQuizzes.filter(q => q.course_id === courseId && q.status !== 'archived');
+  bulkSel.innerHTML = '<option value="">Add to quiz…</option>';
+  courseQuizzes.forEach(q => bulkSel.innerHTML += `<option value="${q.quiz_id}">${q.title}</option>`);
+
+  applyQBFilters();
+}
+
+function applyQBFilters() {
+  const type  = document.getElementById('qbType').value;
+  const diff  = document.getElementById('qbDifficulty').value;
+  const mt    = document.getElementById('qbMaintopic').value;
+  const batch = document.getElementById('qbBatch').value;
+  const kw    = document.getElementById('qbKeyword').value.toLowerCase().trim();
+
+  qbFiltered = qbAllItems.filter(i => {
+    if (type  && i.question_type !== type)  return false;
+    if (diff  && i.difficulty    !== diff)  return false;
+    if (mt    && i.maintopic     !== mt)    return false;
+    if (batch && i.batch_id      !== batch) return false;
+    if (kw && !JSON.stringify(i).toLowerCase().includes(kw)) return false;
+    return true;
+  });
+
+  document.getElementById('qbResultCount').textContent = `${qbFiltered.length} question${qbFiltered.length !== 1 ? 's' : ''}`;
+  document.getElementById('qbSelectAll').checked = false;
+  renderQBTable();
+}
+
+function clearQBFilters() {
+  ['qbType','qbDifficulty','qbMaintopic','qbBatch'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('qbKeyword').value = '';
+  applyQBFilters();
+}
+
+function renderQBTable() {
+  const body = document.getElementById('qbTableBody');
+
+  if (!qbFiltered.length) {
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:32px;">No questions match your filters.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = qbFiltered.map(i => {
+    const sel = !!qbSelected[i.item_id];
+    return `
+      <tr class="${sel ? 'qb-selected' : ''}" onclick="toggleQBItem('${i.item_id}')">
+        <td><input type="checkbox" ${sel ? 'checked' : ''} onclick="event.stopPropagation(); toggleQBItem('${i.item_id}')" /></td>
+        <td style="font-family:monospace; font-size:11px;">${i.item_id}</td>
+        <td><span class="chip" style="background:#f1f5f9; color:var(--primary);">${i.question_type}</span></td>
+        <td style="max-width:360px;">
+          <div style="font-size:13px; font-weight:500; color:var(--primary);">${escapeHtml(i.stem)}</div>
+          ${i.maintopic ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${i.maintopic}${i.subtopic ? ' › ' + i.subtopic : ''}</div>` : ''}
+        </td>
+        <td style="font-size:12px; color:var(--text-muted);">${i.maintopic || '—'}</td>
+        <td><span class="chip" style="background:#f1f5f9; color:var(--primary); font-size:10px;">${i.difficulty || '—'}</span></td>
+        <td style="font-size:12px;">${i.marks}</td>
+      </tr>`;
+  }).join('');
+}
+
+function toggleQBItem(itemId) {
+  const item = qbAllItems.find(i => i.item_id === itemId);
+  if (!item) return;
+  if (qbSelected[itemId]) delete qbSelected[itemId];
+  else qbSelected[itemId] = item;
+  renderQBTable();
+  updateBulkBar();
+}
+
+function toggleSelectAll(checkbox) {
+  if (checkbox.checked) {
+    qbFiltered.forEach(i => { qbSelected[i.item_id] = i; });
+  } else {
+    qbFiltered.forEach(i => { delete qbSelected[i.item_id]; });
+  }
+  renderQBTable();
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const count = Object.keys(qbSelected).length;
+  document.getElementById('bulkCount').textContent = count;
+  document.getElementById('bulkBar').classList.toggle('show', count > 0);
+}
+
+function clearQBSelection() {
+  qbSelected = {};
+  document.getElementById('qbSelectAll').checked = false;
+  updateBulkBar();
+  renderQBTable();
+}
+
+async function addSelectedToQuiz() {
+  const targetQuizId = document.getElementById('bulkTargetQuiz').value;
+  if (!targetQuizId) { alert('Please select a quiz to add questions to.'); return; }
+
+  const quiz = allQuizzes.find(q => q.quiz_id === targetQuizId);
+  if (!quiz) return;
+
+  const newIds    = Object.keys(qbSelected);
+  const existing  = quiz.item_ids || [];
+
+  // Merge — avoid duplicates
+  const merged = [...existing];
+  newIds.forEach(id => { if (!merged.includes(id)) merged.push(id); });
+  const added = merged.length - existing.length;
+
+  if (added === 0) {
+    alert('All selected questions are already in this quiz.');
+    return;
+  }
+
+  const { error } = await db.from('quizzes').update({
+    item_ids:   merged,
+    n:          merged.length,
+    updated_at: new Date().toISOString()
+  }).eq('quiz_id', targetQuizId);
+
+  if (error) { alert('Error updating quiz: ' + error.message); return; }
+
+  // Update local state
+  quiz.item_ids = merged;
+  quiz.n        = merged.length;
+  allQuizzes    = await getAllQuizzes();
+
+  alert(`✅ ${added} question${added !== 1 ? 's' : ''} added to "${quiz.title}".`);
+  clearQBSelection();
+}
+
+// ── Utilities ──────────────────────────────────────────────────
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function showAlert(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.classList.add('show'); }
+function clearAlert(id) { const el = document.getElementById(id); el.textContent = ''; el.classList.remove('show'); }
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function onCourseChange() {
+  // Reset picker when course changes
+  pickerAllItems = [];
+  pickerSelected = {};
+}
+
+// ── Start ──────────────────────────────────────────────────────
+initPage();
+
+</script>
 </body>
 </html>
