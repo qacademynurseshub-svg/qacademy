@@ -514,3 +514,527 @@ function filterAnnouncementsForStudent(announcements, profile, subscriptionKind)
     return true;
   });
 }
+
+
+// ============================================================
+// QUIZ ENGINE FUNCTIONS
+// ============================================================
+
+
+// ------------------------------------------------------------
+// GET CONFIG
+// Returns: config table as a plain key-value object
+// e.g. { runner_questions_per_page: 1, builder_max_questions: 50 }
+//
+// Why: runners and quiz builder read config once on load
+//      to know questions per page, autosave interval etc.
+//      Values are stored as TEXT in DB — converted to numbers here.
+//
+// Used by: runner/instant.html, runner/timed.html,
+//          student/quiz-builder.html
+// ------------------------------------------------------------
+async function getConfig() {
+  const { data, error } = await db
+    .from('config')
+    .select('key, value');
+
+  if (error) { console.error('getConfig:', error); return {}; }
+
+  // Convert array of {key, value} rows into a plain object
+  // Also convert numeric strings to actual numbers
+  const result = {};
+  (data || []).forEach(row => {
+    const num = Number(row.value);
+    result[row.key] = isNaN(num) ? row.value : num;
+  });
+  return result;
+}
+
+
+// ------------------------------------------------------------
+// GET QUIZZES FOR A COURSE
+// Returns: array of quiz rows for the given course_id
+//
+// adminMode: if true, returns ALL statuses (for admin page)
+//            if false (default), returns published=true only
+//
+// Why: student fixed-quizzes page only shows published quizzes.
+//      Admin page needs to see drafts and archived too.
+//
+// Used by: student/fixed-quizzes.html, admin/fixed-quizzes.html
+// ------------------------------------------------------------
+async function getQuizzes(courseId, adminMode = false) {
+  let query = db
+    .from('quizzes')
+    .select('*')
+    .eq('course_id', courseId)
+    .order('title');
+
+  if (!adminMode) {
+    query = query.eq('published', true).eq('status', 'active');
+  }
+
+  const { data, error } = await query;
+  if (error) { console.error('getQuizzes:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET ALL QUIZZES (ADMIN — ALL COURSES)
+// Returns: all quiz rows regardless of course or status
+//
+// Why: admin/fixed-quizzes.html needs to list and manage
+//      quizzes across all courses in one place.
+//
+// Used by: admin/fixed-quizzes.html
+// ------------------------------------------------------------
+async function getAllQuizzes() {
+  const { data, error } = await db
+    .from('quizzes')
+    .select('*')
+    .order('course_id')
+    .order('title');
+
+  if (error) { console.error('getAllQuizzes:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET SINGLE QUIZ BY ID
+// Returns: single quiz row or null
+//
+// Why: runner needs full quiz details (item_ids, time_limit_sec,
+//      shuffle, allowed_modes) right before launching.
+//
+// Used by: runner/instant.html, runner/timed.html,
+//          admin/fixed-quizzes.html (preview)
+// ------------------------------------------------------------
+async function getQuizById(quizId) {
+  const { data, error } = await db
+    .from('quizzes')
+    .select('*')
+    .eq('quiz_id', quizId)
+    .maybeSingle();
+
+  if (error) { console.error('getQuizById:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
+// GET ITEMS BY IDS
+// Returns: array of question rows from the correct items table
+//
+// courseId: determines which table to query (e.g. 'GP' → items_gp)
+// itemIds:  array of item_id strings to fetch
+//
+// Why: each course has its own items table. This function maps
+//      the course_id to the correct table name automatically.
+//      The runner calls this to load just the questions it needs.
+//
+// Used by: runner/instant.html, runner/timed.html,
+//          getAttemptForReview()
+// ------------------------------------------------------------
+async function getItemsByIds(courseId, itemIds) {
+  if (!itemIds || itemIds.length === 0) return [];
+
+  // Map course_id → items table name
+  // course_id is stored uppercase (e.g. 'GP', 'RN_MED')
+  // table name is items_ + lowercase course_id
+  const tableName = 'items_' + courseId.toLowerCase();
+
+  const { data, error } = await db
+    .from(tableName)
+    .select('*')
+    .in('item_id', itemIds);
+
+  if (error) { console.error('getItemsByIds:', error); return []; }
+
+  // Return items in the SAME ORDER as itemIds array
+  // Supabase does not guarantee order when using .in()
+  // so we sort manually to match the quiz item_ids order
+  const itemMap = {};
+  (data || []).forEach(item => { itemMap[item.item_id] = item; });
+  return itemIds.map(id => itemMap[id]).filter(Boolean);
+}
+
+
+// ------------------------------------------------------------
+// GET ITEMS BY FILTERS (ADMIN ITEM PICKER)
+// Returns: array of question rows matching the given filters
+//
+// courseId:      which items table to query
+// filters: {
+//   subject, maintopic, subtopic, difficulty,
+//   question_type, batch_id, keyword
+// }
+//
+// Why: admin uses this in the quiz builder item picker to
+//      search and filter the question bank before selecting items.
+//
+// Used by: admin/fixed-quizzes.html (item picker)
+// ------------------------------------------------------------
+async function getItemsByFilters(courseId, filters = {}) {
+  const tableName = 'items_' + courseId.toLowerCase();
+
+  let query = db.from(tableName).select('*');
+
+  if (filters.subject)       query = query.eq('subject', filters.subject);
+  if (filters.maintopic)     query = query.eq('maintopic', filters.maintopic);
+  if (filters.subtopic)      query = query.eq('subtopic', filters.subtopic);
+  if (filters.difficulty)    query = query.eq('difficulty', filters.difficulty);
+  if (filters.question_type) query = query.eq('question_type', filters.question_type);
+  if (filters.batch_id)      query = query.eq('batch_id', filters.batch_id);
+
+  // Keyword search — searches across all text fields
+  if (filters.keyword) {
+    const kw = filters.keyword.trim();
+    query = query.or(
+      `stem.ilike.%${kw}%,` +
+      `option_a.ilike.%${kw}%,option_b.ilike.%${kw}%,` +
+      `option_c.ilike.%${kw}%,option_d.ilike.%${kw}%,` +
+      `option_e.ilike.%${kw}%,option_f.ilike.%${kw}%,` +
+      `rationale.ilike.%${kw}%,` +
+      `maintopic.ilike.%${kw}%,subtopic.ilike.%${kw}%,` +
+      `subject.ilike.%${kw}%`
+    );
+  }
+
+  query = query.order('item_id');
+
+  const { data, error } = await query;
+  if (error) { console.error('getItemsByFilters:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET DISTINCT FILTER VALUES FOR ITEM PICKER
+// Returns: { subjects, maintopics, subtopics, batch_ids }
+//          — unique values for each filter dropdown
+//
+// Why: admin item picker dropdowns need to be populated
+//      with real values from the items table, not hardcoded.
+//
+// Used by: admin/fixed-quizzes.html (item picker dropdowns)
+// ------------------------------------------------------------
+async function getItemFilterOptions(courseId) {
+  const tableName = 'items_' + courseId.toLowerCase();
+
+  const { data, error } = await db
+    .from(tableName)
+    .select('subject, maintopic, subtopic, batch_id');
+
+  if (error) { console.error('getItemFilterOptions:', error); return {}; }
+
+  const unique = (arr) => [...new Set(arr.filter(Boolean))].sort();
+  const rows = data || [];
+
+  return {
+    subjects:   unique(rows.map(r => r.subject)),
+    maintopics: unique(rows.map(r => r.maintopic)),
+    subtopics:  unique(rows.map(r => r.subtopic)),
+    batch_ids:  unique(rows.map(r => r.batch_id))
+  };
+}
+
+
+// ------------------------------------------------------------
+// SPAWN FIXED ATTEMPT
+// Returns: { attempt, isResume }
+//
+// Called when student clicks Start Practice or Start Exam
+// on a fixed quiz card.
+//
+// Logic:
+// 1. Check for existing in_progress attempt (same quiz + mode)
+// 2. If found → return it with isResume: true (student resumes)
+// 3. If not found → create new attempt row, return with isResume: false
+//
+// shuffle: if quiz.shuffle=true, question order is randomised
+//          using Fisher-Yates on item_ids before storing
+//
+// Why: prevents duplicate attempts if student clicks twice.
+//      One in_progress slot per quiz per mode per student.
+//
+// Used by: student/fixed-quizzes.html
+// ------------------------------------------------------------
+async function spawnFixedAttempt(userId, quiz, mode) {
+  // Step 1 — check for existing in_progress attempt
+  const { data: existing } = await db
+    .from('attempts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('quiz_id', quiz.quiz_id)
+    .eq('mode', mode)
+    .eq('status', 'in_progress')
+    .maybeSingle();
+
+  if (existing) return { attempt: existing, isResume: true };
+
+  // Step 2 — build item order (shuffle if quiz.shuffle = true)
+  let orderedIds = [...(quiz.item_ids || [])];
+  if (quiz.shuffle) orderedIds = shuffleArray(orderedIds);
+
+  // Step 3 — generate attempt ID
+  const attemptId = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+  // Step 4 — calculate time limit
+  const timeLimitSec = quiz.time_limit_sec || (quiz.n * 60);
+
+  // Step 5 — insert new attempt row
+  const { data: newAttempt, error } = await db
+    .from('attempts')
+    .insert({
+      attempt_id:        attemptId,
+      user_id:           userId,
+      quiz_id:           quiz.quiz_id,
+      course_id:         quiz.course_id,
+      mode:              mode,
+      source:            'fixed',
+      item_ids:          orderedIds.join(','),
+      n:                 orderedIds.length,
+      status:            'in_progress',
+      ts_iso:            new Date().toISOString(),
+      duration_min:      Math.ceil(timeLimitSec / 60),
+      answers_json:      JSON.stringify([]),
+      display_label:     quiz.title
+    })
+    .select()
+    .single();
+
+  if (error) { console.error('spawnFixedAttempt:', error); return null; }
+  return { attempt: newAttempt, isResume: false };
+}
+
+
+// ------------------------------------------------------------
+// SPAWN BUILDER ATTEMPT
+// Returns: newly created attempt row
+//
+// Called when student finishes the quiz builder wizard
+// and clicks Launch.
+//
+// Why: builder quizzes are always fresh — no resume logic
+//      because every builder attempt is unique to the student.
+//
+// Used by: student/quiz-builder.html
+// ------------------------------------------------------------
+async function spawnBuilderAttempt(userId, courseId, itemIds, mode) {
+  const attemptId   = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const timeLimitSec = itemIds.length * 60;
+
+  const { data, error } = await db
+    .from('attempts')
+    .insert({
+      attempt_id:    attemptId,
+      user_id:       userId,
+      quiz_id:       null,
+      course_id:     courseId,
+      mode:          mode,
+      source:        'builder',
+      item_ids:      itemIds.join(','),
+      n:             itemIds.length,
+      status:        'in_progress',
+      ts_iso:        new Date().toISOString(),
+      duration_min:  Math.ceil(timeLimitSec / 60),
+      answers_json:  JSON.stringify([]),
+      display_label: courseId + ' Custom Quiz'
+    })
+    .select()
+    .single();
+
+  if (error) { console.error('spawnBuilderAttempt:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
+// SAVE ATTEMPT PROGRESS (AUTOSAVE)
+// Returns: { success: true } or { success: false, message }
+//
+// Called automatically every N seconds by the runner
+// and also when student clicks Save & Exit.
+//
+// Why: preserves student answers in case of browser close,
+//      network drop or accidental navigation away.
+//
+// Used by: runner/instant.html, runner/timed.html
+// ------------------------------------------------------------
+async function saveAttemptProgress(attemptId, answersJson) {
+  const { error } = await db
+    .from('attempts')
+    .update({
+      answers_json: JSON.stringify(answersJson),
+      status:       'in_progress'
+    })
+    .eq('attempt_id', attemptId);
+
+  if (error) {
+    console.error('saveAttemptProgress:', error);
+    return { success: false, message: error.message };
+  }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// FINISH ATTEMPT (SUBMIT)
+// Returns: { success: true } or { success: false, message }
+//
+// Called when student clicks Submit in the runner.
+// Records the final answers, score and time taken.
+// Sets status to 'completed'.
+//
+// Used by: runner/instant.html, runner/timed.html
+// ------------------------------------------------------------
+async function finishAttempt(attemptId, answersJson, scoreRaw, scoreTotal, scorePct, timeTakenS) {
+  const { error } = await db
+    .from('attempts')
+    .update({
+      answers_json: JSON.stringify(answersJson),
+      score_raw:    scoreRaw,
+      score_total:  scoreTotal,
+      score_pct:    scorePct,
+      time_taken_s: timeTakenS,
+      status:       'completed'
+    })
+    .eq('attempt_id', attemptId);
+
+  if (error) {
+    console.error('finishAttempt:', error);
+    return { success: false, message: error.message };
+  }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// RETAKE ATTEMPT
+// Returns: newly created attempt row
+//
+// Called when student clicks Retake on a completed quiz.
+// Creates a fresh attempt using the same quiz and items
+// as the original, linked back via origin_attempt_id.
+//
+// Why: retake is a new attempt — clean slate, same questions.
+//      origin_attempt_id lets us track retake chains in history.
+//
+// Used by: student/fixed-quizzes.html,
+//          student/learning-history.html
+// ------------------------------------------------------------
+async function retakeAttempt(originAttempt, userId) {
+  const attemptId    = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const timeLimitSec = originAttempt.duration_min * 60;
+
+  const { data, error } = await db
+    .from('attempts')
+    .insert({
+      attempt_id:         attemptId,
+      user_id:            userId,
+      quiz_id:            originAttempt.quiz_id,
+      course_id:          originAttempt.course_id,
+      mode:               originAttempt.mode,
+      source:             'retake',
+      item_ids:           originAttempt.item_ids,
+      n:                  originAttempt.n,
+      status:             'in_progress',
+      ts_iso:             new Date().toISOString(),
+      duration_min:       originAttempt.duration_min,
+      answers_json:       JSON.stringify([]),
+      display_label:      originAttempt.display_label,
+      origin_attempt_id:  originAttempt.attempt_id
+    })
+    .select()
+    .single();
+
+  if (error) { console.error('retakeAttempt:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
+// GET ATTEMPT FOR REVIEW
+// Returns: { attempt, items } — full attempt + question content
+//
+// Called when student clicks Review on a completed attempt.
+// Loads the attempt row AND fetches all question content
+// so the runner can display answers in read-only mode.
+//
+// Why: review mode needs both the student's answers (from attempt)
+//      and the full question text/options/rationale (from items table).
+//
+// Used by: runner/instant.html, runner/timed.html (?review=1)
+// ------------------------------------------------------------
+async function getAttemptForReview(attemptId) {
+  // Load the attempt row
+  const { data: attempt, error } = await db
+    .from('attempts')
+    .select('*')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  if (error || !attempt) {
+    console.error('getAttemptForReview — attempt not found:', error);
+    return null;
+  }
+
+  // Parse item_ids from comma-separated string to array
+  const itemIds = (attempt.item_ids || '').split(',').filter(Boolean);
+
+  // Fetch all question content from the correct items table
+  const items = await getItemsByIds(attempt.course_id, itemIds);
+
+  return { attempt, items };
+}
+
+
+// ------------------------------------------------------------
+// GET STUDENT ATTEMPTS
+// Returns: array of attempt rows for a student, newest first
+//
+// courseId: optional — pass to filter by one course only
+//           leave null/empty to get all attempts (learning history)
+//
+// Why: learning history page needs all attempts.
+//      Fixed quizzes page needs attempts per course to compute
+//      card state (not started / in progress / completed).
+//
+// Used by: student/learning-history.html,
+//          student/fixed-quizzes.html (state machine)
+// ------------------------------------------------------------
+async function getStudentAttempts(userId, courseId = null) {
+  let query = db
+    .from('attempts')
+    .select('*')
+    .eq('user_id', userId)
+    .order('ts_iso', { ascending: false });
+
+  if (courseId) query = query.eq('course_id', courseId);
+
+  const { data, error } = await query;
+  if (error) { console.error('getStudentAttempts:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// SHUFFLE ARRAY (Fisher-Yates)
+// Returns: new shuffled array (does not mutate original)
+//
+// Why: used by spawnFixedAttempt when quiz.shuffle = true
+//      to randomise question order at spawn time.
+//      Also used by runners for option shuffling.
+//
+// Not exported — internal helper used by quiz engine functions
+// ------------------------------------------------------------
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
