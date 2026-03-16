@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Learning History — QAcademy Nurses Hub</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .logout-btn {
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* Filter chip */
+    .filter-chip-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .filter-chip-bar.show { display: flex; }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-light);
+      border: 1px solid var(--accent);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+    .filter-chip-clear {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--accent);
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      font-weight: 700;
+    }
+    .filter-chip-clear:hover { color: var(--danger); }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-select {
+      padding: 9px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      background: var(--white);
+      cursor: pointer;
+      color: var(--text);
+    }
+    .filter-select:focus { outline: none; border-color: var(--primary); }
+    .result-count {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    /* Table */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .history-table th {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .history-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-table tbody tr:hover td { background: var(--primary-light); }
+
+    .status-chip {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+    .status-chip.completed   { background: #dcfce7; color: #166534; }
+    .status-chip.in_progress { background: #fef9c3; color: #854d0e; }
+    .status-chip.abandoned   { background: #f3f4f6; color: #6b7280; }
+
+    .action-link {
+      font-size: 12px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+
+  <!-- Shared Sidebar -->
+  <div id="sidebar"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Learning History</h1>
+        <p>Your quiz attempts and scores</p>
+      </div>
+      <div class="user-menu">
+        <span class="user-name" id="userName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Filter chip -->
+    <div class="filter-chip-bar" id="filterChipBar">
+      Filtering:
+      <span class="filter-chip">
+        <span id="filterChipLabel"></span>
+        <button class="filter-chip-clear" onclick="clearCourseFilter()" title="Clear filter">✕</button>
+      </span>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <select class="filter-select" id="courseFilter" onchange="applyFilters()">
+        <option value="">All Courses</option>
+      </select>
+      <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+        <option value="">All Statuses</option>
+        <option value="completed">Completed</option>
+        <option value="in_progress">In Progress</option>
+        <option value="abandoned">Abandoned</option>
+      </select>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+
+    <!-- Table -->
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div id="tableArea">
+        <p style="padding:24px; color:var(--text-muted); font-size:14px;">Loading...</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/student-sidebar.js"></script>
+<script>
+  let allAttempts = [];
+  let enrolledCourses = [];
+
+  async function initPage() {
+    // 1. Guard
+    const profile = await guardPage('STUDENT');
+    if (!profile) return;
+
+    document.getElementById('userName').textContent = profile.forename || profile.name || profile.email;
+
+    // 2. Read ?course= from URL
+    const params = new URLSearchParams(window.location.search);
+    const courseFilter = params.get('course') || null;
+
+    // 3. Load enrolled courses + attempts in parallel
+    const [courseAccessMap, allCourses] = await Promise.all([
+      getStudentCourseAccess(profile.user_id),
+      getCourses()
+    ]);
+
+    // 4. Populate sidebar dropdown
+    populateCourseDropdown(courseAccessMap, allCourses);
+
+    // 5. Filter to enrolled courses only
+    enrolledCourses = allCourses.filter(c => courseAccessMap[c.course_id]);
+
+    // 6. Build course filter dropdown
+    const courseSelect = document.getElementById('courseFilter');
+    enrolledCourses.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.course_id;
+      opt.textContent = c.title;
+      courseSelect.appendChild(opt);
+    });
+
+    // 7. Pre-select course filter if ?course= set
+    if (courseFilter) {
+      courseSelect.value = courseFilter;
+      const filterCourse = enrolledCourses.find(c => c.course_id === courseFilter);
+      if (filterCourse) {
+        document.getElementById('filterChipLabel').textContent = filterCourse.title;
+        document.getElementById('filterChipBar').classList.add('show');
+      }
+    }
+
+    // 8. Try to load attempts — catch error silently if table doesn't exist yet
+    try {
+      const { data, error } = await db
+        .from('attempts')
+        .select('*')
+        .eq('user_id', profile.user_id)
+        .order('ts_iso', { ascending: false });
+
+      allAttempts = (!error && data) ? data : [];
+    } catch (e) {
+      allAttempts = [];
+    }
+
+    // 9. Render table
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const courseVal = document.getElementById('courseFilter').value;
+    const statusVal = document.getElementById('statusFilter').value;
+
+    let filtered = allAttempts.slice();
+    if (courseVal) filtered = filtered.filter(a => a.course_id === courseVal);
+    if (statusVal) filtered = filtered.filter(a => a.status === statusVal);
+
+    document.getElementById('resultCount').textContent =
+      filtered.length ? `${filtered.length} attempt${filtered.length !== 1 ? 's' : ''}` : '';
+
+    renderTable(filtered);
+  }
+
+  function renderTable(attempts) {
+    const area = document.getElementById('tableArea');
+
+    if (!attempts.length) {
+      area.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📊</div>
+          <p>No quiz attempts yet.<br/>Complete a quiz to see your history here.</p>
+        </div>`;
+      return;
+    }
+
+    const rows = attempts.map(a => {
+      const date  = a.ts_iso
+        ? new Date(a.ts_iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+        : '—';
+      const score = a.status === 'completed' && a.score_total
+        ? `${a.score_raw}/${a.score_total} (${Math.round(a.score_pct)}%)`
+        : '—';
+      const courseName = enrolledCourses.find(c => c.course_id === a.course_id)?.title || a.course_id || '—';
+
+      return `
+        <tr>
+          <td>${a.display_label || a.quiz_id || '—'}</td>
+          <td>${courseName}</td>
+          <td style="text-transform:capitalize;">${a.mode || '—'}</td>
+          <td>${a.n || '—'}</td>
+          <td>${score}</td>
+          <td>${date}</td>
+          <td><span class="status-chip ${a.status}">${(a.status || '').replace('_', ' ')}</span></td>
+          <td><a class="action-link">${a.status === 'completed' ? 'Review' : 'Resume'}</a></td>
+        </tr>`;
+    }).join('');
+
+    area.innerHTML = `
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Quiz</th>
+            <th>Course</th>
+            <th>Mode</th>
+            <th>Questions</th>
+            <th>Score</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function clearCourseFilter() {
+    window.location.href = '/student/history.html';
+  }
+
+  initPage();
+</script>
+
+</body>
+</html>

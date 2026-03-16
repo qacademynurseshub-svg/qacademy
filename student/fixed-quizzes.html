@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fixed Quizzes — QAcademy Nurses Hub</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .logout-btn {
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* Filter chip */
+    .filter-chip-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .filter-chip-bar.show { display: flex; }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-light);
+      border: 1px solid var(--accent);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+    .filter-chip-clear {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--accent);
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      font-weight: 700;
+    }
+    .filter-chip-clear:hover { color: var(--danger); }
+
+    /* Accordion */
+    .accordion {
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--white);
+    }
+    .accordion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      background: var(--white);
+      transition: background 0.15s;
+    }
+    .accordion-header:hover { background: var(--primary-light); }
+    .accordion-header.open { background: var(--primary-light); }
+    .accordion-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .accordion-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .accordion-arrow {
+      font-size: 12px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .accordion-header.open .accordion-arrow { transform: rotate(180deg); }
+    .accordion-body {
+      display: none;
+      padding: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .accordion-body.open { display: block; }
+    .shell-placeholder {
+      text-align: center;
+      padding: 28px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+    }
+    .shell-placeholder .shell-icon { font-size: 28px; margin-bottom: 10px; }
+    .shell-placeholder p { margin: 0; }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+
+  <!-- Shared Sidebar -->
+  <div id="sidebar"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Fixed Quizzes</h1>
+        <p>Pre-built quizzes organised by course</p>
+      </div>
+      <div class="user-menu">
+        <span class="user-name" id="userName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Filter chip -->
+    <div class="filter-chip-bar" id="filterChipBar">
+      Filtering:
+      <span class="filter-chip">
+        <span id="filterChipLabel"></span>
+        <button class="filter-chip-clear" onclick="clearCourseFilter()" title="Clear filter">✕</button>
+      </span>
+    </div>
+
+    <!-- Accordion area -->
+    <div id="accordionArea">
+      <p style="color:var(--text-muted); font-size:14px;">Loading...</p>
+    </div>
+
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/student-sidebar.js"></script>
+<script>
+  let activeCourseFilter = null;
+
+  async function initPage() {
+    // 1. Guard
+    const profile = await guardPage('STUDENT');
+    if (!profile) return;
+
+    document.getElementById('userName').textContent = profile.forename || profile.name || profile.email;
+
+    // 2. Read ?course= from URL
+    const params = new URLSearchParams(window.location.search);
+    activeCourseFilter = params.get('course') || null;
+
+    // 3. Load enrolled courses
+    const [courseAccessMap, allCourses] = await Promise.all([
+      getStudentCourseAccess(profile.user_id),
+      getCourses()
+    ]);
+
+    // 4. Populate sidebar dropdown
+    populateCourseDropdown(courseAccessMap, allCourses);
+
+    // 5. Filter to enrolled courses only
+    const enrolledCourses = allCourses.filter(c => courseAccessMap[c.course_id]);
+
+    if (!enrolledCourses.length) {
+      document.getElementById('accordionArea').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📝</div>
+          <p>You are not enrolled in any courses yet.</p>
+        </div>`;
+      return;
+    }
+
+    // 6. Show filter chip if ?course= is set
+    if (activeCourseFilter) {
+      const filterCourse = enrolledCourses.find(c => c.course_id === activeCourseFilter);
+      if (filterCourse) {
+        document.getElementById('filterChipLabel').textContent = filterCourse.title;
+        document.getElementById('filterChipBar').classList.add('show');
+      }
+    }
+
+    // 7. Render accordions
+    renderAccordions(enrolledCourses);
+  }
+
+  function renderAccordions(courses) {
+    const area = document.getElementById('accordionArea');
+    area.innerHTML = '';
+
+    courses.forEach(course => {
+      const isTarget = activeCourseFilter === course.course_id;
+
+      const accordion = document.createElement('div');
+      accordion.className = 'accordion';
+
+      accordion.innerHTML = `
+        <div class="accordion-header ${isTarget ? 'open' : ''}" onclick="toggleAccordion(this)">
+          <div>
+            <div class="accordion-title">${course.title}</div>
+            <div class="accordion-meta">${course.course_id}</div>
+          </div>
+          <span class="accordion-arrow">▾</span>
+        </div>
+        <div class="accordion-body ${isTarget ? 'open' : ''}">
+          <div class="shell-placeholder">
+            <div class="shell-icon">📝</div>
+            <p>Fixed quizzes for this course will appear here.<br/>Quiz engine coming soon.</p>
+          </div>
+        </div>`;
+
+      area.appendChild(accordion);
+    });
+  }
+
+  function toggleAccordion(header) {
+    const body = header.nextElementSibling;
+    const isOpen = header.classList.contains('open');
+    header.classList.toggle('open', !isOpen);
+    body.classList.toggle('open', !isOpen);
+  }
+
+  function clearCourseFilter() {
+    window.location.href = '/student/fixed-quizzes.html';
+  }
+
+  initPage();
+</script>
+
+</body>
+</html>
