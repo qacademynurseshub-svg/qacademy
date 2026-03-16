@@ -685,7 +685,7 @@ function sanitiseBodyHtml(raw) {
         : `Expires ${access.expires.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`;
 
       coursesArea.innerHTML += `
-        <div class="course-card" onclick="window.location.href='/course/${course.course_id}.html'">
+        <div class="course-card" onclick="window.location.href='/student/course.html?id=${course.course_id}'">
           <div class="course-badge">${(course.program_scope || []).join(', ')}</div>
           <h3>${course.title}</h3>
           <p>Click to view quizzes and study materials</p>

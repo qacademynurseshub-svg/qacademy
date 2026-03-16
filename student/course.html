@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Course — QAcademy Nurses Hub</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .logout-btn {
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* Course Header */
+    .course-header {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .course-header-left h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0 0 8px;
+    }
+    .course-programme-badge {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .course-access-badge {
+      background: var(--primary-light);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      text-align: center;
+      min-width: 110px;
+      flex-shrink: 0;
+    }
+    .course-access-badge .days {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1;
+    }
+    .course-access-badge .days-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .course-access-badge.warning .days { color: var(--warning); }
+    .course-access-badge.expired .days { color: var(--danger); }
+
+    /* Section cards */
+    .section-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .section-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .section-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .section-card-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: var(--text-muted);
+    }
+    .shell-placeholder {
+      text-align: center;
+      padding: 32px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+    }
+    .shell-placeholder .shell-icon { font-size: 28px; margin-bottom: 10px; }
+    .shell-placeholder p { margin: 0; }
+
+    /* Quiz builder shortcut */
+    .builder-shortcut {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .builder-shortcut-icon { font-size: 28px; }
+    .builder-shortcut-text .title { font-weight: 600; font-size: 14px; color: var(--primary); }
+    .builder-shortcut-text .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Announcements */
+    .announcement-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .announcement-item:last-child { margin-bottom: 0; }
+    .announcement-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .announcement-body {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .announcement-body a[data-qa="btn"] {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 32px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* No access state */
+    .no-access-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 48px 32px;
+      text-align: center;
+      margin-top: 40px;
+    }
+    .no-access-card .icon { font-size: 40px; margin-bottom: 16px; }
+    .no-access-card h2 { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+    .no-access-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+
+  <!-- Shared Sidebar -->
+  <div id="sidebar"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1 id="pageTitle">Loading...</h1>
+        <p id="pageSub"></p>
+      </div>
+      <div class="user-menu">
+        <span class="user-name" id="userName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Page content (hidden until loaded) -->
+    <div id="pageContent" style="display:none;">
+
+      <!-- 1. Course Header -->
+      <div class="course-header" id="courseHeader">
+        <div class="course-header-left">
+          <h1 id="courseTitle"></h1>
+          <div id="courseProgrammeBadges"></div>
+        </div>
+        <div class="course-access-badge" id="courseAccessBadge">
+          <div class="days" id="accessDays">—</div>
+          <div class="days-label">days left</div>
+        </div>
+      </div>
+
+      <!-- 2. Fixed Quizzes (shell) -->
+      <div class="section-card">
+        <div class="section-card-header">
+          <span class="section-card-title">📝 Fixed Quizzes</span>
+          <span class="section-card-badge">Coming Soon</span>
+        </div>
+        <div class="shell-placeholder">
+          <div class="shell-icon">📝</div>
+          <p>Fixed quizzes for this course will appear here.<br/>Quiz engine coming soon.</p>
+        </div>
+      </div>
+
+      <!-- 3. Quiz Builder Shortcut (shell) -->
+      <div class="section-card">
+        <div class="section-card-header">
+          <span class="section-card-title">🔧 Quiz Builder</span>
+          <span class="section-card-badge">Coming Soon</span>
+        </div>
+        <div class="builder-shortcut" id="builderShortcut">
+          <div class="builder-shortcut-icon">🔧</div>
+          <div class="builder-shortcut-text">
+            <div class="title">Build a Custom Quiz</div>
+            <div class="sub">Create a quiz filtered to this course — coming soon</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Course Announcements -->
+      <div class="section-card">
+        <div class="section-card-header">
+          <span class="section-card-title">📢 Course Announcements</span>
+          <span class="section-card-badge" id="announcementCount"></span>
+        </div>
+        <div id="courseAnnouncements">
+          <p style="color:var(--text-muted); font-size:14px;">Loading...</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- No access state -->
+    <div id="noAccessCard" style="display:none;">
+      <div class="no-access-card">
+        <div class="icon">🔒</div>
+        <h2>No Access</h2>
+        <p>You do not have an active subscription for this course.</p>
+        <a href="/student/dashboard.html" class="btn btn-primary">Back to Dashboard</a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/student-sidebar.js"></script>
+<script>
+  async function initPage() {
+    // 1. Guard — must be STUDENT
+    const profile = await guardPage('STUDENT');
+    if (!profile) return;
+
+    // 2. Set user name in top nav
+    document.getElementById('userName').textContent = profile.forename || profile.name || profile.email;
+
+    // 3. Read ?id= from URL
+    const params = new URLSearchParams(window.location.search);
+    const courseId = params.get('id');
+
+    if (!courseId) {
+      window.location.href = '/student/dashboard.html';
+      return;
+    }
+
+    // 4. Check student has access to this course
+    const courseAccessMap = await getStudentCourseAccess(profile.user_id);
+    const access = courseAccessMap[courseId];
+
+    if (!access) {
+      document.getElementById('noAccessCard').style.display = 'block';
+      document.getElementById('pageTitle').textContent = 'Access Denied';
+      return;
+    }
+
+    // 5. Load course from Supabase
+    const course = await getCourseById(courseId);
+    if (!course) {
+      document.getElementById('pageTitle').textContent = 'Course Not Found';
+      return;
+    }
+
+    // 6. Populate sidebar dropdown
+    const allCourses = await getCourses();
+    populateCourseDropdown(courseAccessMap, allCourses);
+
+    // 7. Render course header
+    document.title = `${course.title} — QAcademy Nurses Hub`;
+    document.getElementById('pageTitle').textContent = course.title;
+    document.getElementById('courseTitle').textContent = course.title;
+
+    // Programme badges
+    const badgeArea = document.getElementById('courseProgrammeBadges');
+    (course.program_scope || []).forEach(prog => {
+      const badge = document.createElement('span');
+      badge.className = 'course-programme-badge';
+      badge.style.marginRight = '6px';
+      badge.textContent = prog;
+      badgeArea.appendChild(badge);
+    });
+
+    // Access days badge
+    const daysEl = document.getElementById('accessDays');
+    const badgeEl = document.getElementById('courseAccessBadge');
+    daysEl.textContent = access.totalDays;
+    if (access.totalDays <= 7) badgeEl.classList.add('warning');
+    if (access.totalDays <= 0) badgeEl.classList.add('expired');
+
+    // 8. Wire quiz builder shortcut link (for when it's built)
+    document.getElementById('builderShortcut').setAttribute(
+      'data-href', `/student/quiz-builder.html?course=${courseId}`
+    );
+
+    // 9. Load course-scoped announcements
+    const allAnnouncements = await getAnnouncements();
+    const filtered = filterAnnouncementsForStudent(allAnnouncements, profile,
+      Object.keys(courseAccessMap).length > 0 ? 'PAID' : null
+    ).filter(a => a.course_id === courseId);
+
+    const annArea = document.getElementById('courseAnnouncements');
+    document.getElementById('announcementCount').textContent =
+      filtered.length ? `${filtered.length} announcement${filtered.length !== 1 ? 's' : ''}` : '';
+
+    if (!filtered.length) {
+      annArea.innerHTML = `<div class="empty-state">No announcements for this course yet.</div>`;
+    } else {
+      annArea.innerHTML = filtered.map(a => `
+        <div class="announcement-item">
+          <div class="announcement-title">${a.title}</div>
+          <div class="announcement-body">${a.body || ''}</div>
+        </div>
+      `).join('');
+    }
+
+    // 10. Show page content
+    document.getElementById('pageContent').style.display = 'block';
+  }
+
+  initPage();
+</script>
+
+</body>
+</html>

@@ -92,6 +92,23 @@ async function getAllCourses() {
 
 
 // ------------------------------------------------------------
+// GET SINGLE COURSE BY ID
+// Returns: single course object or null
+// Used by: student/course.html
+// ------------------------------------------------------------
+async function getCourseById(courseId) {
+  const { data, error } = await db
+    .from('courses')
+    .select('*')
+    .eq('course_id', courseId)
+    .maybeSingle();
+
+  if (error) { console.error('getCourseById:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
 // USERS — LIST
 // Returns: lighter list-level data for all users
 // Reason: loading full data for hundreds of users is wasteful
