@@ -27,7 +27,7 @@
       </div>
       <a href="/student/fixed-quizzes.html">📝 Fixed Quizzes</a>
       <a href="/student/quiz-builder.html">🔧 Quiz Builder</a>
-      <a href="/student/history.html">📊 History</a>
+      <a href="/student/learning-history.html">📊 Learning History</a>
       <a href="/student/announcements.html">📢 Announcements</a>
       <a href="/student/downloads.html">📥 Downloads</a>
       <a href="/student/messages.html">💬 Messages</a>
