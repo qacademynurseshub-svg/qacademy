@@ -1038,3 +1038,26 @@ function shuffleArray(arr) {
   }
   return a;
 }
+// ------------------------------------------------------------
+// GET QUIZ AVAILABILITY
+// Returns: HIDDEN | UPCOMING | ACTIVE | CLOSED
+//
+// Full state machine:
+// 1. status !== active  → HIDDEN
+// 2. published !== true → HIDDEN
+// 3. now < publish_at   → UPCOMING
+// 4. now > unpublish_at → CLOSED
+// 5. all clear          → ACTIVE
+//
+// Used by: student/fixed-quizzes.html, admin/fixed-quizzes.html
+// ------------------------------------------------------------
+function getQuizAvailability(quiz) {
+  if (quiz.status !== 'active') return 'HIDDEN';
+  if (!quiz.published)          return 'HIDDEN';
+
+  const now = new Date();
+  if (quiz.publish_at   && new Date(quiz.publish_at)   > now) return 'UPCOMING';
+  if (quiz.unpublish_at && new Date(quiz.unpublish_at) < now) return 'CLOSED';
+
+  return 'ACTIVE';
+}
