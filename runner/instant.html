@@ -1126,6 +1126,7 @@ function hydrateAnswers() {
         ANSW[a.item_id] = a.chosen;
       }
       if (a.flagged) FLAGS[a.item_id] = true;
+      if (a.sata_checked) SATA_EVAL[a.item_id] = true;
     });
   } catch(e) { console.warn('hydrateAnswers error:', e); }
 }
@@ -1284,7 +1285,7 @@ function renderPage() {
     const globalIdx = ITEMS.indexOf(item);
     qList.appendChild(buildQuestionBlock(item, globalIdx));
   }
-
+  refreshVisibleFeedback();
   // Scroll to top of card
   window.scrollTo({ top: document.getElementById('runnerHeader').offsetHeight, behavior: 'smooth' });
 }
@@ -1404,12 +1405,6 @@ function buildQuestionBlock(item, globalIdx) {
   footer.appendChild(document.createElement('div')).className = 'watermark';
   footer.querySelector(':last-child').textContent = 'QAcademy';
   wrap.appendChild(footer);
-
-  // Apply feedback for answered/locked questions
-  if (ANSW.hasOwnProperty(item.item_id) || LOCKED || REVIEW_MODE) {
-    updateQuestionFeedback(item.item_id);
-  }
-
   return wrap;
 }
 
@@ -1747,6 +1742,7 @@ function buildAnswersJson() {
       correct:     correct,
       is_correct:  isCorrect,
       flagged:     !!FLAGS[item.item_id],
+      sata_checked: !!SATA_EVAL[item.item_id],
       time_spent_s: null
     };
   });
