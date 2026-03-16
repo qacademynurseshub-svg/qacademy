@@ -303,22 +303,7 @@
 <div class="dashboard-wrapper">
 
   <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <img src="/images/QAcademy_Logo.png" alt="QAcademy" style="width:40px; margin-bottom:6px;" />
-      <h2>QAcademy</h2>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="/student/dashboard.html" class="active">🏠 Dashboard</a>
-      <a href="/fixed-quizzes.html">📝 Fixed Quizzes</a>
-      <a href="/quiz-builder.html">🔧 Quiz Builder</a>
-      <a href="/history.html">📊 History</a>
-      <a href="/student/announcements.html">📢 Announcements</a>
-      <a href="/downloads.html">📥 Downloads</a>
-      <a href="/messages.html">💬 Messages</a>
-      <a href="/telegram.html">✈️ Telegram</a>
-    </nav>
-  </aside>
+  <div id="sidebar"></div>
 
   <!-- Main Content -->
   <main class="main-content">
@@ -393,6 +378,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
+<script src="/js/student-sidebar.js"></script>
 <script src="/js/api.js"></script>
 <script>
 
@@ -417,6 +403,10 @@
       loadCourses(),
       loadRecentAttempts(profile)
     ]);
+
+    // Populate sidebar course dropdown
+    const allCourses = await getCourses();
+    populateCourseDropdown(courseAccessMap, allCourses);
   }
 
   // ── Subscription bar ──────────────────────────────────────

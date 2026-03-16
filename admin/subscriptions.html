@@ -290,23 +290,7 @@
 <div class="dashboard-wrapper">
 
   <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <h2>QAcademy</h2>
-      <p>Admin Panel</p>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="/admin/dashboard.html">🏠 Dashboard</a>
-      <a href="/admin/users.html">👥 Users</a>
-      <a href="/admin/subscriptions.html" class="active">💳 Subscriptions</a>
-      <a href="/admin/payments.html">💰 Payments</a>
-      <a href="/admin/products.html">📦 Products</a>
-      <a href="/admin/courses.html">📚 Courses</a>
-      <a href="/admin/announcements.html">📢 Announcements</a>
-      <a href="/admin/fixed-quizzes.html">📝 Fixed Quizzes</a>
-      <a href="/admin/config.html">⚙️ Config</a>
-    </nav>
-  </aside>
+  <div id="sidebar"></div>
 
   <!-- Main Content -->
   <main class="main-content">
@@ -571,6 +555,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
+<script src="/js/admin-sidebar.js"></script>
 <script src="/js/api.js"></script>
 <script>
 
