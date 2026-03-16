@@ -373,8 +373,38 @@ Key functions:
 - `getAnnouncements()` — active in-schedule announcements
 - `getDismissedAnnouncements()` — dismissed IDs per user
 - `getStudentCourseAccess()` — stacked course expiry map
+- `getCourseById(courseId)` — single course by ID, uses .maybeSingle()
+- `getCourses()` — active courses only, ordered by title
+- `getStudentCourseAccess(userId)` — stacked course expiry map from active subscriptions
 
 **Rule:** Shared reads go in api.js. Write operations stay in the page.
+
+### Shared Sidebar Architecture
+
+Both admin and student pages use shared sidebar JS files.
+
+- js/admin-sidebar.js — injected into all admin pages
+- js/student-sidebar.js — injected into all student pages
+
+To use on any page:
+
+1. Add `<div id="sidebar"></div>` where sidebar should appear
+2. Load the script after guard.js: `<script src="/js/admin-sidebar.js"></script>`
+   or: `<script src="/js/student-sidebar.js"></script>`
+
+Active link is auto-detected by comparing href to window.location.pathname. No need to manually set class="active" on any page.
+
+Student sidebar — My Courses dropdown:
+- Auto-populates with enrolled courses only
+- Call `populateCourseDropdown(courseAccessMap, allCourses)` after auth completes
+- `courseAccessMap` comes from `getStudentCourseAccess(userId)`
+- `allCourses` comes from `getCourses()`
+- Dropdown auto-opens when student is on a course page (/student/course)
+
+Course context passing:
+- Sidebar links include `?course=COURSE_ID` when on a course page
+- Destination pages (fixed-quizzes, learning-history, quiz-builder) read `?course=` and pre-filter
+- Filter chip with ✕ shown when `?course=` is active
 
 ### css/style.css
 - Shared styles for all pages
@@ -397,7 +427,11 @@ Key functions:
 ### Student Pages
 | File | Purpose |
 |---|---|
-| student/dashboard.html | Courses, subscription bar, announcements strip, quick links |
+| student/dashboard.html | Courses, subscription bar, announcements strip, quick links, recent attempts |
+| student/announcements.html | 4 tabs (All/Unread/Read/Dismissed), Mark as Read, Dismiss, CTA tracking |
+| student/course.html | Dynamic course page — reads ?id= from URL, access check, course header, fixed quizzes shell, quiz builder shell, course-scoped announcements |
+| student/fixed-quizzes.html | Accordion layout per enrolled course, ?course= filter, shell — wired for quiz engine |
+| student/learning-history.html | Full attempt history table, course + status filters, ?course= filter, resume/review links — wired for quiz engine |
 
 ### Admin Pages
 | File | Purpose |

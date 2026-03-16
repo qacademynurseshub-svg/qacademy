@@ -39,12 +39,17 @@ qacademy-gamma/
 ├── js/
 │   ├── config.js
 │   ├── guard.js
-│   └── api.js
+│   ├── api.js
+│   ├── admin-sidebar.js
+│   └── student-sidebar.js
 ├── images/
 │   └── QAcademy_Logo.png
 ├── student/
 │   ├── dashboard.html
-│   └── announcements.html
+│   ├── announcements.html
+│   ├── course.html
+│   ├── fixed-quizzes.html
+│   └── learning-history.html
 └── admin/
     ├── dashboard.html
     ├── users.html
@@ -155,10 +160,27 @@ Replace with proper policies before going live.
 - newlinesToParagraphs() — body text formatting fix
 - data-qa="btn" — consistent button styling across all pages
 - Full announcement feature tested and signed off ✅
+- Shared sidebar architecture — js/admin-sidebar.js + js/student-sidebar.js
+- All 9 admin pages updated to shared sidebar
+- All student pages updated to shared sidebar
+- Dynamic My Courses dropdown in student sidebar — auto-populates enrolled courses only
+- Active link detection fixed for Cloudflare Pages URL format (no .html)
+- getCourses() added to api.js
+- getCourseById() added to api.js
+- student/course.html — dynamic course page, reads ?id= from URL, access check, 4 sections (course header, fixed quizzes shell, quiz builder shell, course announcements scoped to course)
+- student/fixed-quizzes.html — accordion layout per enrolled course, ?course= filter wired, shell placeholders
+- student/learning-history.html — full table structure, course + status filters, ?course= filter wired, graceful empty state for missing attempts table
+- Sidebar links pass ?course=COURSE_ID to quiz pages for future filtering
+- Dashboard course cards updated to /student/course.html?id=COURSE_ID
 
 ### Next Up ⏭️
-- Quiz engine: admin/fixed-quizzes.html, student/fixed-quizzes.html, runner/instant.html, runner/timed.html, history.html
-- Quiz builder: quiz-builder.html
+- Quiz engine:
+  - admin/fixed-quizzes.html — full CRUD for managing fixed quizzes
+  - student/fixed-quizzes.html — wire up real quizzes into accordion shells
+  - runner/instant.html — instant quiz runner
+  - runner/timed.html — timed quiz runner
+  - student/learning-history.html — wire up real attempts from attempts table
+- Quiz builder: student/quiz-builder.html
 
 ### After That
 - Payments: Paystack webhook, admin/payments.html
@@ -177,3 +199,4 @@ The platform is fully data-driven:
 - Add a new product → insert row in `products` table
 - Add a new announcement → fill form on admin/announcements.html
 - Everything reflects on frontend automatically — no code changes needed
+- Add a new sidebar link → update js/student-sidebar.js or js/admin-sidebar.js once — reflects on all pages automatically
