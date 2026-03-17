@@ -1,61 +1,3 @@
-
-// ------------------------------------------------------------
-// GET BUILDER COURSE ITEMS
-// Returns: lightweight item rows for client-side builder filtering
-//
-// Why: Builder v1 needs multi-select topics, difficulties,
-//      question types, and concept matching. That is much easier
-//      to do client-side once per selected course.
-//
-// Used by: student/quiz-builder.html
-// ------------------------------------------------------------
-async function getBuilderCourseItems(courseId) {
-  const tableName = 'items_' + String(courseId || '').toLowerCase();
-
-  const { data, error } = await db
-    .from(tableName)
-    .select(`
-      item_id,
-      subject,
-      maintopic,
-      subtopic,
-      difficulty,
-      question_type,
-      stem,
-      rationale
-    `)
-    .order('item_id');
-
-  if (error) {
-    console.error('getBuilderCourseItems:', error);
-    return [];
-  }
-
-  return data || [];
-}
-```
-
-Why this helper is needed:
-
-* `getItemFilterOptions()` gives distinct values, which is good for dropdowns/chips.
-* `getItemsByFilters()` is good for single-value filters and keyword search.
-* Builder v1, however, needs **multi-select client-side filtering** and a live pool count. That is easiest with one course’s lightweight item set loaded once.
-
----
-
-## Patch 2B — create `/student/quiz-builder.html`
-
-Use the same shell pattern as the current student pages:
-
-* Supabase
-* `/js/config.js`
-* `/js/guard.js`
-* `/js/api.js`
-* `/js/student-sidebar.js` 
-
-### File content
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -678,6 +620,15 @@ Use the same shell pattern as the current student pages:
     return state.mode === 'timed' ? 'timed' : 'instant';
   }
 
+  function shuffleArray(arr){
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
   function getFilteredPool(){
     const mode = currentSelectionMode();
     let rows = [...CURRENT_ITEMS];
@@ -944,7 +895,7 @@ Use the same shell pattern as the current student pages:
     `).join('');
 
     el.topicsBox.querySelectorAll('.topic-row').forEach(row => {
-      row.addEventListener('click', (evt) => {
+      row.addEventListener('click', () => {
         if (state.useAllTopics) return;
         const topic = row.getAttribute('data-topic');
         const next = new Set(state.selectedTopics);
@@ -1225,7 +1176,7 @@ Use the same shell pattern as the current student pages:
     el.buildBtn.addEventListener('click', async () => {
       const pool = getFilteredPool();
       const n = Number(state.questionCount || 0);
-      const chosen = pool.slice(0, n).map(x => x.item_id);
+      const chosen = shuffleArray(pool).slice(0, n).map(x => x.item_id);
 
       if (!chosen.length || !buildReady()) {
         renderSummary();
@@ -1345,6 +1296,7 @@ Use the same shell pattern as the current student pages:
 
     COURSE_ACCESS = await getStudentCourseAccess(PROFILE.user_id);
     COURSES = await getCourses();
+
     populateCourseDropdown(COURSE_ACCESS, COURSES);
     populateCourseSelect();
     renderRecentSetups();
