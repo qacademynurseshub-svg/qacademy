@@ -546,18 +546,110 @@
       padding: 16px;
       box-shadow: 0 12px 32px rgba(0,0,0,0.25);
     }
-    .grid-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-    .grid-panel-header h3 { font-size: 14px; font-weight: 700; color: var(--primary); }
-    .grid-close  { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
-    .grid-score  { font-size: 13px; font-weight: 600; color: var(--accent); }
-    .grid-body   { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 6px; }
-    .grid-cell   { height: 36px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-    .grid-cell:hover      { border-color: var(--accent); }
-    .grid-cell.answered   { background: var(--primary-light); border-color: var(--accent); }
-    .grid-cell.flagged    { background: #fef3c7; border-color: var(--warning); }
-    .grid-cell.correct    { background: #dcfce7; border-color: #16a34a; }
-    .grid-cell.incorrect  { background: #fee2e2; border-color: var(--danger); }
-    .grid-cell.current    { box-shadow: 0 0 0 2px var(--accent); }
+  .grid-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.grid-panel-header h3 { font-size: 14px; font-weight: 700; color: var(--primary); }
+.grid-close  { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
+.grid-score  { font-size: 13px; font-weight: 600; color: var(--accent); }
+
+.grid-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.grid-toggles {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.grid-toggle {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.grid-toggle.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+.grid-stats {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.grid-stat {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.grid-body,
+#desktopGridCard .dg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 6px;
+}
+
+.grid-cell {
+  position: relative;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.grid-cell:hover      { border-color: var(--accent); }
+.grid-cell.answered   { background: var(--primary-light); border-color: var(--accent); }
+.grid-cell.flagged    { background: #fef3c7; border-color: var(--warning); }
+.grid-cell.correct    { background: #dcfce7; border-color: #16a34a; }
+.grid-cell.incorrect  { background: #fee2e2; border-color: var(--danger); }
+.grid-cell.omitted    { background: #f8fafc; border-color: #cbd5e1; color: var(--text-muted); }
+.grid-cell.current    { box-shadow: 0 0 0 2px var(--accent); }
+
+.grid-cell.has-flag::after {
+  content: '🚩';
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.grid-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 14px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  background: #f8fafc;
+}
 
     /* ── Desktop flex layout ──────────────────────────────── */
     #desktopFlexWrap { display: block; }
@@ -809,13 +901,23 @@
 <!-- ── Desktop Grid Card (right column) ──────────────────── -->
 <div id="desktopGridCard">
   <div class="dg-header">
-    <h3>Question Grid</h3>
-    <span class="dg-score" id="desktopGridScore"></span>
+    <div>
+      <h3>Question Grid</h3>
+      <span class="dg-score" id="desktopGridScore"></span>
+    </div>
     <button class="dg-hide-btn" onclick="hideDesktopGrid()">✕ Hide</button>
   </div>
+
+  <div class="grid-toolbar">
+    <div class="grid-toggles">
+      <button type="button" class="grid-toggle" id="desktopAllBtn" onclick="setViewMode('ALL')">All</button>
+      <button type="button" class="grid-toggle" id="desktopFlaggedBtn" onclick="setViewMode('FLAGGED')">Flagged</button>
+    </div>
+    <div class="grid-stats" id="desktopGridStats"></div>
+  </div>
+
   <div class="dg-grid" id="desktopGridBody"></div>
 </div>
-
 </div><!-- /#desktopFlexWrap -->
 
 <!-- ── Floating Grid Button (mobile only) ─────────────────── -->
@@ -825,10 +927,21 @@
 <div class="overlay-backdrop" id="gridOverlay" onclick="handleGridBackdropClick(event)">
   <div class="grid-panel">
     <div class="grid-panel-header">
-      <h3>Questions</h3>
-      <span class="grid-score" id="gridScore"></span>
+      <div>
+        <h3>Questions</h3>
+        <span class="grid-score" id="gridScore"></span>
+      </div>
       <button class="grid-close" onclick="closeGridOverlay()">×</button>
     </div>
+
+    <div class="grid-toolbar">
+      <div class="grid-toggles">
+        <button type="button" class="grid-toggle" id="mobileAllBtn" onclick="setViewMode('ALL')">All</button>
+        <button type="button" class="grid-toggle" id="mobileFlaggedBtn" onclick="setViewMode('FLAGGED')">Flagged</button>
+      </div>
+      <div class="grid-stats" id="gridStats"></div>
+    </div>
+
     <div class="grid-body" id="gridBody"></div>
   </div>
 </div>
@@ -1281,44 +1394,98 @@ function initReviewMode() {
 
 // ══ RENDER ═══════════════════════════════════════════════════
 
+function countFlagged() {
+  return ITEMS.filter(item => !!FLAGS[item.item_id]).length;
+}
+
 function getCurrentSource() {
   if (VIEW_MODE === 'FLAGGED') {
-    const flagged = ITEMS.filter(i => FLAGS[i.item_id]);
-    return flagged.length ? flagged : ITEMS;
+    return ITEMS.filter(i => FLAGS[i.item_id]);
   }
   return ITEMS;
 }
 
+function getGridStats() {
+  const total      = ITEMS.length;
+  const answered   = countAnswered();
+  const flagged    = countFlagged();
+  const unanswered = Math.max(0, total - answered);
+  const modeCount  = getCurrentSource().length;
+
+  return { total, answered, unanswered, flagged, modeCount };
+}
+
+function getAllPageCount() {
+  return Math.max(1, Math.ceil(ITEMS.length / QUESTIONS_PER_PAGE));
+}
+
+function refreshGridUI() {
+  buildGrid();
+}
+
+function setViewMode(mode) {
+  VIEW_MODE = mode === 'FLAGGED' ? 'FLAGGED' : 'ALL';
+  PAGE = 0;
+  renderPage();
+  renderProgress();
+}
+
 function renderPage() {
   const src = getCurrentSource();
-  TOTAL_PAGES = Math.max(1, Math.ceil(src.length / QUESTIONS_PER_PAGE));
+
+  TOTAL_PAGES = Math.max(1, Math.ceil(Math.max(src.length, 1) / QUESTIONS_PER_PAGE));
   PAGE = Math.max(0, Math.min(PAGE, TOTAL_PAGES - 1));
 
-  document.getElementById('pagePill').textContent = `Page ${PAGE + 1} / ${TOTAL_PAGES}`;
-  document.querySelectorAll('.prevPage').forEach(b => b.disabled = PAGE === 0);
-  document.querySelectorAll('.nextPage').forEach(b => b.disabled = PAGE >= TOTAL_PAGES - 1);
+  const modePrefix = VIEW_MODE === 'FLAGGED' ? 'Flagged • ' : '';
+  document.getElementById('pagePill').textContent = `${modePrefix}Page ${PAGE + 1} / ${TOTAL_PAGES}`;
 
-  const isLastPage = PAGE >= TOTAL_PAGES - 1;
-  const submitBtn  = document.getElementById('submitBtn');
-  if (submitBtn) submitBtn.style.display = (!LOCKED && !REVIEW_MODE && isLastPage) ? 'inline-block' : 'none';
+  const prevDisabled = PAGE === 0 || src.length === 0;
+  const nextDisabled = PAGE >= TOTAL_PAGES - 1 || src.length === 0;
 
-  const start = PAGE * QUESTIONS_PER_PAGE;
-  const end   = Math.min(start + QUESTIONS_PER_PAGE, src.length);
+  document.querySelectorAll('.prevPage').forEach(b => b.disabled = prevDisabled);
+  document.querySelectorAll('.nextPage').forEach(b => b.disabled = nextDisabled);
+
+  const fullLastPage = getAllPageCount() - 1;
+  const showSubmit = (
+    !LOCKED &&
+    !REVIEW_MODE &&
+    VIEW_MODE === 'ALL' &&
+    PAGE >= fullLastPage
+  );
+
+  const submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) submitBtn.style.display = showSubmit ? 'inline-block' : 'none';
 
   const qList = document.getElementById('qList');
   qList.innerHTML = '';
+
+  if (src.length === 0) {
+    qList.innerHTML = `
+      <div class="q-block">
+        <div class="q-stem">No flagged questions yet.</div>
+        <div class="q-topic">Flag questions during the exam, then switch back here to review only those questions.</div>
+      </div>`;
+    refreshGridUI();
+    window.scrollTo({ top: document.getElementById('runnerHeader').offsetHeight, behavior: 'smooth' });
+    return;
+  }
+
+  const start = PAGE * QUESTIONS_PER_PAGE;
+  const end   = Math.min(start + QUESTIONS_PER_PAGE, src.length);
 
   for (let k = start; k < end; k++) {
     const item      = src[k];
     const globalIdx = ITEMS.indexOf(item);
     qList.appendChild(buildQuestionBlock(item, globalIdx));
   }
+
   if (LOCKED || REVIEW_MODE) {
     refreshVisibleFeedback();
   }
+
+  refreshGridUI();
   window.scrollTo({ top: document.getElementById('runnerHeader').offsetHeight, behavior: 'smooth' });
 }
-
 function buildQuestionBlock(item, globalIdx) {
   const wrap = document.createElement('div');
   wrap.className = 'q-block';
@@ -1365,14 +1532,12 @@ function buildQuestionBlock(item, globalIdx) {
   flagBtn.className = `btn btn-flag ${FLAGS[item.item_id] ? 'flagged' : ''}`;
   flagBtn.textContent = FLAGS[item.item_id] ? '🚩 Unflag' : '⚑ Flag';
   flagBtn.disabled = LOCKED || REVIEW_MODE;
-  flagBtn.addEventListener('click', () => {
-    FLAGS[item.item_id] = !FLAGS[item.item_id];
-    flagBtn.textContent = FLAGS[item.item_id] ? '🚩 Unflag' : '⚑ Flag';
-    flagBtn.className   = `btn btn-flag ${FLAGS[item.item_id] ? 'flagged' : ''}`;
-    const ind = document.getElementById(`flag_ind_${item.item_id}`);
-    if (ind) ind.classList.toggle('show', FLAGS[item.item_id]);
-    saveInProgress(false);
-  });
+flagBtn.addEventListener('click', () => {
+  FLAGS[item.item_id] = !FLAGS[item.item_id];
+  saveInProgress(false);
+  renderPage();
+  renderProgress();
+});
   footerLeft.appendChild(flagBtn);
 
   const fbBtn = document.createElement('button');
@@ -1449,6 +1614,7 @@ function buildOptionRow(item, opt, j) {
     }
 
     renderProgress();
+    refreshGridUI();
   });
 
   const body  = document.createElement('div');
@@ -1627,11 +1793,15 @@ function updateQuestionFeedback(itemId) {
 // ══ PROGRESS ═════════════════════════════════════════════════
 
 function renderProgress() {
-  const total    = ITEMS.length;
-  const answered = countAnswered();
-  const pct      = total > 0 ? Math.round((answered / total) * 100) : 0;
-  document.getElementById('countPill').textContent    = `${answered} / ${total} answered`;
+  const stats = getGridStats();
+  const pct   = stats.total > 0 ? Math.round((stats.answered / stats.total) * 100) : 0;
+
+  document.getElementById('countPill').textContent =
+    `${stats.answered} / ${stats.total} answered • ${stats.unanswered} unanswered • ${stats.flagged} flagged`;
+
   document.getElementById('progressFill').style.width = pct + '%';
+
+  refreshGridUI();
 }
 
 function countAnswered() {
@@ -1682,10 +1852,25 @@ function buildAnswersJson() {
 // ══ SUBMIT ═══════════════════════════════════════════════════
 
 function confirmSubmit() {
+  const flagged    = countFlagged();
   const unanswered = ITEMS.length - countAnswered();
-  if (unanswered > 0) {
-    if (!confirm(`You have ${unanswered} unanswered question${unanswered !== 1 ? 's' : ''}. Submit anyway?`)) return;
+
+  if (flagged > 0) {
+    const goOn = confirm(
+      `You still have ${flagged} flagged question${flagged !== 1 ? 's' : ''}. ` +
+      `Click Cancel to go back and review them, or OK to continue.`
+    );
+    if (!goOn) return;
   }
+
+  if (unanswered > 0) {
+    const goOn = confirm(
+      `You have ${unanswered} unanswered question${unanswered !== 1 ? 's' : ''}. ` +
+      `Submit anyway?`
+    );
+    if (!goOn) return;
+  }
+
   submitQuiz(false);
 }
 
@@ -1852,36 +2037,81 @@ function initDesktopGrid() {
   }
 }
 
+function renderGridStats(targetId, stats) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+
+  el.innerHTML = `
+    <span class="grid-stat">${stats.answered} answered</span>
+    <span class="grid-stat">${stats.unanswered} unanswered</span>
+    <span class="grid-stat">${stats.flagged} flagged</span>`;
+}
+
+function syncGridButtons(stats) {
+  const desktopAllBtn     = document.getElementById('desktopAllBtn');
+  const desktopFlaggedBtn = document.getElementById('desktopFlaggedBtn');
+  const mobileAllBtn      = document.getElementById('mobileAllBtn');
+  const mobileFlaggedBtn  = document.getElementById('mobileFlaggedBtn');
+
+  if (desktopAllBtn) desktopAllBtn.classList.toggle('active', VIEW_MODE === 'ALL');
+  if (mobileAllBtn)  mobileAllBtn.classList.toggle('active', VIEW_MODE === 'ALL');
+
+  if (desktopFlaggedBtn) {
+    desktopFlaggedBtn.classList.toggle('active', VIEW_MODE === 'FLAGGED');
+    desktopFlaggedBtn.textContent = `Flagged (${stats.flagged})`;
+  }
+  if (mobileFlaggedBtn) {
+    mobileFlaggedBtn.classList.toggle('active', VIEW_MODE === 'FLAGGED');
+    mobileFlaggedBtn.textContent = `Flagged (${stats.flagged})`;
+  }
+}
+
 function buildGridCells(container) {
   container.innerHTML = '';
-  ITEMS.forEach((item, idx) => {
+
+  const src = getCurrentSource();
+  const answerMap = (LOCKED || REVIEW_MODE)
+    ? Object.fromEntries(buildAnswersJson().map(a => [a.item_id, a]))
+    : null;
+
+  src.forEach((item, srcIdx) => {
     const cell = document.createElement('button');
+    const globalIdx = ITEMS.indexOf(item);
+
     cell.className = 'grid-cell';
-    cell.textContent = idx + 1;
+    cell.textContent = globalIdx + 1;
 
     const hasAnswer = ANSW.hasOwnProperty(item.item_id) &&
-      (item.question_type === 'SATA' ? (Array.isArray(ANSW[item.item_id]) && ANSW[item.item_id].length > 0) : !!ANSW[item.item_id]);
+      (item.question_type === 'SATA'
+        ? (Array.isArray(ANSW[item.item_id]) && ANSW[item.item_id].length > 0)
+        : !!ANSW[item.item_id]);
 
-    if (LOCKED || REVIEW_MODE) {
-      const ansJson = buildAnswersJson();
-      const a = ansJson.find(x => x.item_id === item.item_id);
-      if (a && a.chosen !== null) cell.classList.add(a.is_correct ? 'correct' : 'incorrect');
-    } else {
-      if (hasAnswer)             cell.classList.add('answered');
-      if (FLAGS[item.item_id])   cell.classList.add('flagged');
+    if (FLAGS[item.item_id]) {
+      cell.classList.add('has-flag');
     }
 
-    const src = getCurrentSource();
-    const srcIdx = src.indexOf(item);
-    if (srcIdx >= 0 && Math.floor(srcIdx / QUESTIONS_PER_PAGE) === PAGE) cell.classList.add('current');
+    if (LOCKED || REVIEW_MODE) {
+      const a = answerMap[item.item_id];
+      const isOmitted = !a || a.chosen === null || (Array.isArray(a.chosen) && a.chosen.length === 0);
+
+      if (isOmitted) {
+        cell.classList.add('omitted');
+      } else {
+        cell.classList.add(a.is_correct ? 'correct' : 'incorrect');
+      }
+    } else {
+      if (hasAnswer)           cell.classList.add('answered');
+      if (FLAGS[item.item_id]) cell.classList.add('flagged');
+    }
+
+    if (Math.floor(srcIdx / QUESTIONS_PER_PAGE) === PAGE) {
+      cell.classList.add('current');
+    }
 
     cell.addEventListener('click', () => {
-      const globalSrc = getCurrentSource();
-      const i = globalSrc.indexOf(item);
-      if (i >= 0) PAGE = Math.floor(i / QUESTIONS_PER_PAGE);
+      PAGE = Math.floor(srcIdx / QUESTIONS_PER_PAGE);
       renderPage();
       if (!isDesktop()) closeGridOverlay();
-      else buildGrid();
     });
 
     container.appendChild(cell);
@@ -1889,21 +2119,37 @@ function buildGridCells(container) {
 }
 
 function buildGrid() {
+  const stats = getGridStats();
   const score = LOCKED ? computeScore() : null;
   const scoreText = score ? `${score.raw}/${score.total} (${score.pct}%)` : '';
+  const emptyFlaggedView = VIEW_MODE === 'FLAGGED' && stats.modeCount === 0;
 
-  // Mobile overlay grid
+  syncGridButtons(stats);
+  renderGridStats('gridStats', stats);
+  renderGridStats('desktopGridStats', stats);
+
+  const mobileScore = document.getElementById('gridScore');
+  if (mobileScore) mobileScore.textContent = scoreText;
+
+  const desktopScore = document.getElementById('desktopGridScore');
+  if (desktopScore) desktopScore.textContent = scoreText;
+
   const mobileBody = document.getElementById('gridBody');
   if (mobileBody) {
-    if (score) document.getElementById('gridScore').textContent = scoreText;
-    buildGridCells(mobileBody);
+    if (emptyFlaggedView) {
+      mobileBody.innerHTML = '<div class="grid-empty">No flagged questions yet.</div>';
+    } else {
+      buildGridCells(mobileBody);
+    }
   }
 
-  // Desktop card grid
   const desktopBody = document.getElementById('desktopGridBody');
   if (desktopBody) {
-    if (score) document.getElementById('desktopGridScore').textContent = scoreText;
-    buildGridCells(desktopBody);
+    if (emptyFlaggedView) {
+      desktopBody.innerHTML = '<div class="grid-empty">No flagged questions yet.</div>';
+    } else {
+      buildGridCells(desktopBody);
+    }
   }
 }
 
