@@ -22,6 +22,7 @@
       <a href="/admin/courses.html">📚 Courses</a>
       <a href="/admin/announcements.html">📢 Announcements</a>
       <a href="/admin/fixed-quizzes.html">📝 Fixed Quizzes</a>
+      <a href="/admin/question-bank.html">🗂️ Question Bank</a>
       <a href="/admin/config.html">⚙️ Config</a>
     </nav>
   </aside>`;
