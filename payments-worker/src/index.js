@@ -18,6 +18,9 @@ export default {
       if (request.method === 'POST' && url.pathname === '/payments/init-public') {
         return await handleInitPublic(request, env);
       }
+            if (request.method === 'POST' && url.pathname === '/payments/init-upgrade') {
+        return await handleInitUpgrade(request, env);
+      }
 if (request.method === 'POST' && url.pathname === '/payments/setup-complete') {
   return await handleSetupComplete(request, env);
 }
@@ -331,7 +334,62 @@ async function getUserById(env, userId) {
     }
   });
 }
+async function getUserByAuthId(env, authId) {
+  return sbMaybeOne(env, 'users', {
+    select: 'user_id,email,auth_id,forename,surname,name,active,program_id,phone_number',
+    filters: {
+      auth_id: `eq.${authId}`
+    }
+  });
+}
 
+/**
+ * Reads Bearer token from the request.
+ * Example header:
+ *   Authorization: Bearer eyJ...
+ */
+function getBearerToken(request) {
+  const raw = String(request.headers.get('Authorization') || '').trim();
+  const match = raw.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : '';
+}
+
+/**
+ * Validates the logged-in Supabase session token and returns
+ * the Auth user tied to that token.
+ *
+ * Important:
+ * - We are NOT trusting any user_id sent from the browser.
+ * - We resolve the current user server-side from the real session token.
+ */
+async function authGetUserFromAccessToken(env, accessToken) {
+  if (!accessToken) return null;
+
+  const res = await fetch(`${sbAuthBase(env)}/user`, {
+    method: 'GET',
+    headers: {
+      // This identifies the Supabase project for the Auth API call
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+
+      // This MUST be the logged-in user's real access token
+      Authorization: `Bearer ${accessToken}`,
+
+      'Content-Type': 'application/json'
+    }
+  });
+
+  const text = await res.text();
+
+  if (!res.ok) {
+    console.warn('authGetUserFromAccessToken failed', {
+      status: res.status,
+      body: text || ''
+    });
+    return null;
+  }
+
+  return text ? JSON.parse(text) : null;
+}
 async function getPaymentByReference(env, reference) {
   return sbMaybeOne(env, 'payments', {
     select: '*',
@@ -605,7 +663,240 @@ async function handleInitPublic(request, env) {
     );
   }
 }
+/* ============================================================
+ * ROUTE: POST /payments/init-upgrade
+ * Body:
+ * {
+ *   product_id: "RM_2026_PREP",
+ *   callback_url: "https://qacademy-gamma.pages.dev/payment-confirmation.html" // optional
+ * }
+ *
+ * Auth:
+ * - Requires a real logged-in Supabase access token in:
+ *     Authorization: Bearer <access_token>
+ *
+ * Behaviour:
+ * - Validates the current session token server-side
+ * - Resolves the public users row by auth_id
+ * - Creates an INIT payment row tied to the existing user
+ * - Starts Paystack
+ * - Returns authorization_url
+ * ============================================================ */
+async function handleInitUpgrade(request, env) {
+  const body = await readJson(request);
 
+  if (!body) {
+    return json(
+      { ok: false, error: 'invalid_json' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  const accessToken =
+    getBearerToken(request) ||
+    String(body.access_token || '').trim(); // optional fallback for testing only
+
+  const productId = String(body.product_id || '').trim().toUpperCase();
+  const callbackUrlInput = String(body.callback_url || '').trim();
+
+  if (!accessToken) {
+    return json(
+      {
+        ok: false,
+        error: 'missing_access_token',
+        message: 'A logged-in session is required for upgrade payments'
+      },
+      401,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (!productId) {
+    return json(
+      {
+        ok: false,
+        error: 'missing_product_id'
+      },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  // 1) Resolve the current Auth user from the real session token
+  const authUser = await authGetUserFromAccessToken(env, accessToken);
+
+  if (!authUser?.id) {
+    return json(
+      {
+        ok: false,
+        error: 'invalid_or_expired_session',
+        message: 'Please sign in again and retry'
+      },
+      401,
+      corsHeaders(request, env)
+    );
+  }
+
+  // 2) Resolve the matching public profile row
+  const publicUser = await getUserByAuthId(env, authUser.id);
+
+  if (!publicUser) {
+    return json(
+      {
+        ok: false,
+        error: 'user_profile_not_found',
+        message: 'Signed-in Auth user found, but no matching users row exists'
+      },
+      404,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (publicUser.active === false || publicUser.active === 'false') {
+    return json(
+      {
+        ok: false,
+        error: 'user_inactive'
+      },
+      403,
+      corsHeaders(request, env)
+    );
+  }
+
+  // 3) Load the product being purchased
+  const product = await getProductById(env, productId, true);
+
+  if (!product) {
+    return json(
+      {
+        ok: false,
+        error: 'product_not_found_or_inactive'
+      },
+      404,
+      corsHeaders(request, env)
+    );
+  }
+
+  const email = String(publicUser.email || authUser.email || '').trim().toLowerCase();
+
+  if (!email) {
+    return json(
+      {
+        ok: false,
+        error: 'user_email_missing'
+      },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  const reference = makeRef('QAC');
+  const callbackUrl =
+    callbackUrlInput ||
+    new URL('/payment-confirmation.html', env.APP_BASE_URL).toString();
+
+  // 4) Create the payment audit row first
+  await sbInsert(env, 'payments', {
+    reference,
+    status: 'INIT',
+    email,
+    user_id: publicUser.user_id,
+    product_id: product.product_id,
+    product_name: product.name,
+    amount_minor_expected: product.price_minor,
+    currency: product.currency,
+    amount_minor_paid: null,
+    paid_utc: null,
+    activated_utc: null,
+    subscription_id: null,
+    failure_note: null,
+    raw: {
+      flow: 'upgrade',
+      created_by: 'handleInitUpgrade'
+    },
+    setup_token: null,
+    setup_created_utc: null,
+    setup_completed_utc: null,
+    program_id: publicUser.program_id || null,
+    phone_number: publicUser.phone_number || null
+  });
+
+  // 5) Start Paystack
+  try {
+    const initPayload = {
+      email,
+      amount: product.price_minor,
+      currency: product.currency,
+      reference,
+      callback_url: callbackUrl,
+      metadata: {
+        flow: 'upgrade',
+        user_id: publicUser.user_id,
+        auth_id: authUser.id,
+        product_id: product.product_id,
+        product_name: product.name,
+        program_id: publicUser.program_id || null,
+        phone_number: publicUser.phone_number || null
+      }
+    };
+
+    const initResult = await paystackInitialize(env, initPayload);
+
+    await sbPatch(
+      env,
+      'payments',
+      {
+        raw: {
+          flow: 'upgrade',
+          init: initResult
+        }
+      },
+      { reference: `eq.${reference}` }
+    );
+
+    return json(
+      {
+        ok: true,
+        reference,
+        authorization_url: initResult?.data?.authorization_url || '',
+        access_code: initResult?.data?.access_code || '',
+        email,
+        user_id: publicUser.user_id,
+        product_id: product.product_id,
+        product_name: product.name,
+        amount_minor_expected: product.price_minor,
+        currency: product.currency
+      },
+      200,
+      corsHeaders(request, env)
+    );
+  } catch (err) {
+    await sbPatch(
+      env,
+      'payments',
+      {
+        status: 'FAILED',
+        failure_note: err?.message || 'Paystack initialize failed',
+        raw: {
+          flow: 'upgrade',
+          init_error: err?.message || 'Paystack initialize failed'
+        }
+      },
+      { reference: `eq.${reference}` }
+    );
+
+    return json(
+      {
+        ok: false,
+        error: 'paystack_init_failed',
+        message: err?.message || 'Could not initialize payment'
+      },
+      500,
+      corsHeaders(request, env)
+    );
+  }
+}
 /* ============================================================
  * ROUTE: GET /payments/verify?reference=QAC_XXXX
  * Behaviour:
