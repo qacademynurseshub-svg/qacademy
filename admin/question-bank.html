@@ -6,43 +6,353 @@
   <title>Question Bank — QAcademy Nurses Hub</title>
   <link rel="stylesheet" href="/css/style.css" />
   <style>
+
+    /* ── Top Nav ─────────────────────────────────────────── */
     .top-nav {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 28px;
-    }
-    .user-menu {
-      display: flex;
-      align-items: center;
+      margin-bottom: 24px;
       gap: 12px;
+      flex-wrap: wrap;
     }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
     .logout-btn {
-      font-size: 13px;
-      color: var(--text-muted);
-      cursor: pointer;
-      background: none;
-      border: none;
+      font-size: 13px; color: var(--text-muted);
+      cursor: pointer; background: none; border: none;
       font-family: 'Inter', sans-serif;
     }
     .logout-btn:hover { color: var(--danger); }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .qb-layout {
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .qb-layout { grid-template-columns: 1fr; }
+      .edit-panel { position: static !important; }
+    }
+
+    /* ── Filter Bar ──────────────────────────────────────── */
+    .filter-bar {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
+    .filter-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .filter-group select,
+    .filter-group input {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--primary);
+      background: var(--white);
+    }
+    .filter-group input { min-width: 160px; }
+    .filter-actions { display: flex; gap: 8px; align-items: flex-end; margin-left: auto; flex-wrap: wrap; }
+
+    /* ── Toolbar ─────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 10px; }
+    .result-count { font-size: 13px; color: var(--text-muted); }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--primary); }
+    .btn-danger { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* ── Question Cards ──────────────────────────────────── */
+    .q-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .q-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      position: relative;
+    }
+    .q-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(45,125,114,0.1); }
+    .q-card.active { border-color: var(--accent); border-width: 2px; box-shadow: 0 2px 12px rgba(45,125,114,0.15); }
+
+    .q-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .q-card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .q-id { font-size: 11px; font-weight: 700; color: var(--accent); font-family: monospace; background: var(--primary-light); padding: 2px 7px; border-radius: 4px; }
+
+    .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .chip-mcq  { background: #eff6ff; color: #1d4ed8; }
+    .chip-tf   { background: #f0fdf4; color: #166534; }
+    .chip-sata { background: #fdf4ff; color: #7e22ce; }
+    .chip-easy     { background: #f0fdf4; color: #166534; }
+    .chip-moderate { background: #fefce8; color: #854d0e; }
+    .chip-hard     { background: #fef2f2; color: #991b1b; }
+    .chip-default  { background: var(--primary-light); color: var(--primary); }
+
+    .q-edit-btn {
+      flex-shrink: 0;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--accent);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .q-edit-btn:hover { background: var(--primary-light); }
+
+    /* Stem */
+    .q-stem { font-size: 14px; font-weight: 600; color: var(--primary); line-height: 1.55; margin-bottom: 10px; }
+
+    /* Options grid */
+    .q-options { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+    @media (max-width: 700px) { .q-options { grid-template-columns: 1fr; } }
+
+    .q-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      line-height: 1.45;
+      background: #fafafa;
+    }
+    .q-option.correct {
+      background: #f0fdf4;
+      border-color: #86efac;
+    }
+    .q-option-letter {
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .q-option.correct .q-option-letter { color: #16a34a; }
+    .q-option-text { color: var(--primary); }
+
+    /* Rationale */
+    .q-rationale {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 8px 12px;
+      background: var(--primary-light);
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+    .q-rationale strong { color: var(--primary); }
+
+    /* Rationale image thumbnail */
+    .q-rationale-img {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .q-rationale-img img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .q-rationale-img span { font-size: 11px; color: var(--text-muted); }
+
+    /* Topic line */
+    .q-topics { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .q-topic-pill { font-size: 11px; color: var(--text-muted); background: #f1f5f9; padding: 2px 8px; border-radius: 999px; }
+
+    /* Empty / loading state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; margin: 0; }
+
+    /* ── Edit Panel ──────────────────────────────────────── */
+    .edit-panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      position: sticky;
+      top: 20px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      display: none;
+    }
+    .edit-panel.open { display: block; }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--white);
+      z-index: 2;
+    }
+    .panel-header h3 { margin: 0; font-size: 15px; color: var(--primary); }
+    .panel-close {
+      background: none; border: none; font-size: 20px;
+      cursor: pointer; color: var(--text-muted); line-height: 1;
+    }
+    .panel-close:hover { color: var(--danger); }
+
+    .panel-body { padding: 20px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 5px; }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--primary);
+      box-sizing: border-box;
+    }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-section {
+      font-size: 11px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin: 18px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Option pair: text + feedback side by side */
+    .option-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .option-pair .opt-label { font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 3px; }
+
+    /* Correct answer for MCQ/TF */
+    .correct-select { width: 100%; }
+
+    /* SATA correct checkboxes */
+    .sata-correct { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .sata-correct label { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; cursor: pointer; }
+
+    /* Image upload */
+    .img-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .img-upload-area:hover { border-color: var(--accent); }
+    .img-upload-area input { display: none; }
+    .img-preview { margin-top: 10px; display: none; }
+    .img-preview img { max-width: 100%; max-height: 160px; border-radius: 6px; border: 1px solid var(--border); }
+    .img-preview-actions { display: flex; gap: 8px; margin-top: 6px; justify-content: center; }
+
+    /* Panel actions */
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      position: sticky;
+      bottom: 0;
+      background: var(--white);
+      flex-wrap: wrap;
+    }
+
+    /* Alert */
+    .alert { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; display: none; }
+    .alert-error   { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+    .alert.show { display: block; }
+
+    /* ── CSV Import Modal ────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.55);
+      display: none; align-items: center; justify-content: center;
+      z-index: 9999; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: white; border-radius: 12px;
+      max-width: 560px; width: 100%;
+      padding: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-card h3 { margin: 0 0 6px; font-size: 18px; color: var(--primary); }
+    .modal-card p  { margin: 0 0 16px; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+    .modal-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+    /* CSV result report */
+    .csv-report { margin-top: 14px; font-size: 13px; }
+    .csv-report-row { padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; }
+    .csv-report-row.ok  { background: #f0fdf4; color: #166534; }
+    .csv-report-row.err { background: #fef2f2; color: #991b1b; }
+
+    /* Load more */
+    .load-more-wrap { text-align: center; margin-top: 16px; display: none; }
+    .load-more-wrap.show { display: block; }
+
   </style>
 </head>
 <body>
 
 <div class="dashboard-wrapper">
-
-  <!-- Sidebar -->
   <div id="sidebar"></div>
 
-  <!-- Main Content -->
   <main class="main-content">
 
     <!-- Top Nav -->
     <div class="top-nav">
       <div class="page-header" style="margin-bottom:0">
         <h1>Question Bank</h1>
-        <p>Manage questions across all courses</p>
+        <p>Browse, edit and manage questions across all courses</p>
       </div>
       <div class="user-menu">
         <span style="font-size:14px; font-weight:500;" id="adminName"></span>
@@ -50,12 +360,258 @@
       </div>
     </div>
 
-    <!-- Placeholder -->
-    <div class="card">
-      <p style="color:var(--text-muted); font-size:14px;">Question bank management coming soon.</p>
+    <!-- Alerts -->
+    <div class="alert alert-error"   id="pageError"></div>
+    <div class="alert alert-success" id="pageSuccess"></div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Course *</label>
+        <select id="filterCourse" onchange="onCourseChange()">
+          <option value="">Select course…</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Main Topic</label>
+        <select id="filterMaintopic" onchange="applyFilters()">
+          <option value="">All topics</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Difficulty</label>
+        <select id="filterDifficulty" onchange="applyFilters()">
+          <option value="">All difficulties</option>
+          <option value="Easy">Easy</option>
+          <option value="Moderate">Moderate</option>
+          <option value="Hard">Hard</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Type</label>
+        <select id="filterType" onchange="applyFilters()">
+          <option value="">All types</option>
+          <option value="MCQ">MCQ</option>
+          <option value="TF">True / False</option>
+          <option value="SATA">SATA</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="filterKeyword" placeholder="Keyword in stem…" oninput="onSearchInput()" />
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+      </div>
     </div>
 
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-ghost" id="importCsvBtn" onclick="openCsvModal()" disabled>📥 Import CSV</button>
+        <button class="btn btn-primary" id="newQuestionBtn" onclick="openNewQuestion()" disabled>+ New Question</button>
+      </div>
+    </div>
+
+    <!-- Main layout: list + edit panel -->
+    <div class="qb-layout">
+
+      <!-- Left: Question list -->
+      <div>
+        <div id="qList">
+          <div class="empty-state">
+            <div class="icon">📚</div>
+            <p>Select a course above to load questions.</p>
+          </div>
+        </div>
+        <div class="load-more-wrap" id="loadMoreWrap">
+          <button class="btn btn-ghost" onclick="loadMore()">Load more questions</button>
+        </div>
+      </div>
+
+      <!-- Right: Edit panel -->
+      <div class="edit-panel" id="editPanel">
+
+        <div class="panel-header">
+          <h3 id="panelTitle">Edit Question</h3>
+          <button class="panel-close" onclick="closePanel()" title="Close">✕</button>
+        </div>
+
+        <div class="panel-body">
+
+          <div class="alert alert-error"   id="panelError"></div>
+          <div class="alert alert-success" id="panelSuccess"></div>
+
+          <!-- Question ID (display only) -->
+          <div class="form-group">
+            <label>Question ID</label>
+            <input type="text" id="fieldItemId" readonly style="background:#f8fafc; font-family:monospace; color:var(--accent); font-weight:700;" />
+            <p class="form-hint">Auto-generated. Cannot be changed.</p>
+          </div>
+
+          <!-- Question Type -->
+          <div class="form-group">
+            <label>Question Type *</label>
+            <select id="fieldType" onchange="onTypeChange()">
+              <option value="MCQ">MCQ (Multiple Choice)</option>
+              <option value="TF">TF (True / False)</option>
+              <option value="SATA">SATA (Select All That Apply)</option>
+            </select>
+          </div>
+
+          <!-- Stem -->
+          <div class="form-group">
+            <label>Question Stem *</label>
+            <textarea id="fieldStem" rows="4" placeholder="Enter the question text…"></textarea>
+          </div>
+
+          <!-- Options -->
+          <div class="form-section">Answer Options</div>
+          <p class="form-hint" style="margin-bottom:10px;">For each option: enter the answer text (left) and the per-option feedback shown after answering (right). Leave unused options blank.</p>
+
+          <div id="optionsArea"></div>
+
+          <!-- Correct Answer -->
+          <div class="form-section">Correct Answer</div>
+
+          <!-- MCQ / TF correct (single select) -->
+          <div id="correctMcqWrap" class="form-group">
+            <label>Correct Option *</label>
+            <select id="fieldCorrectMcq" class="correct-select">
+              <option value="a">A</option>
+              <option value="b">B</option>
+              <option value="c">C</option>
+              <option value="d">D</option>
+              <option value="e">E</option>
+              <option value="f">F</option>
+            </select>
+          </div>
+
+          <!-- SATA correct (multi checkboxes) -->
+          <div id="correctSataWrap" class="form-group" style="display:none;">
+            <label>Correct Options * (select all that apply)</label>
+            <div class="sata-correct" id="sataCorrectBoxes">
+              <label><input type="checkbox" value="a" /> A</label>
+              <label><input type="checkbox" value="b" /> B</label>
+              <label><input type="checkbox" value="c" /> C</label>
+              <label><input type="checkbox" value="d" /> D</label>
+              <label><input type="checkbox" value="e" /> E</label>
+              <label><input type="checkbox" value="f" /> F</label>
+            </div>
+          </div>
+
+          <!-- Rationale -->
+          <div class="form-section">Rationale & Classification</div>
+
+          <div class="form-group">
+            <label>Rationale</label>
+            <textarea id="fieldRationale" rows="3" placeholder="Explanation of the correct answer…"></textarea>
+          </div>
+
+          <!-- Rationale Image Upload -->
+          <div class="form-group">
+            <label>Rationale Image</label>
+            <div class="img-upload-area" onclick="document.getElementById('imgFileInput').click()">
+              <input type="file" id="imgFileInput" accept="image/*" onchange="onImageSelected(event)" />
+              <div id="imgUploadPrompt">
+                <div style="font-size:24px; margin-bottom:6px;">🖼️</div>
+                <div style="font-size:13px; color:var(--text-muted);">Click to upload an image</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">JPG, PNG, GIF — max 2MB</div>
+              </div>
+            </div>
+            <div class="img-preview" id="imgPreview">
+              <img id="imgPreviewImg" src="" alt="Rationale image" />
+              <div class="img-preview-actions">
+                <button class="btn btn-ghost btn-sm" onclick="clearImage()">Remove image</button>
+              </div>
+            </div>
+            <p class="form-hint" id="imgUrlDisplay" style="margin-top:6px; word-break:break-all;"></p>
+          </div>
+
+          <!-- Classification -->
+          <div class="form-row">
+            <div class="form-group">
+              <label>Subject</label>
+              <input type="text" id="fieldSubject" placeholder="e.g. Anatomy" />
+            </div>
+            <div class="form-group">
+              <label>Main Topic</label>
+              <input type="text" id="fieldMaintopic" placeholder="e.g. Cardiovascular" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Subtopic / Concept</label>
+              <input type="text" id="fieldSubtopic" placeholder="e.g. Heart failure" />
+            </div>
+            <div class="form-group">
+              <label>Difficulty</label>
+              <select id="fieldDifficulty">
+                <option value="">— Select —</option>
+                <option value="Easy">Easy</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Marks</label>
+              <input type="number" id="fieldMarks" value="1" min="1" />
+            </div>
+            <div class="form-group">
+              <label>Batch ID</label>
+              <input type="text" id="fieldBatchId" placeholder="e.g. GP_BATCH_001" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="fieldShuffleOptions" checked style="width:auto; margin-right:6px;" />
+              Shuffle options (uncheck for True/False questions)
+            </label>
+          </div>
+
+        </div><!-- /.panel-body -->
+
+        <div class="panel-actions">
+          <button class="btn btn-primary" id="saveBtn" onclick="saveQuestion()">💾 Save</button>
+          <button class="btn btn-ghost"   onclick="closePanel()">Cancel</button>
+          <button class="btn btn-danger"  id="deleteBtn" onclick="confirmDelete()" style="margin-left:auto;">🗑 Delete</button>
+        </div>
+
+      </div><!-- /.edit-panel -->
+
+    </div><!-- /.qb-layout -->
+
   </main>
+</div>
+
+<!-- ── CSV Import Modal ──────────────────────────────────── -->
+<div class="modal-backdrop" id="csvModal">
+  <div class="modal-card">
+    <h3>📥 Import Questions from CSV</h3>
+    <p>Download the template, fill it in with your questions, then upload it here. The system will validate each row and report any errors.</p>
+
+    <div style="margin-bottom:14px;">
+      <button class="btn btn-ghost" onclick="downloadTemplate()">⬇ Download CSV Template</button>
+    </div>
+
+    <div class="form-group">
+      <label style="font-size:13px; font-weight:600; color:var(--primary); display:block; margin-bottom:6px;">Upload completed CSV</label>
+      <input type="file" id="csvFileInput" accept=".csv" onchange="onCsvSelected(event)"
+        style="font-size:13px; border:1px solid var(--border); padding:8px; border-radius:6px; width:100%; box-sizing:border-box;" />
+    </div>
+
+    <div id="csvReport" class="csv-report"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="csvImportBtn" onclick="runCsvImport()" disabled>Import Questions</button>
+      <button class="btn btn-ghost"   onclick="closeCsvModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <!-- Supabase -->
@@ -63,14 +619,784 @@
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
 <script src="/js/admin-sidebar.js"></script>
+<script src="/js/api.js"></script>
 <script>
-  async function initPage() {
-    const profile = await guardPage('ADMIN');
-    if (!profile) return;
-    document.getElementById('adminName').textContent = profile.forename || profile.name || profile.email;
-  }
-  initPage();
-</script>
 
+// ── State ──────────────────────────────────────────────────────
+let PROFILE       = null;
+let allCourses    = [];
+let allItems      = [];        // all items for current course (unfiltered)
+let filteredItems = [];        // after filters applied
+let currentCourseId  = '';
+let currentItemId    = null;   // null = new question
+let isNewQuestion    = false;
+let currentImgFile   = null;   // File object pending upload
+let currentImgUrl    = '';     // URL already saved to DB
+let csvRows          = [];     // parsed CSV rows pending import
+let searchTimer      = null;
+
+const PAGE_SIZE = 25;
+let currentLimit = PAGE_SIZE;
+
+// CSV template columns (must match items_* schema)
+const CSV_COLUMNS = [
+  'item_id','question_type','stem',
+  'option_a','fb_a','option_b','fb_b','option_c','fb_c',
+  'option_d','fb_d','option_e','fb_e','option_f','fb_f',
+  'correct','rationale','subject','maintopic','subtopic',
+  'difficulty','marks','batch_id','shuffle_options'
+];
+
+// Letters for options
+const OPTION_LETTERS = ['a','b','c','d','e','f'];
+
+// ── Init ───────────────────────────────────────────────────────
+async function initPage() {
+  PROFILE = await guardPage('ADMIN');
+  if (!PROFILE) return;
+  document.getElementById('adminName').textContent = PROFILE.forename || PROFILE.name || PROFILE.email;
+
+  allCourses = await getAllCourses();
+  populateCourseDropdown();
+  buildOptionsArea();
+}
+
+function populateCourseDropdown() {
+  const sel = document.getElementById('filterCourse');
+  allCourses.forEach(c => {
+    sel.innerHTML += `<option value="${c.course_id}">${c.title} (${c.course_id})</option>`;
+  });
+}
+
+// ── Course Change ──────────────────────────────────────────────
+async function onCourseChange() {
+  currentCourseId = document.getElementById('filterCourse').value;
+  closePanel();
+  clearFilters(false); // clear filters but keep course
+
+  if (!currentCourseId) {
+    allItems = [];
+    filteredItems = [];
+    renderList();
+    document.getElementById('newQuestionBtn').disabled = true;
+    document.getElementById('importCsvBtn').disabled = true;
+    document.getElementById('filterMaintopic').innerHTML = '<option value="">All topics</option>';
+    document.getElementById('resultCount').textContent = '';
+    return;
+  }
+
+  document.getElementById('qList').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Loading questions…</p></div>';
+  document.getElementById('newQuestionBtn').disabled = false;
+  document.getElementById('importCsvBtn').disabled = false;
+
+  // Load items and filter options in parallel
+  const [items, filterOpts] = await Promise.all([
+    getItemsByFilters(currentCourseId, {}),
+    getItemFilterOptions(currentCourseId)
+  ]);
+
+  allItems = items;
+
+  // Populate maintopic dropdown
+  const mtSel = document.getElementById('filterMaintopic');
+  mtSel.innerHTML = '<option value="">All topics</option>';
+  (filterOpts.maintopics || []).forEach(m => {
+    mtSel.innerHTML += `<option value="${m}">${m}</option>`;
+  });
+
+  applyFilters();
+}
+
+// ── Filters ────────────────────────────────────────────────────
+function applyFilters() {
+  const maintopic = document.getElementById('filterMaintopic').value;
+  const difficulty = document.getElementById('filterDifficulty').value;
+  const type = document.getElementById('filterType').value;
+  const keyword = (document.getElementById('filterKeyword').value || '').toLowerCase().trim();
+
+  filteredItems = allItems.filter(item => {
+    if (maintopic  && item.maintopic     !== maintopic)  return false;
+    if (difficulty && item.difficulty    !== difficulty) return false;
+    if (type       && item.question_type !== type)       return false;
+    if (keyword) {
+      const searchable = [
+        item.stem, item.option_a, item.option_b, item.option_c,
+        item.option_d, item.option_e, item.option_f,
+        item.rationale, item.maintopic, item.subtopic, item.subject
+      ].map(v => (v || '').toLowerCase()).join(' ');
+      if (!searchable.includes(keyword)) return false;
+    }
+    return true;
+  });
+
+  currentLimit = PAGE_SIZE;
+  document.getElementById('resultCount').textContent =
+    `${filteredItems.length} question${filteredItems.length !== 1 ? 's' : ''}`;
+  renderList();
+}
+
+function onSearchInput() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(applyFilters, 220);
+}
+
+function clearFilters(resetCourse = true) {
+  if (resetCourse) {
+    document.getElementById('filterCourse').value = '';
+    currentCourseId = '';
+    allItems = [];
+    filteredItems = [];
+    document.getElementById('newQuestionBtn').disabled = true;
+    document.getElementById('importCsvBtn').disabled = true;
+    document.getElementById('filterMaintopic').innerHTML = '<option value="">All topics</option>';
+    document.getElementById('resultCount').textContent = '';
+  }
+  document.getElementById('filterMaintopic').value = '';
+  document.getElementById('filterDifficulty').value = '';
+  document.getElementById('filterType').value = '';
+  document.getElementById('filterKeyword').value = '';
+  if (!resetCourse && currentCourseId) applyFilters();
+  else renderList();
+}
+
+// ── Render List ────────────────────────────────────────────────
+function renderList() {
+  const container = document.getElementById('qList');
+  const loadMoreWrap = document.getElementById('loadMoreWrap');
+
+  if (!currentCourseId) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">📚</div><p>Select a course above to load questions.</p></div>';
+    loadMoreWrap.classList.remove('show');
+    return;
+  }
+  if (!filteredItems.length) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>No questions match the current filters.</p></div>';
+    loadMoreWrap.classList.remove('show');
+    return;
+  }
+
+  const slice = filteredItems.slice(0, currentLimit);
+  container.innerHTML = '';
+  const list = document.createElement('div');
+  list.className = 'q-list';
+  slice.forEach(item => list.appendChild(buildCard(item)));
+  container.appendChild(list);
+
+  loadMoreWrap.classList.toggle('show', filteredItems.length > currentLimit);
+}
+
+function loadMore() {
+  currentLimit += PAGE_SIZE;
+  renderList();
+}
+
+// ── Build Question Card ────────────────────────────────────────
+function buildCard(item) {
+  const div = document.createElement('div');
+  div.className = 'q-card';
+  div.id = 'card-' + item.item_id;
+  if (currentItemId === item.item_id) div.classList.add('active');
+
+  const typeClass = { MCQ: 'chip-mcq', TF: 'chip-tf', SATA: 'chip-sata' }[item.question_type] || 'chip-default';
+  const diffClass = { Easy: 'chip-easy', Moderate: 'chip-moderate', Hard: 'chip-hard' }[item.difficulty] || 'chip-default';
+
+  // Build options HTML — only show options that have text
+  const correctArr = item.question_type === 'SATA'
+    ? (item.correct || '').split(',').map(s => s.trim().toLowerCase())
+    : [(item.correct || '').trim().toLowerCase()];
+
+  let optionsHtml = '';
+  OPTION_LETTERS.forEach(letter => {
+    const text = item['option_' + letter];
+    if (!text) return;
+    const isCorrect = correctArr.includes(letter);
+    optionsHtml += `
+      <div class="q-option ${isCorrect ? 'correct' : ''}">
+        <span class="q-option-letter">${letter.toUpperCase()}.</span>
+        <span class="q-option-text">${escHtml(text)}</span>
+      </div>`;
+  });
+
+  // Rationale image thumbnail
+  let imgHtml = '';
+  if (item.rationale_img) {
+    imgHtml = `
+      <div class="q-rationale-img">
+        <img src="${escHtml(item.rationale_img)}" alt="Rationale image"
+          onclick="window.open('${escHtml(item.rationale_img)}', '_blank')" title="Click to enlarge" />
+        <span>Rationale image attached</span>
+      </div>`;
+  }
+
+  div.innerHTML = `
+    <div class="q-card-header">
+      <div class="q-card-meta">
+        <span class="q-id">${escHtml(item.item_id)}</span>
+        <span class="chip ${typeClass}">${item.question_type || '—'}</span>
+        ${item.difficulty ? `<span class="chip ${diffClass}">${item.difficulty}</span>` : ''}
+        ${item.marks && item.marks !== 1 ? `<span class="chip chip-default">${item.marks} marks</span>` : ''}
+      </div>
+      <button class="q-edit-btn" onclick="openEdit('${escHtml(item.item_id)}'); event.stopPropagation();">Edit ✏️</button>
+    </div>
+    <div class="q-stem">${escHtml(item.stem)}</div>
+    <div class="q-options">${optionsHtml}</div>
+    ${item.rationale ? `
+      <div class="q-rationale">
+        <strong>Rationale:</strong> ${escHtml(item.rationale)}
+        ${imgHtml}
+      </div>` : (imgHtml ? `<div class="q-rationale">${imgHtml}</div>` : '')}
+    <div class="q-topics">
+      ${item.subject   ? `<span class="q-topic-pill">📖 ${escHtml(item.subject)}</span>` : ''}
+      ${item.maintopic ? `<span class="q-topic-pill">🏷 ${escHtml(item.maintopic)}</span>` : ''}
+      ${item.subtopic  ? `<span class="q-topic-pill">• ${escHtml(item.subtopic)}</span>` : ''}
+    </div>`;
+
+  div.addEventListener('click', () => openEdit(item.item_id));
+  return div;
+}
+
+// ── Options Area ───────────────────────────────────────────────
+// Builds the 6 option pairs (text + feedback) in the edit panel
+function buildOptionsArea() {
+  const area = document.getElementById('optionsArea');
+  area.innerHTML = '';
+  OPTION_LETTERS.forEach(letter => {
+    const div = document.createElement('div');
+    div.className = 'option-pair';
+    div.id = 'optPair-' + letter;
+    div.innerHTML = `
+      <div>
+        <div class="opt-label">Option ${letter.toUpperCase()}</div>
+        <input type="text" id="fieldOpt_${letter}" placeholder="Option ${letter.toUpperCase()} text…" />
+      </div>
+      <div>
+        <div class="opt-label">Feedback</div>
+        <input type="text" id="fieldFb_${letter}" placeholder="Feedback for ${letter.toUpperCase()}…" />
+      </div>`;
+    area.appendChild(div);
+  });
+}
+
+// Show/hide option pairs based on question type
+function onTypeChange() {
+  const type = document.getElementById('fieldType').value;
+
+  // TF: show only A and B
+  // MCQ / SATA: show all A–F
+  OPTION_LETTERS.forEach(letter => {
+    const pair = document.getElementById('optPair-' + letter);
+    if (type === 'TF' && letter !== 'a' && letter !== 'b') {
+      pair.style.display = 'none';
+    } else {
+      pair.style.display = 'grid';
+    }
+  });
+
+  // Correct answer selector
+  const mcqWrap  = document.getElementById('correctMcqWrap');
+  const sataWrap = document.getElementById('correctSataWrap');
+  const mcqSel   = document.getElementById('fieldCorrectMcq');
+
+  if (type === 'SATA') {
+    mcqWrap.style.display  = 'none';
+    sataWrap.style.display = 'block';
+  } else {
+    mcqWrap.style.display  = 'block';
+    sataWrap.style.display = 'none';
+    // For TF: only show A and B in the correct dropdown
+    mcqSel.innerHTML = type === 'TF'
+      ? '<option value="a">A (True)</option><option value="b">B (False)</option>'
+      : OPTION_LETTERS.map(l => `<option value="${l}">${l.toUpperCase()}</option>`).join('');
+  }
+
+  // Auto-uncheck shuffle for TF
+  if (type === 'TF') {
+    document.getElementById('fieldShuffleOptions').checked = false;
+  } else {
+    document.getElementById('fieldShuffleOptions').checked = true;
+  }
+}
+
+// ── Open Edit Panel ────────────────────────────────────────────
+function openEdit(itemId) {
+  const item = allItems.find(i => i.item_id === itemId);
+  if (!item) return;
+
+  isNewQuestion = false;
+  currentItemId = itemId;
+  currentImgFile = null;
+  currentImgUrl  = item.rationale_img || '';
+
+  // Update active card
+  document.querySelectorAll('.q-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById('card-' + itemId);
+  if (card) { card.classList.add('active'); card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+
+  // Populate form
+  document.getElementById('panelTitle').textContent = 'Edit Question';
+  document.getElementById('fieldItemId').value   = item.item_id;
+  document.getElementById('fieldType').value     = item.question_type || 'MCQ';
+  document.getElementById('fieldStem').value     = item.stem || '';
+  document.getElementById('fieldRationale').value = item.rationale || '';
+  document.getElementById('fieldSubject').value   = item.subject || '';
+  document.getElementById('fieldMaintopic').value = item.maintopic || '';
+  document.getElementById('fieldSubtopic').value  = item.subtopic || '';
+  document.getElementById('fieldDifficulty').value = item.difficulty || '';
+  document.getElementById('fieldMarks').value     = item.marks || 1;
+  document.getElementById('fieldBatchId').value   = item.batch_id || '';
+  document.getElementById('fieldShuffleOptions').checked = item.shuffle_options !== false;
+
+  // Options
+  OPTION_LETTERS.forEach(letter => {
+    document.getElementById('fieldOpt_' + letter).value = item['option_' + letter] || '';
+    document.getElementById('fieldFb_'  + letter).value = item['fb_'   + letter] || '';
+  });
+
+  // Correct answer
+  onTypeChange(); // sets up the correct UI first
+  if (item.question_type === 'SATA') {
+    const correctArr = (item.correct || '').split(',').map(s => s.trim().toLowerCase());
+    document.querySelectorAll('#sataCorrectBoxes input').forEach(cb => {
+      cb.checked = correctArr.includes(cb.value);
+    });
+  } else {
+    document.getElementById('fieldCorrectMcq').value = (item.correct || 'a').toLowerCase();
+  }
+
+  // Image
+  showImagePreview(currentImgUrl);
+
+  // Delete button — shown for existing questions
+  document.getElementById('deleteBtn').style.display = 'inline-flex';
+
+  clearPanelAlerts();
+  document.getElementById('editPanel').classList.add('open');
+}
+
+// ── Open New Question ──────────────────────────────────────────
+function openNewQuestion() {
+  if (!currentCourseId) {
+    showAlert('pageError', 'Please select a course first.');
+    return;
+  }
+
+  isNewQuestion = true;
+  currentItemId = null;
+  currentImgFile = null;
+  currentImgUrl  = '';
+
+  // Remove active state from all cards
+  document.querySelectorAll('.q-card').forEach(c => c.classList.remove('active'));
+
+  // Generate a new item ID
+  const course = allCourses.find(c => c.course_id === currentCourseId);
+  const prefix = currentCourseId.replace(/_/g, '') + '_';
+  const newId  = prefix + Date.now().toString().slice(-6);
+
+  document.getElementById('panelTitle').textContent = 'New Question';
+  document.getElementById('fieldItemId').value   = newId;
+  document.getElementById('fieldType').value     = 'MCQ';
+  document.getElementById('fieldStem').value     = '';
+  document.getElementById('fieldRationale').value = '';
+  document.getElementById('fieldSubject').value   = '';
+  document.getElementById('fieldMaintopic').value = '';
+  document.getElementById('fieldSubtopic').value  = '';
+  document.getElementById('fieldDifficulty').value = '';
+  document.getElementById('fieldMarks').value     = 1;
+  document.getElementById('fieldBatchId').value   = '';
+  document.getElementById('fieldShuffleOptions').checked = true;
+
+  OPTION_LETTERS.forEach(letter => {
+    document.getElementById('fieldOpt_' + letter).value = '';
+    document.getElementById('fieldFb_'  + letter).value = '';
+  });
+
+  onTypeChange();
+  document.getElementById('fieldCorrectMcq').value = 'a';
+  document.querySelectorAll('#sataCorrectBoxes input').forEach(cb => cb.checked = false);
+
+  showImagePreview('');
+  document.getElementById('deleteBtn').style.display = 'none';
+
+  clearPanelAlerts();
+  document.getElementById('editPanel').classList.add('open');
+}
+
+// ── Close Panel ────────────────────────────────────────────────
+function closePanel() {
+  document.getElementById('editPanel').classList.remove('open');
+  document.querySelectorAll('.q-card').forEach(c => c.classList.remove('active'));
+  currentItemId = null;
+  isNewQuestion = false;
+}
+
+// ── Save Question ──────────────────────────────────────────────
+async function saveQuestion() {
+  clearPanelAlerts();
+
+  const itemId = document.getElementById('fieldItemId').value.trim();
+  const type   = document.getElementById('fieldType').value;
+  const stem   = document.getElementById('fieldStem').value.trim();
+
+  if (!stem) { showPanelError('Question stem is required.'); return; }
+
+  // Build correct value
+  let correct;
+  if (type === 'SATA') {
+    const checked = [...document.querySelectorAll('#sataCorrectBoxes input:checked')].map(cb => cb.value);
+    if (!checked.length) { showPanelError('Select at least one correct option for SATA.'); return; }
+    correct = checked.join(',');
+  } else {
+    correct = document.getElementById('fieldCorrectMcq').value;
+  }
+
+  // Handle image upload first if a new file is selected
+  let imgUrl = currentImgUrl;
+  if (currentImgFile) {
+    imgUrl = await uploadImage(itemId, currentImgFile);
+    if (!imgUrl) { showPanelError('Image upload failed. Please try again.'); return; }
+  }
+
+  // Build payload
+  const payload = {
+    item_id:         itemId,
+    question_type:   type,
+    stem:            stem,
+    correct:         correct,
+    rationale:       document.getElementById('fieldRationale').value.trim() || null,
+    rationale_img:   imgUrl || null,
+    subject:         document.getElementById('fieldSubject').value.trim() || null,
+    maintopic:       document.getElementById('fieldMaintopic').value.trim() || null,
+    subtopic:        document.getElementById('fieldSubtopic').value.trim() || null,
+    difficulty:      document.getElementById('fieldDifficulty').value || null,
+    marks:           parseFloat(document.getElementById('fieldMarks').value) || 1,
+    batch_id:        document.getElementById('fieldBatchId').value.trim() || null,
+    shuffle_options: document.getElementById('fieldShuffleOptions').checked,
+  };
+
+  // Options A–F
+  OPTION_LETTERS.forEach(letter => {
+    payload['option_' + letter] = document.getElementById('fieldOpt_' + letter).value.trim() || null;
+    payload['fb_'    + letter] = document.getElementById('fieldFb_'  + letter).value.trim() || null;
+  });
+
+  const tableName = 'items_' + currentCourseId.toLowerCase();
+  document.getElementById('saveBtn').textContent = 'Saving…';
+  document.getElementById('saveBtn').disabled = true;
+
+  let error;
+  if (isNewQuestion) {
+    ({ error } = await db.from(tableName).insert(payload));
+  } else {
+    ({ error } = await db.from(tableName).update(payload).eq('item_id', itemId));
+  }
+
+  document.getElementById('saveBtn').textContent = '💾 Save';
+  document.getElementById('saveBtn').disabled = false;
+
+  if (error) {
+    showPanelError('Save failed: ' + error.message);
+    return;
+  }
+
+  // Refresh local data
+  allItems = await getItemsByFilters(currentCourseId, {});
+  applyFilters();
+
+  if (isNewQuestion) {
+    isNewQuestion = false;
+    currentItemId = itemId;
+    document.getElementById('deleteBtn').style.display = 'inline-flex';
+  }
+
+  // Re-highlight the card
+  document.querySelectorAll('.q-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById('card-' + itemId);
+  if (card) card.classList.add('active');
+
+  showPanelSuccess(isNewQuestion ? 'Question created.' : 'Question saved.');
+}
+
+// ── Delete Question ────────────────────────────────────────────
+async function confirmDelete() {
+  if (!currentItemId) return;
+  if (!confirm(`Delete question ${currentItemId}? This cannot be undone.`)) return;
+
+  const tableName = 'items_' + currentCourseId.toLowerCase();
+  const { error } = await db.from(tableName).delete().eq('item_id', currentItemId);
+  if (error) { showPanelError('Delete failed: ' + error.message); return; }
+
+  allItems = allItems.filter(i => i.item_id !== currentItemId);
+  applyFilters();
+  closePanel();
+  showAlert('pageSuccess', 'Question deleted.');
+}
+
+// ── Image Upload ───────────────────────────────────────────────
+function onImageSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    showPanelError('Image must be under 2MB.');
+    return;
+  }
+  currentImgFile = file;
+  // Show local preview immediately
+  const reader = new FileReader();
+  reader.onload = e => showImagePreview(e.target.result, true);
+  reader.readAsDataURL(file);
+}
+
+async function uploadImage(itemId, file) {
+  const ext      = file.name.split('.').pop();
+  const fileName = itemId + '.' + ext;
+  const { error } = await db.storage
+    .from('rationale-images')
+    .upload(fileName, file, { upsert: true });
+
+  if (error) { console.error('Image upload error:', error); return null; }
+
+  const { data } = db.storage.from('rationale-images').getPublicUrl(fileName);
+  return data?.publicUrl || null;
+}
+
+function showImagePreview(src, isLocal = false) {
+  const preview = document.getElementById('imgPreview');
+  const img     = document.getElementById('imgPreviewImg');
+  const urlDisplay = document.getElementById('imgUrlDisplay');
+  const prompt  = document.getElementById('imgUploadPrompt');
+
+  if (src) {
+    img.src = src;
+    preview.style.display = 'block';
+    prompt.style.display  = 'none';
+    urlDisplay.textContent = isLocal ? 'New image selected — will upload on save.' : src;
+  } else {
+    preview.style.display = 'none';
+    prompt.style.display  = 'block';
+    urlDisplay.textContent = '';
+  }
+}
+
+function clearImage() {
+  currentImgFile = null;
+  currentImgUrl  = '';
+  document.getElementById('imgFileInput').value = '';
+  showImagePreview('');
+}
+
+// ── CSV Import ─────────────────────────────────────────────────
+function openCsvModal() {
+  if (!currentCourseId) { showAlert('pageError', 'Please select a course first.'); return; }
+  csvRows = [];
+  document.getElementById('csvReport').innerHTML = '';
+  document.getElementById('csvFileInput').value  = '';
+  document.getElementById('csvImportBtn').disabled = true;
+  document.getElementById('csvModal').classList.add('open');
+}
+
+function closeCsvModal() {
+  document.getElementById('csvModal').classList.remove('open');
+}
+
+function downloadTemplate() {
+  const header = CSV_COLUMNS.join(',');
+  const example = [
+    currentCourseId + '_EXAMPLE',
+    'MCQ',
+    'What is the normal resting heart rate for an adult?',
+    '40-60 bpm','Too low — bradycardia',
+    '60-100 bpm','Correct — normal resting HR',
+    '100-120 bpm','Too high — tachycardia',
+    '120-140 bpm','Too high',
+    '','','','',
+    'b',
+    'The normal resting heart rate for adults is 60-100 bpm.',
+    'Anatomy','Cardiovascular','Heart rate',
+    'Easy','1','GP_BATCH_001','true'
+  ].join(',');
+
+  const csv  = header + '\n' + example;
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = currentCourseId + '_questions_template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function onCsvSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const result = parseCsv(e.target.result);
+    csvRows = result.rows;
+    renderCsvReport(result);
+    document.getElementById('csvImportBtn').disabled = result.validCount === 0;
+  };
+  reader.readAsText(file);
+}
+
+function parseCsv(text) {
+  // Split into lines, handle \r\n and \n
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+  if (lines.length < 2) return { rows: [], validCount: 0, report: [{ ok: false, msg: 'CSV is empty or has no data rows.' }] };
+
+  const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const report = [];
+  const rows   = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols   = splitCsvLine(lines[i]);
+    const rowNum = i + 1;
+
+    if (cols.length < 3) {
+      report.push({ ok: false, msg: `Row ${rowNum}: too few columns — skipped.` });
+      continue;
+    }
+
+    const row = {};
+    header.forEach((h, idx) => { row[h] = (cols[idx] || '').trim(); });
+
+    // Validation
+    if (!row.stem) {
+      report.push({ ok: false, msg: `Row ${rowNum}: missing stem — skipped.` });
+      continue;
+    }
+    if (!row.correct) {
+      report.push({ ok: false, msg: `Row ${rowNum}: missing correct answer — skipped.` });
+      continue;
+    }
+    if (!row.option_a && !row.option_b) {
+      report.push({ ok: false, msg: `Row ${rowNum}: must have at least 2 options — skipped.` });
+      continue;
+    }
+
+    // Auto-generate item_id if blank
+    if (!row.item_id) {
+      row.item_id = currentCourseId.replace(/_/g, '') + '_' + Date.now() + '_' + i;
+    }
+
+    rows.push(row);
+    report.push({ ok: true, msg: `Row ${rowNum}: "${row.stem.slice(0, 60)}…" — ready to import.` });
+  }
+
+  return { rows, validCount: rows.length, report };
+}
+
+// Simple CSV line splitter (handles quoted fields)
+function splitCsvLine(line) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuote = !inQuote; }
+    else if (ch === ',' && !inQuote) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function renderCsvReport(result) {
+  const container = document.getElementById('csvReport');
+  container.innerHTML = `<div style="font-weight:600; margin-bottom:8px; font-size:13px;">
+    ${result.validCount} valid row${result.validCount !== 1 ? 's' : ''} ready to import.
+    ${result.rows.length < result.report.length ? (result.report.length - result.validCount) + ' row(s) will be skipped.' : ''}
+  </div>`;
+  result.report.forEach(r => {
+    container.innerHTML += `<div class="csv-report-row ${r.ok ? 'ok' : 'err'}">${escHtml(r.msg)}</div>`;
+  });
+}
+
+async function runCsvImport() {
+  if (!csvRows.length) return;
+  const btn = document.getElementById('csvImportBtn');
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+
+  const tableName = 'items_' + currentCourseId.toLowerCase();
+  let successCount = 0;
+  let failCount    = 0;
+
+  // Build payload rows
+  const payloads = csvRows.map(row => ({
+    item_id:         row.item_id,
+    question_type:   (row.question_type || 'MCQ').toUpperCase(),
+    stem:            row.stem,
+    option_a:        row.option_a || null,
+    fb_a:            row.fb_a     || null,
+    option_b:        row.option_b || null,
+    fb_b:            row.fb_b     || null,
+    option_c:        row.option_c || null,
+    fb_c:            row.fb_c     || null,
+    option_d:        row.option_d || null,
+    fb_d:            row.fb_d     || null,
+    option_e:        row.option_e || null,
+    fb_e:            row.fb_e     || null,
+    option_f:        row.option_f || null,
+    fb_f:            row.fb_f     || null,
+    correct:         row.correct,
+    rationale:       row.rationale  || null,
+    subject:         row.subject    || null,
+    maintopic:       row.maintopic  || null,
+    subtopic:        row.subtopic   || null,
+    difficulty:      row.difficulty || null,
+    marks:           parseFloat(row.marks) || 1,
+    batch_id:        row.batch_id   || null,
+    shuffle_options: row.shuffle_options !== 'false',
+  }));
+
+  // Insert in batches of 50
+  const BATCH = 50;
+  for (let i = 0; i < payloads.length; i += BATCH) {
+    const batch = payloads.slice(i, i + BATCH);
+    const { error } = await db.from(tableName).upsert(batch, { onConflict: 'item_id' });
+    if (error) { failCount += batch.length; console.error('CSV import batch error:', error); }
+    else       { successCount += batch.length; }
+  }
+
+  // Refresh
+  allItems = await getItemsByFilters(currentCourseId, {});
+  applyFilters();
+
+  const reportEl = document.getElementById('csvReport');
+  reportEl.innerHTML = `
+    <div class="csv-report-row ok">✅ ${successCount} question${successCount !== 1 ? 's' : ''} imported successfully.</div>
+    ${failCount ? `<div class="csv-report-row err">❌ ${failCount} row(s) failed — check console for details.</div>` : ''}
+  `;
+
+  btn.textContent = 'Done';
+  setTimeout(closeCsvModal, 2000);
+}
+
+// ── Alert Helpers ──────────────────────────────────────────────
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+function showPanelError(msg)   { showAlert('panelError',   msg); }
+function showPanelSuccess(msg) { showAlert('panelSuccess', msg); }
+function clearPanelAlerts() {
+  ['panelError','panelSuccess'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.classList.remove('show'); }
+  });
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ───────────────────────────────────────────────────────
+initPage();
+
+</script>
 </body>
 </html>
