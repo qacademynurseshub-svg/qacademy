@@ -396,10 +396,16 @@
           <option value="SATA">SATA</option>
         </select>
       </div>
-      <div class="filter-group">
-        <label>Search</label>
-        <input type="text" id="filterKeyword" placeholder="Keyword in stem…" oninput="onSearchInput()" />
-      </div>
+<div class="filter-group">
+  <label>Batch</label>
+  <select id="filterBatch" onchange="applyFilters()">
+    <option value="">All batches</option>
+  </select>
+</div>
+<div class="filter-group">
+  <label>Search</label>
+  <input type="text" id="filterKeyword" placeholder="Keyword in stem…" oninput="onSearchInput()" />
+</div>
       <div class="filter-actions">
         <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
       </div>
@@ -697,11 +703,18 @@ async function onCourseChange() {
 
   allItems = items;
 
-  // Populate maintopic dropdown
+// Populate maintopic dropdown
   const mtSel = document.getElementById('filterMaintopic');
   mtSel.innerHTML = '<option value="">All topics</option>';
   (filterOpts.maintopics || []).forEach(m => {
     mtSel.innerHTML += `<option value="${m}">${m}</option>`;
+  });
+
+  // Populate batch dropdown
+  const batchSel = document.getElementById('filterBatch');
+  batchSel.innerHTML = '<option value="">All batches</option>';
+  (filterOpts.batch_ids || []).forEach(b => {
+    batchSel.innerHTML += `<option value="${b}">${b}</option>`;
   });
 
   applyFilters();
@@ -711,13 +724,15 @@ async function onCourseChange() {
 function applyFilters() {
   const maintopic = document.getElementById('filterMaintopic').value;
   const difficulty = document.getElementById('filterDifficulty').value;
-  const type = document.getElementById('filterType').value;
+const type  = document.getElementById('filterType').value;
+  const batch = document.getElementById('filterBatch').value;
   const keyword = (document.getElementById('filterKeyword').value || '').toLowerCase().trim();
 
   filteredItems = allItems.filter(item => {
     if (maintopic  && item.maintopic     !== maintopic)  return false;
     if (difficulty && item.difficulty    !== difficulty) return false;
-    if (type       && item.question_type !== type)       return false;
+if (type       && item.question_type !== type)       return false;
+  if (batch      && item.batch_id      !== batch)      return false;
     if (keyword) {
       const searchable = [
         item.stem, item.option_a, item.option_b, item.option_c,
@@ -753,7 +768,8 @@ function clearFilters(resetCourse = true) {
   }
   document.getElementById('filterMaintopic').value = '';
   document.getElementById('filterDifficulty').value = '';
-  document.getElementById('filterType').value = '';
+document.getElementById('filterType').value  = '';
+  document.getElementById('filterBatch').value = '';
   document.getElementById('filterKeyword').value = '';
   if (!resetCourse && currentCourseId) applyFilters();
   else renderList();
