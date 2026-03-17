@@ -755,7 +755,7 @@
       ⚠️ <strong>Exam mode:</strong> The timer starts when you click Start. No feedback is shown during the exam — you will see your results and explanations after submission. You cannot pause the timer.
     </div>
     <div class="preflight-actions">
-      <button class="btn btn-primary" id="preStartBtn" onclick="startQuiz()">🎯 Start Exam</button>
+<button class="btn btn-primary" id="preStartBtn">🎯 Start Exam</button>
       <button class="btn btn-ghost" onclick="window.history.back()">Cancel</button>
       <label class="preflight-skip">
         <input type="checkbox" id="preSkip" /> Don't show this again
@@ -879,7 +879,6 @@ let VIEW_MODE          = 'ALL';
 let QUESTIONS_PER_PAGE = 1;
 let AUTOSAVE_MS        = 60000;
 let AUTOSAVE_TIMER     = null;
-let QUIZ_STARTED_AT    = null;
 let feedbackMode       = 'inline';
 
 // Timer state
@@ -1020,7 +1019,7 @@ async function runPreflightAndLoad() {
   if (REVIEW_MODE) {
     initReviewMode();
   } else {
-    initQuizMode();
+    await initQuizMode();
   }
 
   if (!REVIEW_MODE && !PREVIEW_MODE) startAutosave();
@@ -1050,7 +1049,20 @@ function hydrateAnswers() {
     });
   } catch(e) { console.warn('hydrateAnswers:', e); }
 }
+function hasTimedStart() {
+  return ATT && ATT.time_taken_s !== null && ATT.time_taken_s !== undefined;
+}
 
+function getElapsedSecFromStart() {
+  if (!ATT || !ATT.ts_iso) return 0;
+  const startedMs = new Date(ATT.ts_iso).getTime();
+  if (!startedMs) return 0;
+  return Math.max(0, Math.floor((Date.now() - startedMs) / 1000));
+}
+
+function getRemainingSec() {
+  return Math.max(0, TIMER_TOTAL_SEC - getElapsedSecFromStart());
+}
 // ── Shuffle cache ──────────────────────────────────────────────
 function buildShufCache() {
   SHUF = {};
@@ -1093,13 +1105,21 @@ function seededShuffle(arr, seed) {
 }
 
 // ══ QUIZ MODE ════════════════════════════════════════════════
+async function initQuizMode() {
+  const alreadyStarted = hasTimedStart();
 
-function initQuizMode() {
-  if (shouldSkipPreflight() || ATT.status === 'in_progress') {
-    if (ATT.status === 'in_progress' && Object.keys(ANSW).length > 0) {
+  if (alreadyStarted) {
+    if (Object.keys(ANSW).length > 0) {
       log('Resuming your in-progress exam. Your saved answers have been restored.');
+    } else {
+      log('Resuming your in-progress exam.');
     }
-    startQuiz();
+    await startQuiz();
+    return;
+  }
+
+  if (shouldSkipPreflight()) {
+    await startQuiz();
   } else {
     showPreflight();
   }
@@ -1115,26 +1135,52 @@ function showPreflight() {
   log('Read the exam details carefully then click Start Exam when ready.');
 }
 
-function startQuiz() {
+async function startQuiz() {
   document.getElementById('preflightCard').style.display = 'none';
   document.getElementById('quizCard').style.display = 'block';
   document.getElementById('fabGrid').classList.add('show');
   initDesktopGrid();
 
-  if (!QUIZ_STARTED_AT) QUIZ_STARTED_AT = Date.now();
+  // First true start: stamp official exam start time
+  if (!hasTimedStart()) {
+    showLoader('Starting your exam…');
+
+    const startedIso = new Date().toISOString();
+    const result = await markTimedAttemptStarted(ATT.attempt_id, startedIso);
+
+    if (!result.success) {
+      hideLoader();
+      showError('Could Not Start Exam', result.message || 'We could not start your exam properly. Please try again.');
+      return;
+    }
+
+    ATT.ts_iso = startedIso;
+    ATT.time_taken_s = 0;
+    hideLoader();
+  }
 
   PAGE      = 0;
   VIEW_MODE = 'ALL';
 
-  startTimer();
+  TIMER_LEFT_SEC = getRemainingSec();
+
   renderPage();
   renderProgress();
+  updateTimerDisplay();
+
+  if (TIMER_LEFT_SEC <= 0) {
+    timeUp();
+    return;
+  }
+
+  startTimer();
 }
 
 // ══ TIMER ════════════════════════════════════════════════════
 
 function startTimer() {
   if (REVIEW_MODE || LOCKED) return;
+  TIMER_LEFT_SEC = hasTimedStart() ? getRemainingSec() : TIMER_TOTAL_SEC;
   updateTimerDisplay();
   TIMER_INTERVAL = setInterval(timerTick, 1000);
 }
@@ -1144,9 +1190,14 @@ function stopTimer() {
 }
 
 function timerTick() {
-  if (LOCKED) { stopTimer(); return; }
-  TIMER_LEFT_SEC = Math.max(0, TIMER_LEFT_SEC - 1);
+  if (LOCKED) {
+    stopTimer();
+    return;
+  }
+
+  TIMER_LEFT_SEC = hasTimedStart() ? getRemainingSec() : TIMER_TOTAL_SEC;
   updateTimerDisplay();
+
   if (TIMER_LEFT_SEC <= 0) {
     stopTimer();
     timeUp();
@@ -1244,7 +1295,9 @@ function renderPage() {
     const globalIdx = ITEMS.indexOf(item);
     qList.appendChild(buildQuestionBlock(item, globalIdx));
   }
-
+  if (LOCKED || REVIEW_MODE) {
+    refreshVisibleFeedback();
+  }
   window.scrollTo({ top: document.getElementById('runnerHeader').offsetHeight, behavior: 'smooth' });
 }
 
@@ -1320,13 +1373,6 @@ function buildQuestionBlock(item, globalIdx) {
   wm.textContent = 'QAcademy';
   footer.appendChild(wm);
   wrap.appendChild(footer);
-
-  // KEY DIFFERENCE FROM INSTANT RUNNER:
-  // Only show feedback if locked/review — never during active timed quiz
-  if (LOCKED || REVIEW_MODE) {
-    updateQuestionFeedback(item.item_id);
-  }
-
   return wrap;
 }
 
@@ -1357,19 +1403,34 @@ function buildOptionRow(item, opt, j) {
 
   input.addEventListener('change', () => {
     if (LOCKED || REVIEW_MODE) return;
+
     if (isSATA) {
       let chosen = Array.isArray(ANSW[item.item_id]) ? [...ANSW[item.item_id]] : [];
-      if (input.checked) { if (!chosen.includes(opt.letter)) chosen.push(opt.letter); }
-      else chosen = chosen.filter(l => l !== opt.letter);
+
+      if (input.checked) {
+        if (!chosen.includes(opt.letter)) chosen.push(opt.letter);
+      } else {
+        chosen = chosen.filter(l => l !== opt.letter);
+      }
+
       if (chosen.length > 0) ANSW[item.item_id] = chosen;
       else delete ANSW[item.item_id];
+
+      row.classList.toggle('selected', input.checked);
     } else {
       ANSW[item.item_id] = opt.letter;
+
+      const qBlock = document.getElementById(`q_${item.item_id}`);
+      if (qBlock) {
+        qBlock.querySelectorAll(`label[data-item-id="${item.item_id}"]`).forEach(el => {
+          el.classList.remove('selected');
+        });
+      }
+
+      row.classList.add('selected');
     }
-    // NO feedback update during timed quiz — just update progress
+
     renderProgress();
-    // Visual selected state only
-    row.classList.toggle('selected', true);
   });
 
   const body  = document.createElement('div');
@@ -1399,7 +1460,35 @@ function buildOptionRow(item, opt, j) {
 }
 
 // ══ FEEDBACK (post-submit / review only) ══════════════════════
+function clearQuestionFeedback(itemId) {
+  const qBlock = document.getElementById(`q_${itemId}`);
+  if (!qBlock) return;
 
+  qBlock.querySelectorAll('.opt').forEach(el => {
+    el.classList.remove('correct', 'wrong', 'selected');
+  });
+
+  qBlock.querySelectorAll('.opt-title .chip').forEach(el => el.remove());
+
+  qBlock.querySelectorAll('.opt-fb').forEach(el => {
+    el.textContent = '';
+    el.classList.remove('show');
+  });
+
+  const ratEl = document.getElementById(`rat_${itemId}`);
+  if (ratEl) {
+    ratEl.innerHTML = '';
+    ratEl.classList.remove('show');
+  }
+}
+
+function refreshVisibleFeedback() {
+  document.querySelectorAll('#qList .q-block').forEach(block => {
+    const itemId = block.id.replace('q_', '');
+    clearQuestionFeedback(itemId);
+    updateQuestionFeedback(itemId);
+  });
+}
 function updateQuestionFeedback(itemId) {
   const item = ITEMS.find(i => i.item_id === itemId);
   if (!item) return;
@@ -1592,8 +1681,10 @@ async function submitQuiz(autoSubmit = false) {
 
   const score       = computeScore();
   const answersJson = buildAnswersJson();
-  const timeTakenS  = QUIZ_STARTED_AT ? Math.round((Date.now() - QUIZ_STARTED_AT) / 1000) : null;
-
+const timeTakenS = hasTimedStart()
+  ? Math.min(TIMER_TOTAL_SEC, getElapsedSecFromStart())
+  : 0;
+  
   // Update progress bar
   const fill = document.getElementById('progressFill');
   fill.classList.add('locked');
@@ -1664,9 +1755,21 @@ function stopAutosave() {
 
 async function saveInProgress(showMsg) {
   if (PREVIEW_MODE || !ATT) return;
+
   const answersJson = buildAnswersJson();
-  const result = await saveAttemptProgress(ATT.attempt_id, answersJson);
-  if (showMsg) log(result.success ? 'Progress saved.' : 'Save failed: ' + result.message);
+  const elapsed = hasTimedStart()
+    ? Math.min(TIMER_TOTAL_SEC, getElapsedSecFromStart())
+    : 0;
+
+  const result = await saveTimedAttemptProgress(ATT.attempt_id, answersJson, elapsed);
+
+  if (result.success) {
+    ATT.time_taken_s = elapsed;
+  }
+
+  if (showMsg) {
+    log(result.success ? 'Progress saved.' : 'Save failed: ' + result.message);
+  }
 }
 
 // ══ EXIT OVERLAY ═════════════════════════════════════════════
@@ -1809,7 +1912,14 @@ function setFeedbackMode(mode) {
   feedbackMode = mode;
   saveFeedbackMode(mode);
   updateFeedbackModeUI();
-  if (ITEMS.length && (LOCKED || REVIEW_MODE)) renderPage();
+
+  if (LOCKED || REVIEW_MODE) {
+    if (document.querySelector('#qList .q-block')) {
+      refreshVisibleFeedback();
+    } else if (ITEMS.length) {
+      renderPage();
+    }
+  }
 }
 function updateFeedbackModeUI() {
   ['inline','standalone','hide'].forEach(m => {
@@ -1825,11 +1935,11 @@ function shouldSkipPreflight() {
   try { return localStorage.getItem(SKIP_PRE_KEY) === '1'; } catch(_) { return false; }
 }
 
-document.getElementById('preStartBtn').addEventListener('click', () => {
+document.getElementById('preStartBtn').addEventListener('click', async () => {
   if (document.getElementById('preSkip').checked) {
     try { localStorage.setItem(SKIP_PRE_KEY, '1'); } catch(_) {}
   }
-  startQuiz();
+  await startQuiz();
 });
 
 // ══ PAGE NAVIGATION ══════════════════════════════════════════
