@@ -878,8 +878,62 @@ async function saveAttemptProgress(attemptId, answersJson) {
   }
   return { success: true };
 }
+// ------------------------------------------------------------
+// MARK TIMED ATTEMPT AS STARTED
+// Returns: { success: true } or { success: false, message }
+//
+// Used by: runner/timed.html
+//
+// Logic:
+// - called only the FIRST time the learner clicks Start Exam
+// - stamps ts_iso as the official exam start time
+// - sets time_taken_s = 0 so the runner can distinguish
+//   "not started yet" from "already started"
+// ------------------------------------------------------------
+async function markTimedAttemptStarted(attemptId, startedIso) {
+  const { error } = await db
+    .from('attempts')
+    .update({
+      ts_iso:       startedIso,
+      time_taken_s: 0,
+      status:       'in_progress'
+    })
+    .eq('attempt_id', attemptId)
+    .is('time_taken_s', null);
 
+  if (error) {
+    console.error('markTimedAttemptStarted:', error);
+    return { success: false, message: error.message };
+  }
+  return { success: true };
+}
+// ------------------------------------------------------------
+// SAVE TIMED ATTEMPT PROGRESS
+// Returns: { success: true } or { success: false, message }
+//
+// Used by: runner/timed.html
+//
+// Logic:
+// - saves answers_json
+// - updates time_taken_s with true elapsed exam time
+// - keeps status as in_progress
+// ------------------------------------------------------------
+async function saveTimedAttemptProgress(attemptId, answersJson, timeTakenS) {
+  const { error } = await db
+    .from('attempts')
+    .update({
+      answers_json: JSON.stringify(answersJson),
+      time_taken_s: timeTakenS,
+      status:       'in_progress'
+    })
+    .eq('attempt_id', attemptId);
 
+  if (error) {
+    console.error('saveTimedAttemptProgress:', error);
+    return { success: false, message: error.message };
+  }
+  return { success: true };
+}
 // ------------------------------------------------------------
 // FINISH ATTEMPT (SUBMIT)
 // Returns: { success: true } or { success: false, message }
