@@ -1,1 +1,7 @@
 
+{
+  "name": "payments-worker",
+  "main": "src/index.js",
+  "compatibility_date": "2026-03-17",
+  "workers_dev": true
+}
