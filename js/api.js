@@ -711,32 +711,49 @@ async function getItemsByFilters(courseId, filters = {}) {
 
 
 // ------------------------------------------------------------
-// GET DISTINCT FILTER VALUES FOR ITEM PICKER
-// Returns: { subjects, maintopics, subtopics, batch_ids }
-//          — unique values for each filter dropdown
+// GET DISTINCT FILTER VALUES FOR ITEM PICKER / QUIZ BUILDER
+// Returns: unique real values for dropdowns/chips
 //
-// Why: admin item picker dropdowns need to be populated
-//      with real values from the items table, not hardcoded.
+// Why: builder and admin picker should both use real data-driven
+//      filter values from the course items table.
 //
-// Used by: admin/fixed-quizzes.html (item picker dropdowns)
+// Used by: admin/fixed-quizzes.html,
+//          student/quiz-builder.html
 // ------------------------------------------------------------
 async function getItemFilterOptions(courseId) {
   const tableName = 'items_' + courseId.toLowerCase();
 
   const { data, error } = await db
     .from(tableName)
-    .select('subject, maintopic, subtopic, batch_id');
+    .select('subject, maintopic, subtopic, difficulty, question_type, batch_id');
 
-  if (error) { console.error('getItemFilterOptions:', error); return {}; }
+  if (error) {
+    console.error('getItemFilterOptions:', error);
+    return {
+      subjects: [],
+      maintopics: [],
+      subtopics: [],
+      difficulties: [],
+      question_types: [],
+      batch_ids: []
+    };
+  }
 
-  const unique = (arr) => [...new Set(arr.filter(Boolean))].sort();
+  const unique = (arr) => [...new Set(
+    (arr || [])
+      .map(v => String(v || '').trim())
+      .filter(Boolean)
+  )].sort();
+
   const rows = data || [];
 
   return {
-    subjects:   unique(rows.map(r => r.subject)),
-    maintopics: unique(rows.map(r => r.maintopic)),
-    subtopics:  unique(rows.map(r => r.subtopic)),
-    batch_ids:  unique(rows.map(r => r.batch_id))
+    subjects:       unique(rows.map(r => r.subject)),
+    maintopics:     unique(rows.map(r => r.maintopic)),
+    subtopics:      unique(rows.map(r => r.subtopic)),
+    difficulties:   unique(rows.map(r => r.difficulty)),
+    question_types: unique(rows.map(r => r.question_type)),
+    batch_ids:      unique(rows.map(r => r.batch_id))
   };
 }
 
@@ -809,22 +826,124 @@ async function spawnFixedAttempt(userId, quiz, mode) {
   return { attempt: newAttempt, isResume: false };
 }
 
+// ------------------------------------------------------------
+// BUILDER LABEL HELPERS
+// Shared helper for builder attempts so runner/history headers
+// show a meaningful title instead of a generic course code.
+// ------------------------------------------------------------
+function canonicalDifficultyLabel(d) {
+  const s = String(d || '').trim().toLowerCase();
+  if (s === 'easy') return 'Easy';
+  if (s === 'moderate' || s === 'medium') return 'Moderate';
+  if (s === 'hard' || s === 'difficult') return 'Hard';
+  return '';
+}
 
+function buildBuilderDisplayLabel(meta = {}) {
+  const maintopics   = Array.isArray(meta.maintopics) ? meta.maintopics.filter(Boolean) : [];
+  const difficulties = Array.isArray(meta.difficulties) ? meta.difficulties.filter(Boolean) : [];
+  const n            = Number(meta.n || 0);
+
+  // Topic part
+  const mains = [...new Set(maintopics.map(v => String(v).trim()).filter(Boolean))].sort();
+
+  let topicPart = 'Full bank';
+  if (meta.selection_mode === 'concept') {
+    const selectedConcepts = Array.isArray(meta.concepts) ? meta.concepts.filter(Boolean) : [];
+    const conceptQuery = String(meta.concept_query || '').trim();
+
+    if (selectedConcepts.length === 1 && !conceptQuery) {
+      topicPart = selectedConcepts[0];
+    } else if (selectedConcepts.length > 1) {
+      topicPart = 'Concept mix';
+    } else if (conceptQuery) {
+      topicPart = conceptQuery;
+    } else if (mains.length === 1) {
+      topicPart = mains[0];
+    }
+  } else {
+    if (mains.length === 1) {
+      topicPart = mains[0];
+    } else if (mains.length === 2) {
+      topicPart = `${mains[0]} & ${mains[1]}`;
+    } else if (mains.length === 3) {
+      topicPart = `${mains[0]}, ${mains[1]} & ${mains[2]}`;
+    } else if (mains.length > 3) {
+      topicPart = 'Mixed topics';
+    }
+  }
+
+  // Difficulty part
+  const order = ['Easy', 'Moderate', 'Hard'];
+  const canon = [...new Set(
+    difficulties
+      .map(canonicalDifficultyLabel)
+      .filter(Boolean)
+  )].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+  let diffPart = 'Mixed';
+  if (canon.length === 1) {
+    diffPart = `${canon[0]} only`;
+  } else if (canon.length === 2) {
+    diffPart = `${canon[0]}+${canon[1]}`;
+  }
+
+  return `Custom - ${topicPart} (${diffPart}, ${n}Q)`;
+}
 // ------------------------------------------------------------
 // SPAWN BUILDER ATTEMPT
 // Returns: newly created attempt row
 //
 // Called when student finishes the quiz builder wizard
-// and clicks Launch.
+// and clicks Build Quiz.
 //
 // Why: builder quizzes are always fresh — no resume logic
 //      because every builder attempt is unique to the student.
 //
+// meta shape (optional):
+// {
+//   n,
+//   selection_mode,        // 'topics' | 'concept'
+//   maintopics,            // array
+//   subtopics,             // array
+//   difficulties,          // array
+//   question_types,        // array
+//   concepts,              // array
+//   concept_query,         // string
+//   display_label,         // optional explicit override
+//   duration_min_override  // optional admin/operational override
+// }
+//
 // Used by: student/quiz-builder.html
 // ------------------------------------------------------------
-async function spawnBuilderAttempt(userId, courseId, itemIds, mode) {
-  const attemptId   = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-  const timeLimitSec = itemIds.length * 60;
+async function spawnBuilderAttempt(userId, courseId, itemIds, mode, meta = {}) {
+  const safeIds = Array.isArray(itemIds)
+    ? itemIds.map(id => String(id || '').trim()).filter(Boolean)
+    : [];
+
+  if (!safeIds.length) {
+    console.error('spawnBuilderAttempt: no item IDs provided');
+    return null;
+  }
+
+  const attemptId = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+  // Default timed rule: 1 minute per question
+  const defaultDurationMin = safeIds.length;
+  const durationMin = Number(meta.duration_min_override) > 0
+    ? Number(meta.duration_min_override)
+    : defaultDurationMin;
+
+  const displayLabel =
+    String(meta.display_label || '').trim() ||
+    buildBuilderDisplayLabel({
+      selection_mode: meta.selection_mode || 'topics',
+      maintopics: meta.maintopics || [],
+      difficulties: meta.difficulties || [],
+      concepts: meta.concepts || [],
+      concept_query: meta.concept_query || '',
+      n: Number(meta.n || safeIds.length)
+    });
 
   const { data, error } = await db
     .from('attempts')
@@ -835,18 +954,22 @@ async function spawnBuilderAttempt(userId, courseId, itemIds, mode) {
       course_id:     courseId,
       mode:          mode,
       source:        'builder',
-      item_ids:      itemIds.join(','),
-      n:             itemIds.length,
+      item_ids:      safeIds.join(','),
+      n:             safeIds.length,
       status:        'in_progress',
       ts_iso:        new Date().toISOString(),
-      duration_min:  Math.ceil(timeLimitSec / 60),
+      duration_min:  durationMin,
       answers_json:  JSON.stringify([]),
-      display_label: courseId + ' Custom Quiz'
+      display_label: displayLabel
     })
     .select()
     .single();
 
-  if (error) { console.error('spawnBuilderAttempt:', error); return null; }
+  if (error) {
+    console.error('spawnBuilderAttempt:', error);
+    return null;
+  }
+
   return data;
 }
 
