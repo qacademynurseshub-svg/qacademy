@@ -18,7 +18,9 @@ export default {
       if (request.method === 'POST' && url.pathname === '/payments/init-public') {
         return await handleInitPublic(request, env);
       }
-
+if (request.method === 'POST' && url.pathname === '/payments/setup-complete') {
+  return await handleSetupComplete(request, env);
+}
       if (request.method === 'GET' && url.pathname === '/payments/verify') {
         return await handleVerify(request, env);
       }
@@ -240,7 +242,58 @@ async function paystackVerify(env, reference) {
 
   return data;
 }
+/* ============================================================
+ * SUPABASE AUTH ADMIN HELPERS
+ * Server-side only
+ * ============================================================ */
 
+function sbAuthBase(env) {
+  return `${env.SUPABASE_URL}/auth/v1`;
+}
+
+function sbAuthHeaders(env) {
+  return {
+    apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+    'Content-Type': 'application/json'
+  };
+}
+
+function makeUserId() {
+  return makeId('U');
+}
+
+async function authAdminCreateUser(env, { email, password, forename, surname, phoneNumber = '' }) {
+  const fullName = [forename, surname].filter(Boolean).join(' ').trim();
+
+  const payload = {
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      forename,
+      surname,
+      name: fullName,
+      phone_number: phoneNumber || null
+    }
+  };
+
+  const res = await fetch(`${sbAuthBase(env)}/admin/users`, {
+    method: 'POST',
+    headers: sbAuthHeaders(env),
+    body: JSON.stringify(payload)
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Supabase auth create user failed: ${text}`);
+  }
+
+  const data = text ? JSON.parse(text) : null;
+
+  // Supabase may return { user: {...} } depending on endpoint version
+  return data?.user || data || null;
+}
 /* ============================================================
  * DATA HELPERS
  * ============================================================ */
@@ -636,17 +689,24 @@ async function handleVerify(request, env) {
       { reference: `eq.${payment.reference}` }
     );
 
-    return json(
-      {
-        ok: true,
-        status: 'SETUP_REQUIRED',
-        reference: payment.reference,
-        requires_setup: true,
-        setup_token: payment.setup_token
-      },
-      200,
-      corsHeaders(request, env)
-    );
+return json(
+  {
+    ok: true,
+    status: 'SETUP_REQUIRED',
+    reference: payment.reference,
+    requires_setup: true,
+    setup_token: payment.setup_token,
+    email: payment.email || '',
+    product_id: payment.product_id || '',
+    product_name: payment.product_name || '',
+    amount_minor_expected: payment.amount_minor_expected || null,
+    currency: payment.currency || '',
+    phone_number: payment.phone_number || '',
+    program_id: payment.program_id || ''
+  },
+  200,
+  corsHeaders(request, env)
+);
   }
 
   // Hard stop if already marked failed
@@ -764,17 +824,24 @@ async function handleVerify(request, env) {
       { reference: `eq.${payment.reference}` }
     );
 
-    return json(
-      {
-        ok: true,
-        status: 'SETUP_REQUIRED',
-        reference: payment.reference,
-        requires_setup: true,
-        setup_token: payment.setup_token
-      },
-      200,
-      corsHeaders(request, env)
-    );
+ return json(
+  {
+    ok: true,
+    status: 'SETUP_REQUIRED',
+    reference: payment.reference,
+    requires_setup: true,
+    setup_token: payment.setup_token,
+    email: payment.email || '',
+    product_id: payment.product_id || '',
+    product_name: payment.product_name || '',
+    amount_minor_expected: payment.amount_minor_expected || null,
+    currency: payment.currency || '',
+    phone_number: payment.phone_number || '',
+    program_id: payment.program_id || ''
+  },
+  200,
+  corsHeaders(request, env)
+);
   } catch (err) {
     await sbPatch(
       env,
@@ -790,6 +857,252 @@ async function handleVerify(request, env) {
         ok: false,
         error: 'verify_failed',
         message: err.message || 'Could not verify payment'
+      },
+      500,
+      corsHeaders(request, env)
+    );
+  }
+}
+/* ============================================================
+ * ROUTE: POST /payments/setup-complete
+ * Body:
+ * {
+ *   reference: "QAC_XXXX",
+ *   setup_token: "...",
+ *   forename: "Sam",
+ *   surname: "Owusu",
+ *   password: "StrongPassword123",
+ *   phone_number: "233...",
+ *   program_id: "RM"
+ * }
+ *
+ * Behaviour:
+ * - Requires payment to be PAID or SETUP_REQUIRED
+ * - Validates setup token
+ * - Creates Supabase Auth user
+ * - Creates public users row
+ * - Activates subscription using existing helper
+ * ============================================================ */
+
+async function handleSetupComplete(request, env) {
+  const body = await readJson(request);
+
+  if (!body) {
+    return json(
+      { ok: false, error: 'invalid_json' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  const reference = String(body.reference || '').trim();
+  const setupToken = String(body.setup_token || '').trim();
+  const forename = String(body.forename || '').trim();
+  const surname = String(body.surname || '').trim();
+  const password = String(body.password || '');
+  const phoneNumberInput = String(body.phone_number || '').trim();
+  const programIdInput = String(body.program_id || '').trim();
+
+  if (!reference) {
+    return json(
+      { ok: false, error: 'missing_reference' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (!setupToken) {
+    return json(
+      { ok: false, error: 'missing_setup_token' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (!forename || !surname || !password) {
+    return json(
+      { ok: false, error: 'missing_required_fields', message: 'forename, surname and password are required' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (password.length < 8) {
+    return json(
+      { ok: false, error: 'password_policy_failed', message: 'Password must be at least 8 characters' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  let payment = await getPaymentByReference(env, reference);
+
+  if (!payment) {
+    return json(
+      { ok: false, error: 'payment_not_found' },
+      404,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (payment.status === 'ACTIVATED' && payment.subscription_id) {
+    return json(
+      {
+        ok: true,
+        status: 'ACTIVATED',
+        reference: payment.reference,
+        subscription_id: payment.subscription_id,
+        user_id: payment.user_id || null
+      },
+      200,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (payment.status === 'FAILED') {
+    return json(
+      {
+        ok: false,
+        error: 'payment_failed',
+        reference: payment.reference,
+        failure_note: payment.failure_note || ''
+      },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (payment.status !== 'PAID' && payment.status !== 'SETUP_REQUIRED') {
+    return json(
+      {
+        ok: false,
+        error: 'payment_not_ready_for_setup',
+        reference: payment.reference,
+        status: payment.status || 'INIT'
+      },
+      409,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (String(payment.setup_token || '').trim() !== setupToken) {
+    return json(
+      { ok: false, error: 'invalid_setup_token' },
+      403,
+      corsHeaders(request, env)
+    );
+  }
+
+  const finalProgramId = programIdInput || String(payment.program_id || '').trim();
+  const finalPhoneNumber = phoneNumberInput || String(payment.phone_number || '').trim() || null;
+
+  if (!finalProgramId) {
+    return json(
+      { ok: false, error: 'missing_program_id' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  // Idempotency / recovery:
+  // if a matching user already exists now, reuse it and activate.
+  let existingUser =
+    (payment.user_id && await getUserById(env, payment.user_id)) ||
+    await getUserByEmail(env, String(payment.email || '').trim().toLowerCase());
+
+  try {
+    if (!existingUser) {
+      const authUser = await authAdminCreateUser(env, {
+        email: String(payment.email || '').trim().toLowerCase(),
+        password,
+        forename,
+        surname,
+        phoneNumber: finalPhoneNumber || ''
+      });
+
+      if (!authUser?.id) {
+        throw new Error('Supabase auth create user returned no user id');
+      }
+
+      const publicUser = await sbInsert(env, 'users', {
+        user_id: makeUserId(),
+        auth_id: authUser.id,
+        email: String(payment.email || '').trim().toLowerCase(),
+        forename,
+        surname,
+        name: [forename, surname].filter(Boolean).join(' ').trim(),
+        program_id: finalProgramId,
+        phone_number: finalPhoneNumber,
+        role: 'STUDENT',
+        active: true,
+        signup_source: 'PAYSTACK_SETUP',
+        created_utc: nowIso()
+      });
+
+      existingUser = publicUser;
+    }
+
+    payment = await sbPatch(
+      env,
+      'payments',
+      {
+        user_id: existingUser.user_id,
+        phone_number: finalPhoneNumber,
+        program_id: finalProgramId,
+        setup_completed_utc: payment.setup_completed_utc || nowIso(),
+        raw: {
+          ...((payment.raw && typeof payment.raw === 'object') ? payment.raw : {}),
+          setup_complete: {
+            ok: true,
+            user_id: existingUser.user_id,
+            email: String(payment.email || '').trim().toLowerCase(),
+            program_id: finalProgramId,
+            phone_number: finalPhoneNumber
+          }
+        }
+      },
+      { reference: `eq.${payment.reference}` }
+    );
+
+    const activation = await activatePaymentForUser(env, payment, existingUser);
+
+    return json(
+      {
+        ok: true,
+        status: 'ACTIVATED',
+        reference: payment.reference,
+        subscription_id: activation.subscription.subscription_id,
+        activation_mode: activation.mode,
+        user_id: existingUser.user_id,
+        requires_setup: false
+      },
+      200,
+      corsHeaders(request, env)
+    );
+  } catch (err) {
+    const msg = err?.message || 'setup_complete_failed';
+
+    await sbPatch(
+      env,
+      'payments',
+      {
+        failure_note: `setup_complete_failed: ${msg}`,
+        raw: {
+          ...((payment.raw && typeof payment.raw === 'object') ? payment.raw : {}),
+          setup_complete: {
+            ok: false,
+            error: msg
+          }
+        }
+      },
+      { reference: `eq.${payment.reference}` }
+    );
+
+    return json(
+      {
+        ok: false,
+        error: 'setup_complete_failed',
+        message: msg
       },
       500,
       corsHeaders(request, env)
