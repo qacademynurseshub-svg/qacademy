@@ -370,6 +370,16 @@
       .bottom-cta { padding: 48px 24px; }
       .footer { padding: 20px 24px; }
     }
+    .topnav-subscribe {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      padding: 4px 0;
+      border-bottom: 1.5px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .topnav-subscribe:hover { border-bottom-color: var(--accent); }
   </style>
 </head>
 <body>
@@ -383,10 +393,15 @@
         <p>Nurses Hub</p>
       </div>
     </div>
-    <div class="topnav-actions">
+<div class="topnav-actions">
+      <a href="/subscribe.html" class="topnav-subscribe">Subscribe</a>
       <a href="/login.html"><button class="btn-outline">Sign In</button></a>
-      <a href="/register.html"><button class="btn-solid">Register Free</button></a>
-    </div>
+<a href="/register.html"><button class="btn-hero-primary">Create Your Free Account</button></a>
+    <p style="margin-top:16px; font-size:14px; color:rgba(255,255,255,0.6);">
+      Want the full experience? <a href="/subscribe.html" style="color:#fff; font-weight:700; text-decoration:underline;">Subscribe to paid access →</a>
+    </p>
+  </section>
+</div>
   </nav>
 
   <!-- HERO -->
