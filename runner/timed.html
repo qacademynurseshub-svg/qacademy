@@ -1022,7 +1022,11 @@ function escapeHtml(str) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
+function getDisplayLetter(index, fallbackLetter) {
+  return index >= 0
+    ? String.fromCharCode(65 + index)
+    : String(fallbackLetter || '').toUpperCase();
+}
 // ══ PREFLIGHT CHECKS ══════════════════════════════════════════
 
 async function runPreflightAndLoad() {
@@ -1561,6 +1565,7 @@ flagBtn.addEventListener('click', () => {
 
 function buildOptionRow(item, opt, j) {
   const isSATA = item.question_type === 'SATA';
+  const displayLetter = getDisplayLetter(j, opt.letter);
 
   const row = document.createElement('label');
   row.className = 'opt';
@@ -1621,7 +1626,7 @@ function buildOptionRow(item, opt, j) {
   body.className = 'opt-body';
   const title = document.createElement('div');
   title.className = 'opt-title';
-  title.innerHTML = `<span class="opt-text"><strong>${opt.letter.toUpperCase()}.</strong> ${escapeHtml(opt.text)}</span>`;
+  title.innerHTML = `<span class="opt-text"><strong>${displayLetter}.</strong> ${escapeHtml(opt.text)}</span>`;
   body.appendChild(title);
 
   const fb = document.createElement('div');
@@ -1760,9 +1765,12 @@ function updateQuestionFeedback(itemId) {
       title.textContent = 'Why the options:';
       ratEl.appendChild(title);
       optFbs.forEach(o => {
+        const displayIndex = opts.findIndex(x => x.letter === o.letter);
+        const displayLetter = getDisplayLetter(displayIndex, o.letter);
+
         const line = document.createElement('div');
         line.className = 'standalone-opt-line';
-        line.innerHTML = `<strong>${o.letter.toUpperCase()}. ${escapeHtml(o.text)}</strong> — ${escapeHtml(o.fb)}`;
+        line.innerHTML = `<strong>${displayLetter}. ${escapeHtml(o.text)}</strong> — ${escapeHtml(o.fb)}`;
         ratEl.appendChild(line);
       });
       hasContent = true;
