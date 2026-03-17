@@ -819,7 +819,7 @@
       Practice mode gives you immediate feedback after each answer. You can flag questions, navigate freely and review your answers at the end.
     </p>
     <div class="preflight-actions">
-      <button class="btn btn-primary" id="preStartBtn" onclick="startQuiz()">▶ Start Quiz</button>
+<button class="btn btn-primary" id="preStartBtn">▶ Start Quiz</button>
       <button class="btn btn-ghost" onclick="window.history.back()">Cancel</button>
       <label class="preflight-skip">
         <input type="checkbox" id="preSkip" /> Don't show this again
@@ -943,6 +943,7 @@ let QUESTIONS_PER_PAGE = 1;
 let AUTOSAVE_MS    = 60000;
 let AUTOSAVE_TIMER = null;
 let QUIZ_STARTED_AT = null;
+let QUIZ_BOOTED     = false;
 let feedbackMode   = 'inline';
 
 const FEEDBACK_KEY  = 'qa_feedback_mode';
@@ -1188,32 +1189,52 @@ function seededShuffle(arr, seed) {
 }
 
 // ══ QUIZ MODE ════════════════════════════════════════════════
-
+function hasInstantProgress() {
+  if (Object.keys(ANSW).length > 0) return true;
+  if (Object.keys(FLAGS).length > 0) return true;
+  if (Object.keys(SATA_EVAL).length > 0) return true;
+  return false;
+}
 function initQuizMode() {
-  // Show preflight or start immediately
-  if (shouldSkipPreflight() || ATT.status === 'in_progress') {
-    if (ATT.status === 'in_progress' && Object.keys(ANSW).length > 0) {
+  const hasProgress = hasInstantProgress();
+
+  if (shouldSkipPreflight()) {
+    if (hasProgress) {
       log('Resuming your in-progress attempt. Your saved answers have been restored.');
     }
     startQuiz();
-  } else {
-    showPreflight();
+    return;
   }
+
+  showPreflight();
 }
 
 function showPreflight() {
   const timeLimitMin = ATT.duration_min || Math.ceil(ITEMS.length);
+  const hasProgress  = hasInstantProgress();
+  const startBtn     = document.getElementById('preStartBtn');
+
   document.getElementById('preTitle').textContent = ATT.display_label || 'Practice Quiz';
   document.getElementById('preMeta').innerHTML = `
     <span class="pre-chip">📝 ${ITEMS.length} questions</span>
     <span class="pre-chip">⏱ ${timeLimitMin} min suggested</span>
     <span class="pre-chip">📖 ${feedbackModeLabel()}</span>
     <span class="pre-chip">Practice Mode</span>`;
-  document.getElementById('preflightCard').style.display = 'block';
-  log('Review the quiz details then click Start Quiz when ready.');
-}
 
+  startBtn.textContent = hasProgress ? '▶ Resume Attempt' : '▶ Start Quiz';
+
+  document.getElementById('preflightCard').style.display = 'block';
+
+  if (hasProgress) {
+    log('You have an in-progress attempt. Click Resume Attempt when ready.');
+  } else {
+    log('Review the quiz details then click Start Quiz when ready.');
+  }
+}
 function startQuiz() {
+  if (QUIZ_BOOTED) return;
+  QUIZ_BOOTED = true;
+
   document.getElementById('preflightCard').style.display = 'none';
   document.getElementById('quizCard').style.display = 'block';
   document.getElementById('fabGrid').classList.add('show');
