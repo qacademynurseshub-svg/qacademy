@@ -2,5 +2,11 @@
   "name": "qacademy-gamma-payment-workers",
   "main": "src/index.js",
   "compatibility_date": "2026-03-17",
-  "workers_dev": true
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "SUPABASE_URL": "https://pyfupmmwptcpvxxxopxn.supabase.co",
+    "APP_BASE_URL": "https://qacademy-gamma.pages.dev",
+    "APP_ORIGIN": "https://qacademy-gamma.pages.dev"
+  }
 }
