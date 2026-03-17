@@ -757,7 +757,40 @@ async function getItemFilterOptions(courseId) {
   };
 }
 
+// ------------------------------------------------------------
+// GET BUILDER COURSE ITEMS
+// Returns: lightweight item rows for client-side builder filtering
+//
+// Why: Builder v1 needs multi-select topics, difficulties,
+//      question types, and concept matching. That is much easier
+//      to do client-side once per selected course.
+//
+// Used by: student/quiz-builder.html
+// ------------------------------------------------------------
+async function getBuilderCourseItems(courseId) {
+  const tableName = 'items_' + String(courseId || '').toLowerCase();
 
+  const { data, error } = await db
+    .from(tableName)
+    .select(`
+      item_id,
+      subject,
+      maintopic,
+      subtopic,
+      difficulty,
+      question_type,
+      stem,
+      rationale
+    `)
+    .order('item_id');
+
+  if (error) {
+    console.error('getBuilderCourseItems:', error);
+    return [];
+  }
+
+  return data || [];
+}
 // ------------------------------------------------------------
 // SPAWN FIXED ATTEMPT
 // Returns: { attempt, isResume }
@@ -844,7 +877,6 @@ function buildBuilderDisplayLabel(meta = {}) {
   const difficulties = Array.isArray(meta.difficulties) ? meta.difficulties.filter(Boolean) : [];
   const n            = Number(meta.n || 0);
 
-  // Topic part
   const mains = [...new Set(maintopics.map(v => String(v).trim()).filter(Boolean))].sort();
 
   let topicPart = 'Full bank';
@@ -873,7 +905,6 @@ function buildBuilderDisplayLabel(meta = {}) {
     }
   }
 
-  // Difficulty part
   const order = ['Easy', 'Moderate', 'Hard'];
   const canon = [...new Set(
     difficulties
