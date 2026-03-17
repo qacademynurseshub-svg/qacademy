@@ -1,6 +1,5 @@
-
 {
-  "name": "payments-worker",
+  "name": "qacademy-gamma-payment-workers",
   "main": "src/index.js",
   "compatibility_date": "2026-03-17",
   "workers_dev": true
