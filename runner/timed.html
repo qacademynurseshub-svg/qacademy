@@ -886,6 +886,7 @@ let TIMER_TOTAL_SEC  = 0;  // total seconds allowed
 let TIMER_LEFT_SEC   = 0;  // seconds remaining
 let TIMER_INTERVAL   = null;
 let TIME_UP          = false;
+let QUIZ_BOOTED      = false;
 
 const FEEDBACK_KEY = 'qa_feedback_mode';
 const SKIP_PRE_KEY = 'qa_skip_preflight_timed';
@@ -1108,34 +1109,50 @@ function seededShuffle(arr, seed) {
 async function initQuizMode() {
   const alreadyStarted = hasTimedStart();
 
-  if (alreadyStarted) {
-    if (Object.keys(ANSW).length > 0) {
-      log('Resuming your in-progress exam. Your saved answers have been restored.');
-    } else {
-      log('Resuming your in-progress exam.');
+  if (shouldSkipPreflight()) {
+    if (alreadyStarted) {
+      if (Object.keys(ANSW).length > 0) {
+        log('Resuming your in-progress exam. Your saved answers have been restored.');
+      } else {
+        log('Resuming your in-progress exam.');
+      }
     }
     await startQuiz();
     return;
   }
 
-  if (shouldSkipPreflight()) {
-    await startQuiz();
-  } else {
-    showPreflight();
-  }
+  showPreflight();
 }
 
 function showPreflight() {
+  const alreadyStarted = hasTimedStart();
+  const startBtn = document.getElementById('preStartBtn');
+
   document.getElementById('preTitle').textContent = ATT.display_label || 'Exam Quiz';
   document.getElementById('preMeta').innerHTML = `
     <span class="pre-chip">📝 ${ITEMS.length} questions</span>
     <span class="pre-chip warning">⏱ ${ATT.duration_min || ITEMS.length} minutes</span>
     <span class="pre-chip">🎯 Exam Mode</span>`;
+
+  startBtn.textContent = alreadyStarted ? '🎯 Resume Exam' : '🎯 Start Exam';
+
   document.getElementById('preflightCard').style.display = 'block';
-  log('Read the exam details carefully then click Start Exam when ready.');
+
+  if (alreadyStarted) {
+    if (Object.keys(ANSW).length > 0) {
+      log('You have an in-progress exam. Click Resume Exam when ready.');
+    } else {
+      log('Your exam was already started. Click Resume Exam when ready.');
+    }
+  } else {
+    log('Read the exam details carefully then click Start Exam when ready.');
+  }
 }
 
 async function startQuiz() {
+  if (QUIZ_BOOTED) return;
+  QUIZ_BOOTED = true;
+
   document.getElementById('preflightCard').style.display = 'none';
   document.getElementById('quizCard').style.display = 'block';
   document.getElementById('fabGrid').classList.add('show');
@@ -1149,6 +1166,7 @@ async function startQuiz() {
     const result = await markTimedAttemptStarted(ATT.attempt_id, startedIso);
 
     if (!result.success) {
+      QUIZ_BOOTED = false;
       hideLoader();
       showError('Could Not Start Exam', result.message || 'We could not start your exam properly. Please try again.');
       return;
