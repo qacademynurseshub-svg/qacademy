@@ -3,6 +3,11 @@ export default {
     try {
       const url = new URL(request.url);
 
+      console.log({
+        route: url.pathname,
+        method: request.method
+      });
+
       if (request.method === 'OPTIONS') {
         return new Response(null, {
           status: 204,
@@ -11,11 +16,11 @@ export default {
       }
 
       if (request.method === 'POST' && url.pathname === '/payments/init-public') {
-        return handleInitPublic(request, env);
+        return await handleInitPublic(request, env);
       }
 
       if (request.method === 'GET' && url.pathname === '/payments/verify') {
-        return handleVerify(request, env);
+        return await handleVerify(request, env);
       }
 
       return json(
@@ -24,12 +29,16 @@ export default {
         corsHeaders(request, env)
       );
     } catch (err) {
-      console.error('Worker fatal error:', err);
+      console.error('Worker fatal error:', {
+        message: err?.message || String(err),
+        stack: err?.stack || null
+      });
+
       return json(
         {
           ok: false,
           error: 'server_error',
-          message: err.message || 'Unexpected worker error'
+          message: err?.message || 'Unexpected worker error'
         },
         500,
         corsHeaders(request, env)
