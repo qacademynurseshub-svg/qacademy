@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Subscribe — QAcademy Nurses Hub</title>
+
+  <style>
+    :root{
+      --brand:#0b7a75;
+      --brand-dark:#096460;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --bg:#f8fafc;
+      --card:#ffffff;
+      --line:#e2e8f0;
+      --soft:#f1f5f9;
+      --danger:#b42318;
+      --danger-bg:#fff5f5;
+      --ok:#166534;
+      --ok-bg:#f0fdf4;
+      --shadow:0 18px 45px rgba(15,23,42,.08);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      color:var(--ink);
+      background:linear-gradient(180deg,#eef8f7 0%, #f8fafc 36%, #f8fafc 100%);
+    }
+
+    .wrap{
+      max-width:980px;
+      margin:28px auto;
+      padding:0 16px 32px;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid rgba(15,23,42,.06);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .hero{
+      padding:24px 22px 18px;
+      background:
+        radial-gradient(circle at top right, rgba(11,122,117,.12), transparent 35%),
+        linear-gradient(135deg, #f6fffe 0%, #ffffff 100%);
+      border-bottom:1px solid rgba(15,23,42,.06);
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 12px;
+      border-radius:999px;
+      background:#ecfdf5;
+      color:#065f46;
+      border:1px solid rgba(6,95,70,.10);
+      font-size:.78rem;
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+
+    h1{
+      margin:14px 0 8px;
+      font-size:clamp(1.6rem, 2.2vw, 2.2rem);
+      line-height:1.1;
+    }
+
+    .sub{
+      margin:0;
+      max-width:760px;
+      color:var(--muted);
+      font-size:.98rem;
+      line-height:1.6;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:18px;
+      padding:20px;
+    }
+
+    @media (max-width: 860px){
+      .grid{ grid-template-columns:1fr; }
+    }
+
+    .panel{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:#fff;
+      padding:18px;
+    }
+
+    .panel h2{
+      margin:0 0 6px;
+      font-size:1.02rem;
+    }
+
+    .panel p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.55;
+      font-size:.92rem;
+    }
+
+    .banner{
+      display:none;
+      margin:16px 20px 0;
+      padding:12px 14px;
+      border-radius:16px;
+      font-size:.92rem;
+      line-height:1.45;
+    }
+
+    .banner.show{ display:block; }
+    .banner.ok{
+      background:var(--ok-bg);
+      color:var(--ok);
+      border:1px solid rgba(22,101,52,.12);
+    }
+    .banner.error{
+      background:var(--danger-bg);
+      color:var(--danger);
+      border:1px solid rgba(180,35,24,.12);
+    }
+
+    .signed-in{
+      display:none;
+      margin:16px 20px 0;
+      padding:13px 14px;
+      border-radius:16px;
+      background:#eff6ff;
+      border:1px solid rgba(37,99,235,.12);
+      color:#1d4ed8;
+      line-height:1.45;
+      font-size:.92rem;
+    }
+
+    .signed-in.show{ display:block; }
+
+    .field{ margin-top:14px; }
+    .label{
+      display:block;
+      margin-bottom:6px;
+      font-size:.84rem;
+      font-weight:800;
+      color:#334155;
+    }
+
+    .input,.select{
+      width:100%;
+      padding:12px 13px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-size:.96rem;
+      outline:none;
+    }
+
+    .input:focus,.select:focus{
+      border-color:rgba(11,122,117,.45);
+      box-shadow:0 0 0 4px rgba(11,122,117,.10);
+    }
+
+    .hint{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:.82rem;
+      line-height:1.4;
+    }
+
+    .priceBox{
+      margin-top:16px;
+      padding:14px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:var(--soft);
+    }
+
+    .priceLabel{
+      color:var(--muted);
+      font-size:.78rem;
+      margin-bottom:4px;
+    }
+
+    .priceValue{
+      font-size:1.2rem;
+      font-weight:900;
+      color:var(--ink);
+    }
+
+    .priceMeta{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:.84rem;
+    }
+
+    .checks{
+      display:grid;
+      gap:10px;
+      margin-top:16px;
+    }
+
+    .check{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:11px 12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      font-size:.9rem;
+      line-height:1.45;
+      color:#334155;
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      margin-top:5px;
+      background:var(--brand);
+      flex:0 0 10px;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      border-radius:999px;
+      padding:13px 18px;
+      font-size:.95rem;
+      font-weight:900;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+    }
+
+    .btn-primary{
+      background:var(--brand);
+      color:#fff;
+      box-shadow:0 10px 22px rgba(11,122,117,.22);
+      flex:1 1 240px;
+    }
+
+    .btn-primary:hover{ background:var(--brand-dark); }
+
+    .btn-secondary{
+      background:#fff;
+      color:var(--ink);
+      border:1px solid var(--line);
+      flex:1 1 180px;
+    }
+
+    .btn:disabled{
+      opacity:.72;
+      cursor:not-allowed;
+    }
+
+    .footerLinks{
+      margin-top:12px;
+      font-size:.88rem;
+      color:var(--muted);
+    }
+
+    .footerLinks a{
+      color:var(--brand);
+      font-weight:800;
+      text-decoration:none;
+    }
+
+    .footerLinks a:hover{ text-decoration:underline; }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <div class="card">
+
+      <div class="hero">
+        <div class="eyebrow">Pay first • Setup after payment</div>
+        <h1>Subscribe to QAcademy Paid Access</h1>
+        <p class="sub">
+          This page is for paid onboarding only. Your free-trial registration stays separate.
+          Choose a paid product, pay securely, then complete account setup only if needed.
+        </p>
+      </div>
+
+      <div class="signed-in" id="signedInBox">
+        You are already signed in. For renewals or extensions, it is better to use the
+        <a href="/student/upgrade.html" style="font-weight:900; color:inherit;">Upgrade page</a>.
+      </div>
+
+      <div class="banner" id="banner"></div>
+
+      <div class="grid">
+        <div class="panel">
+          <h2>Your payment details</h2>
+          <p>Keep this form short. No account is created here before payment.</p>
+
+          <div class="field">
+            <label class="label" for="email">Email address *</label>
+            <input class="input" id="email" type="email" autocomplete="email" placeholder="you@example.com" />
+            <div class="hint">Use the same email you want to use for login later.</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="phone">Phone number</label>
+            <input class="input" id="phone" type="tel" autocomplete="tel" placeholder="e.g. 233XXXXXXXXX" />
+            <div class="hint">Optional. Helpful for payment support and later setup prefill.</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="program">Programme</label>
+            <select class="select" id="program">
+              <option value="">Loading programmes…</option>
+            </select>
+            <div class="hint">Optional. It helps prefill setup later, but it does not limit product choice.</div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="product">Paid product *</label>
+            <select class="select" id="product">
+              <option value="">Loading paid products…</option>
+            </select>
+          </div>
+
+          <div class="priceBox">
+            <div class="priceLabel">Selected price</div>
+            <div class="priceValue" id="priceValue">—</div>
+            <div class="priceMeta" id="priceMeta">Choose a paid product to continue.</div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="payBtn" disabled>Proceed to Payment</button>
+            <a class="btn btn-secondary" href="/login.html">Already have an account? Log in</a>
+          </div>
+
+          <div class="footerLinks">
+            Free trial still uses <a href="/register.html">Register</a>.
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>How this paid flow works</h2>
+          <p>This matches the rebuilt payment flow in your new stack.</p>
+
+          <div class="checks">
+            <div class="check">
+              <div class="dot"></div>
+              <div>You choose a paid product and pay through Paystack.</div>
+            </div>
+            <div class="check">
+              <div class="dot"></div>
+              <div>After payment, you land on the confirmation page for verification.</div>
+            </div>
+            <div class="check">
+              <div class="dot"></div>
+              <div>If your user already exists, access is activated immediately.</div>
+            </div>
+            <div class="check">
+              <div class="dot"></div>
+              <div>If no account exists yet, the confirmation page shows the short setup form.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/api.js"></script>
+
+  <script>
+    /************************************************************
+     * Replace with your deployed Worker base URL.
+     * Example:
+     *   https://qacademy-payments.your-subdomain.workers.dev
+     ************************************************************/
+    const PAYMENTS_WORKER_URL = 'https://qacademy-gamma-payment-workers.mybackpacc.workers.dev';
+
+    const els = {
+      signedInBox: document.getElementById('signedInBox'),
+      banner: document.getElementById('banner'),
+      email: document.getElementById('email'),
+      phone: document.getElementById('phone'),
+      program: document.getElementById('program'),
+      product: document.getElementById('product'),
+      priceValue: document.getElementById('priceValue'),
+      priceMeta: document.getElementById('priceMeta'),
+      payBtn: document.getElementById('payBtn')
+    };
+
+    let programs = [];
+    let paidProducts = [];
+
+    function showBanner(kind, message) {
+      els.banner.className = 'banner show ' + (kind === 'ok' ? 'ok' : 'error');
+      els.banner.textContent = message || '';
+    }
+
+    function clearBanner() {
+      els.banner.className = 'banner';
+      els.banner.textContent = '';
+    }
+
+    function money(minor, currency = 'GHS') {
+      const value = Number(minor || 0) / 100;
+      if (!value) return '—';
+
+      try {
+        return new Intl.NumberFormat('en-GB', {
+          style: 'currency',
+          currency
+        }).format(value);
+      } catch (_) {
+        return `${currency} ${value.toFixed(2)}`;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function setBusy(isBusy) {
+      els.payBtn.disabled = !!isBusy || !els.product.value || !els.email.value.trim();
+      els.payBtn.textContent = isBusy ? 'Starting payment…' : 'Proceed to Payment';
+    }
+
+    function renderPrograms() {
+      const current = String(localStorage.getItem('qa_last_program_id') || '').trim();
+      let html = '<option value="">Select your programme</option>';
+
+      (programs || []).forEach(p => {
+        const selected = current && current === p.program_id ? ' selected' : '';
+        html += `<option value="${escapeHtml(p.program_id)}"${selected}>${escapeHtml(p.program_name || p.program_id)}</option>`;
+      });
+
+      if (!programs.length) {
+        html = '<option value="">No programmes found</option>';
+      }
+
+      els.program.innerHTML = html;
+    }
+
+    function renderProducts() {
+      const remembered = String(localStorage.getItem('qa_last_product_id') || '').trim();
+      let html = '<option value="">Select a paid product</option>';
+
+      paidProducts.forEach(product => {
+        const selected = remembered && remembered === product.product_id ? ' selected' : '';
+        html += `
+          <option
+            value="${escapeHtml(product.product_id)}"
+            data-name="${escapeHtml(product.name || product.product_id)}"
+            data-price="${escapeHtml(product.price_minor)}"
+            data-currency="${escapeHtml(product.currency || 'GHS')}"
+            data-duration="${escapeHtml(product.duration_days || '')}"
+            ${selected}
+          >
+            ${escapeHtml(product.name || product.product_id)} — ${escapeHtml(money(product.price_minor, product.currency))}
+          </option>
+        `;
+      });
+
+      if (!paidProducts.length) {
+        html = '<option value="">No paid products available</option>';
+      }
+
+      els.product.innerHTML = html;
+      updateSelectedProduct();
+    }
+
+    function updateSelectedProduct() {
+      const opt = els.product.options[els.product.selectedIndex];
+
+      if (!opt || !els.product.value) {
+        els.priceValue.textContent = '—';
+        els.priceMeta.textContent = 'Choose a paid product to continue.';
+        setBusy(false);
+        return;
+      }
+
+      const label = opt.dataset.name || els.product.value;
+      const amount = opt.dataset.price || '';
+      const currency = opt.dataset.currency || 'GHS';
+      const duration = opt.dataset.duration || '';
+
+      els.priceValue.textContent = money(amount, currency);
+      els.priceMeta.textContent = duration
+        ? `${label} • ${duration} day(s)`
+        : label;
+
+      setBusy(false);
+    }
+
+    async function detectSignedInUser() {
+      try {
+        const { data: { session } } = await db.auth.getSession();
+        if (session) {
+          els.signedInBox.classList.add('show');
+        }
+      } catch (err) {
+        console.error('detectSignedInUser:', err);
+      }
+    }
+
+    async function loadData() {
+      clearBanner();
+
+      try {
+        const [programRows, productRows] = await Promise.all([
+          getPrograms(),
+          getProducts()
+        ]);
+
+        programs = programRows || [];
+
+        const trialIds = new Set(
+          programs
+            .map(p => String(p.trial_product_id || '').trim())
+            .filter(Boolean)
+        );
+
+        paidProducts = (productRows || []).filter(product => {
+          const productId = String(product.product_id || '').trim();
+          const priceMinor = Number(product.price_minor || 0);
+          if (!productId) return false;
+          if (trialIds.has(productId)) return false;
+          if (priceMinor <= 0) return false;
+          return true;
+        });
+
+        renderPrograms();
+        renderProducts();
+      } catch (err) {
+        console.error('loadData:', err);
+        showBanner('error', 'Could not load programmes and paid products. Please refresh and try again.');
+      }
+    }
+
+    async function startPayment() {
+      clearBanner();
+
+      const workerBase = String(PAYMENTS_WORKER_URL || '').trim().replace(/\/+$/, '');
+      const email = els.email.value.trim().toLowerCase();
+      const phone = els.phone.value.trim();
+      const programId = els.program.value.trim();
+      const productId = els.product.value.trim();
+
+      if (!workerBase || workerBase.includes('PASTE_YOUR_DEPLOYED_WORKER_BASE_URL_HERE')) {
+        showBanner('error', 'PAYMENTS_WORKER_URL has not been set yet in subscribe.html.');
+        return;
+      }
+
+      if (!email) {
+        showBanner('error', 'Please enter your email address.');
+        els.email.focus();
+        return;
+      }
+
+      if (!productId) {
+        showBanner('error', 'Please choose a paid product.');
+        els.product.focus();
+        return;
+      }
+
+      setBusy(true);
+
+      try {
+        const res = await fetch(`${workerBase}/payments/init-public`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email,
+            phone_number: phone,
+            program_id: programId,
+            product_id: productId,
+            callback_url: `${window.location.origin}/payment-confirmation.html`
+          })
+        });
+
+        const out = await res.json().catch(() => null);
+
+        if (!res.ok || !out || !out.ok) {
+          throw new Error(
+            (out && (out.message || out.error)) ||
+            'Could not start payment'
+          );
+        }
+
+        if (!out.authorization_url) {
+          throw new Error('Payment link missing from worker response');
+        }
+
+        localStorage.setItem('qa_last_email', email);
+        localStorage.setItem('qa_last_phone', phone);
+        localStorage.setItem('qa_last_program_id', programId);
+        localStorage.setItem('qa_last_product_id', productId);
+        localStorage.setItem('qa_last_reference', out.reference || '');
+
+        window.location.href = out.authorization_url;
+      } catch (err) {
+        console.error('startPayment:', err);
+        showBanner('error', err.message || 'Could not start payment. Please try again.');
+        setBusy(false);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      els.email.value = String(localStorage.getItem('qa_last_email') || '').trim();
+      els.phone.value = String(localStorage.getItem('qa_last_phone') || '').trim();
+
+      await detectSignedInUser();
+      await loadData();
+
+      els.email.addEventListener('input', () => setBusy(false));
+      els.product.addEventListener('change', updateSelectedProduct);
+      els.payBtn.addEventListener('click', startPayment);
+
+      setBusy(false);
+    });
+  </script>
+</body>
+</html>
