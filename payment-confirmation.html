@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment Confirmation — QAcademy Nurses Hub</title>
+
+  <style>
+    :root{
+      --brand:#0b7a75;
+      --brand-dark:#096460;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --bg:#f8fafc;
+      --card:#ffffff;
+      --line:#e2e8f0;
+      --soft:#f1f5f9;
+      --danger:#b42318;
+      --danger-bg:#fff5f5;
+      --ok:#166534;
+      --ok-bg:#f0fdf4;
+      --warn:#b54708;
+      --warn-bg:#fff7ed;
+      --shadow:0 18px 45px rgba(15,23,42,.08);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      color:var(--ink);
+      background:linear-gradient(180deg,#eef8f7 0%, #f8fafc 36%, #f8fafc 100%);
+    }
+
+    .wrap{
+      max-width:860px;
+      margin:28px auto;
+      padding:0 16px 32px;
+    }
+
+    .card{
+      background:#fff;
+      border:1px solid rgba(15,23,42,.06);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .hero{
+      padding:22px 22px 18px;
+      border-bottom:1px solid rgba(15,23,42,.06);
+      background:
+        radial-gradient(circle at top right, rgba(11,122,117,.12), transparent 35%),
+        linear-gradient(135deg,#f6fffe 0%, #ffffff 100%);
+    }
+
+    h1{
+      margin:0 0 8px;
+      font-size:clamp(1.4rem, 2vw, 2rem);
+      line-height:1.1;
+    }
+
+    .sub{
+      margin:0;
+      color:var(--muted);
+      line-height:1.55;
+    }
+
+    .body{
+      padding:20px;
+    }
+
+    .kv{
+      margin:0 0 10px;
+      font-size:.94rem;
+      color:#334155;
+    }
+
+    .kv b{ color:var(--ink); }
+
+    .status{
+      display:none;
+      margin:14px 0 0;
+      padding:12px 14px;
+      border-radius:16px;
+      line-height:1.45;
+      font-size:.93rem;
+      white-space:pre-line;
+    }
+
+    .status.show{ display:block; }
+    .status.ok{
+      background:var(--ok-bg);
+      color:var(--ok);
+      border:1px solid rgba(22,101,52,.12);
+    }
+    .status.error{
+      background:var(--danger-bg);
+      color:var(--danger);
+      border:1px solid rgba(180,35,24,.12);
+    }
+    .status.warn{
+      background:var(--warn-bg);
+      color:var(--warn);
+      border:1px solid rgba(181,71,8,.12);
+    }
+
+    .actions{
+      display:none;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+
+    .actions.show{ display:flex; }
+
+    .btn{
+      appearance:none;
+      border:none;
+      border-radius:999px;
+      padding:12px 16px;
+      font-size:.94rem;
+      font-weight:900;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+    }
+
+    .btn-primary{
+      background:var(--brand);
+      color:#fff;
+      box-shadow:0 10px 22px rgba(11,122,117,.22);
+      flex:1 1 190px;
+    }
+
+    .btn-primary:hover{ background:var(--brand-dark); }
+
+    .btn-secondary{
+      background:#fff;
+      color:var(--ink);
+      border:1px solid var(--line);
+      flex:1 1 180px;
+    }
+
+    .setupBox{
+      display:none;
+      margin-top:18px;
+      padding:16px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:var(--soft);
+    }
+
+    .setupBox.show{ display:block; }
+
+    .setupTitle{
+      margin:0 0 6px;
+      font-size:1rem;
+      font-weight:900;
+    }
+
+    .setupSub{
+      margin:0;
+      color:var(--muted);
+      line-height:1.5;
+      font-size:.92rem;
+    }
+
+    .field{ margin-top:14px; }
+    .row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
+    @media (max-width: 700px){
+      .row{ grid-template-columns:1fr; }
+    }
+
+    .label{
+      display:block;
+      margin-bottom:6px;
+      font-size:.83rem;
+      font-weight:800;
+      color:#334155;
+    }
+
+    .input,.select{
+      width:100%;
+      padding:12px 13px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-size:.95rem;
+      outline:none;
+    }
+
+    .input:focus,.select:focus{
+      border-color:rgba(11,122,117,.45);
+      box-shadow:0 0 0 4px rgba(11,122,117,.10);
+    }
+
+    .hint{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:.82rem;
+      line-height:1.4;
+    }
+
+    .support{
+      display:none;
+      margin-top:18px;
+      padding:15px;
+      border:1px dashed rgba(15,23,42,.14);
+      border-radius:18px;
+      background:#fff;
+    }
+
+    .support.show{ display:block; }
+
+    .support h3{
+      margin:0 0 8px;
+      font-size:.95rem;
+    }
+
+    .support p{
+      margin:0;
+      color:var(--muted);
+      font-size:.9rem;
+      line-height:1.5;
+    }
+
+    .supportLinks{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    .meta{
+      margin-top:16px;
+      font-size:.82rem;
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .loader{
+      position:fixed;
+      inset:0;
+      display:none;
+      place-items:center;
+      background:rgba(248,250,252,.82);
+      backdrop-filter:blur(2px);
+      z-index:9999;
+    }
+
+    .loader.on{ display:grid; }
+
+    .spin{
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      border:4px solid rgba(11,122,117,.20);
+      border-top-color:var(--brand);
+      animation:spin 1s linear infinite;
+    }
+
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="loader" id="loader"><div class="spin" aria-label="Loading"></div></div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="hero">
+        <h1 id="title">Confirming your payment…</h1>
+        <p class="sub" id="subtitle">
+          Please keep this page open while we verify your transaction and activate your access.
+        </p>
+      </div>
+
+      <div class="body">
+        <div class="kv">Reference: <b id="refTxt">—</b></div>
+        <div class="kv" id="statusRow" style="display:none;">Status: <b id="statusTxt">—</b></div>
+
+        <div class="status" id="okBox"></div>
+        <div class="status" id="errBox"></div>
+
+        <div class="actions" id="actions">
+          <a class="btn btn-primary" id="dashboardBtn" href="/student/dashboard.html">Go to Dashboard</a>
+          <a class="btn btn-secondary" id="loginBtn" href="/login.html">Go to Login</a>
+          <button class="btn btn-secondary" id="retryBtn" type="button">Retry Verification</button>
+        </div>
+
+        <div class="setupBox" id="setupBox">
+          <div class="setupTitle">Finish setup to activate access</div>
+          <p class="setupSub">
+            Your payment is confirmed. We only need a few details to create your account and activate access.
+          </p>
+
+          <div class="field">
+            <label class="label">Email</label>
+            <input class="input" id="emailView" type="text" readonly />
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label class="label" for="forename">First name *</label>
+              <input class="input" id="forename" type="text" autocomplete="given-name" />
+            </div>
+            <div class="field">
+              <label class="label" for="surname">Surname *</label>
+              <input class="input" id="surname" type="text" autocomplete="family-name" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label class="label" for="password">Password *</label>
+              <input class="input" id="password" type="password" autocomplete="new-password" />
+              <div class="hint">Minimum 8 characters.</div>
+            </div>
+            <div class="field">
+              <label class="label" for="password2">Confirm password *</label>
+              <input class="input" id="password2" type="password" autocomplete="new-password" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label class="label" for="phone">Phone</label>
+              <input class="input" id="phone" type="tel" autocomplete="tel" />
+            </div>
+            <div class="field">
+              <label class="label" for="program">Programme *</label>
+              <select class="select" id="program">
+                <option value="">Select your programme</option>
+                <option value="RN">Registered Nurse (RN)</option>
+                <option value="RM">Registered Midwife (RM)</option>
+                <option value="RPHN">Registered Public Health Nurse (RPHN)</option>
+                <option value="RMHN">Mental Health Nurse (RMHN)</option>
+                <option value="NACNAP">NAC / NAP</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions show" style="margin-top:16px;">
+            <button class="btn btn-primary" id="setupBtn" type="button">Create Account & Activate</button>
+            <button class="btn btn-secondary" id="hideSetupBtn" type="button">Hide Setup Form</button>
+          </div>
+
+          <div class="status" id="setupOkBox"></div>
+          <div class="status" id="setupErrBox"></div>
+        </div>
+
+        <div class="support" id="supportBox">
+          <h3>Need help?</h3>
+          <p id="supportText">
+            If verification takes too long, contact support with your email address and payment reference.
+          </p>
+
+          <div class="supportLinks" id="supportLinks">
+            <a class="btn btn-secondary" id="waBtn" href="#" target="_blank" rel="noopener" style="display:none;">WhatsApp Support</a>
+            <a class="btn btn-secondary" id="emailBtn" href="#" style="display:none;">Email Support</a>
+          </div>
+        </div>
+
+        <div class="meta" id="metaBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /************************************************************
+     * Replace with your deployed Worker base URL.
+     ************************************************************/
+    const PAYMENTS_WORKER_URL = 'https://qacademy-gamma-payment-workers.mybackpacc.workers.dev';
+
+    /************************************************************
+     * Support config.
+     * Leave blank to hide the support button automatically.
+     ************************************************************/
+    const SUPPORT_WA_E164 = '';
+    const SUPPORT_EMAIL = 'support@qacademynurses.com';
+
+    const POLL_MS = 3000;
+    const MAX_POLLS = 20;
+
+    const els = {
+      loader: document.getElementById('loader'),
+      title: document.getElementById('title'),
+      subtitle: document.getElementById('subtitle'),
+      refTxt: document.getElementById('refTxt'),
+      statusRow: document.getElementById('statusRow'),
+      statusTxt: document.getElementById('statusTxt'),
+      okBox: document.getElementById('okBox'),
+      errBox: document.getElementById('errBox'),
+      actions: document.getElementById('actions'),
+      dashboardBtn: document.getElementById('dashboardBtn'),
+      loginBtn: document.getElementById('loginBtn'),
+      retryBtn: document.getElementById('retryBtn'),
+      setupBox: document.getElementById('setupBox'),
+      emailView: document.getElementById('emailView'),
+      forename: document.getElementById('forename'),
+      surname: document.getElementById('surname'),
+      password: document.getElementById('password'),
+      password2: document.getElementById('password2'),
+      phone: document.getElementById('phone'),
+      program: document.getElementById('program'),
+      setupBtn: document.getElementById('setupBtn'),
+      hideSetupBtn: document.getElementById('hideSetupBtn'),
+      setupOkBox: document.getElementById('setupOkBox'),
+      setupErrBox: document.getElementById('setupErrBox'),
+      supportBox: document.getElementById('supportBox'),
+      supportText: document.getElementById('supportText'),
+      waBtn: document.getElementById('waBtn'),
+      emailBtn: document.getElementById('emailBtn'),
+      metaBox: document.getElementById('metaBox')
+    };
+
+    let pollCount = 0;
+    let pollTimer = null;
+    let currentReference = '';
+    let currentSetupToken = '';
+
+    function loaderOn() { els.loader.classList.add('on'); }
+    function loaderOff() { els.loader.classList.remove('on'); }
+
+    function showStatus(el, kind, message) {
+      el.className = 'status show ' + kind;
+      el.textContent = message || '';
+    }
+
+    function hideStatus(el) {
+      el.className = 'status';
+      el.textContent = '';
+    }
+
+    function showActions(show) {
+      els.actions.classList.toggle('show', !!show);
+    }
+
+    function showSetup(show) {
+      els.setupBox.classList.toggle('show', !!show);
+    }
+
+    function setStatusLine(text) {
+      if (!text) {
+        els.statusRow.style.display = 'none';
+        els.statusTxt.textContent = '';
+        return;
+      }
+      els.statusRow.style.display = '';
+      els.statusTxt.textContent = text;
+    }
+
+    function money(minor, currency = 'GHS') {
+      const value = Number(minor || 0) / 100;
+      if (!value) return '—';
+
+      try {
+        return new Intl.NumberFormat('en-GB', {
+          style: 'currency',
+          currency
+        }).format(value);
+      } catch (_) {
+        return `${currency} ${value.toFixed(2)}`;
+      }
+    }
+
+    function getReference() {
+      const qs = new URLSearchParams(window.location.search);
+      return (
+        qs.get('reference') ||
+        qs.get('trxref') ||
+        qs.get('ref') ||
+        localStorage.getItem('qa_last_reference') ||
+        ''
+      ).trim();
+    }
+
+    function updateSupportLinks() {
+      const email = localStorage.getItem('qa_last_email') || '';
+      const ref = currentReference || '';
+      const supportMessage = `Hi QAcademy Support, I need help with payment confirmation. My email is ${email || '____'} and my reference is ${ref || '____'}.`;
+
+      if (SUPPORT_WA_E164) {
+        els.waBtn.style.display = '';
+        els.waBtn.href = `https://wa.me/${encodeURIComponent(SUPPORT_WA_E164)}?text=${encodeURIComponent(supportMessage)}`;
+      } else {
+        els.waBtn.style.display = 'none';
+      }
+
+      if (SUPPORT_EMAIL) {
+        els.emailBtn.style.display = '';
+        els.emailBtn.href = `mailto:${encodeURIComponent(SUPPORT_EMAIL)}?subject=${encodeURIComponent('Payment confirmation help')}&body=${encodeURIComponent(supportMessage)}`;
+      } else {
+        els.emailBtn.style.display = 'none';
+      }
+
+      if (SUPPORT_WA_E164 || SUPPORT_EMAIL) {
+        els.supportBox.classList.add('show');
+      } else {
+        els.supportBox.classList.remove('show');
+      }
+    }
+
+    function saveVerifyContext(payload) {
+      if (payload?.reference) localStorage.setItem('qa_last_reference', payload.reference);
+      if (payload?.email) localStorage.setItem('qa_last_email', payload.email);
+      if (payload?.phone_number) localStorage.setItem('qa_last_phone', payload.phone_number);
+      if (payload?.program_id) localStorage.setItem('qa_last_program_id', payload.program_id);
+      if (payload?.product_id) localStorage.setItem('qa_last_product_id', payload.product_id);
+      if (payload?.setup_token) {
+        currentSetupToken = String(payload.setup_token || '').trim();
+        localStorage.setItem('qa_setup_token', currentSetupToken);
+      }
+    }
+
+    function clearMessages() {
+      hideStatus(els.okBox);
+      hideStatus(els.errBox);
+      hideStatus(els.setupOkBox);
+      hideStatus(els.setupErrBox);
+    }
+
+    function describeActivationMode(mode) {
+      if (mode === 'extended') return 'Payment confirmed. Your existing subscription has been extended.';
+      if (mode === 'created') return 'Payment confirmed. Your access is now active.';
+      if (mode === 'existing_by_ref') return 'This payment was already confirmed earlier. Your access is active.';
+      return 'Payment confirmed. Your access is now active.';
+    }
+
+    function renderActivated(payload) {
+      clearMessages();
+      showSetup(false);
+      setStatusLine('ACTIVATED');
+      els.title.textContent = 'Access Activated';
+      els.subtitle.textContent = 'Your payment has been verified successfully.';
+
+      showStatus(
+        els.okBox,
+        'ok',
+        describeActivationMode(payload?.activation_mode || '')
+      );
+
+      els.metaBox.textContent =
+        payload?.amount_minor_expected && payload?.currency
+          ? `Amount: ${money(payload.amount_minor_expected, payload.currency)}`
+          : '';
+
+      showActions(true);
+      updateSupportLinks();
+    }
+
+    function renderSetupRequired(payload) {
+      clearMessages();
+      showSetup(true);
+      showActions(true);
+      setStatusLine('SETUP_REQUIRED');
+
+      els.title.textContent = 'Finish Setup to Activate';
+      els.subtitle.textContent = 'Your payment is confirmed. Please complete the short setup below.';
+
+      showStatus(
+        els.okBox,
+        'ok',
+        'Payment confirmed. We only need your account details to activate access.'
+      );
+
+      const email = String(payload?.email || localStorage.getItem('qa_last_email') || '').trim();
+      const phone = String(payload?.phone_number || localStorage.getItem('qa_last_phone') || '').trim();
+      const program = String(payload?.program_id || localStorage.getItem('qa_last_program_id') || '').trim();
+
+      els.emailView.value = email;
+      els.phone.value = els.phone.value || phone;
+      if (program) els.program.value = program;
+
+      updateSupportLinks();
+    }
+
+    function renderPending(message) {
+      clearMessages();
+      showSetup(false);
+      setStatusLine('VERIFYING');
+      els.title.textContent = 'Confirming your payment…';
+      els.subtitle.textContent = 'Please keep this page open while we verify your transaction.';
+
+      showStatus(
+        els.okBox,
+        'warn',
+        message || 'Still verifying. If you just paid, this can take a short moment.'
+      );
+
+      showActions(false);
+      updateSupportLinks();
+    }
+
+    function renderError(message, statusLabel = 'ERROR') {
+      clearMessages();
+      showSetup(false);
+      setStatusLine(statusLabel);
+      els.title.textContent = 'Verification Issue';
+      els.subtitle.textContent = 'Please retry verification or contact support if this persists.';
+
+      showStatus(
+        els.errBox,
+        'error',
+        message || 'We could not confirm this payment yet.'
+      );
+
+      showActions(true);
+      updateSupportLinks();
+    }
+
+    async function verifyPayment(autoPoll = true) {
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+      }
+
+      clearMessages();
+
+      const workerBase = String(PAYMENTS_WORKER_URL || '').trim().replace(/\/+$/, '');
+      currentReference = getReference();
+      els.refTxt.textContent = currentReference || '—';
+
+      if (!workerBase || workerBase.includes('PASTE_YOUR_DEPLOYED_WORKER_BASE_URL_HERE')) {
+        renderError('PAYMENTS_WORKER_URL has not been set yet in payment-confirmation.html.', 'CONFIG');
+        return;
+      }
+
+      if (!currentReference) {
+        renderError('Missing payment reference. Please return to the payment page and try again.', 'MISSING_REFERENCE');
+        return;
+      }
+
+      loaderOn();
+
+      try {
+        const res = await fetch(`${workerBase}/payments/verify?reference=${encodeURIComponent(currentReference)}`, {
+          method: 'GET'
+        });
+
+        const out = await res.json().catch(() => null);
+        saveVerifyContext(out || { reference: currentReference });
+
+        if (res.ok && out?.status === 'ACTIVATED') {
+          renderActivated(out);
+          return;
+        }
+
+        if (res.ok && out?.status === 'SETUP_REQUIRED') {
+          renderSetupRequired(out);
+          return;
+        }
+
+        if (res.status === 409) {
+          renderPending(out?.message || 'Still verifying…');
+
+          if (autoPoll) {
+            pollCount += 1;
+            if (pollCount <= MAX_POLLS) {
+              pollTimer = setTimeout(() => verifyPayment(true), POLL_MS);
+            } else {
+              renderError('Verification is taking longer than expected. Please tap Retry Verification in a few seconds.', 'TIMEOUT');
+            }
+          } else {
+            showActions(true);
+          }
+          return;
+        }
+
+        if (res.status === 404) {
+          renderError('We could not find that payment reference. Please return to the payment page and try again.', 'NOT_FOUND');
+          return;
+        }
+
+        if (out?.error === 'amount_mismatch') {
+          renderError('Payment amount mismatch. Please contact support with your reference.', 'AMOUNT_MISMATCH');
+          return;
+        }
+
+        if (out?.status === 'FAILED' || out?.error === 'payment_failed') {
+          renderError(
+            out?.failure_note || 'This payment is marked as failed. Please contact support with your reference.',
+            'FAILED'
+          );
+          return;
+        }
+
+        renderError(
+          (out && (out.message || out.error)) || 'Could not verify payment.',
+          (out && out.status) || 'ERROR'
+        );
+      } catch (err) {
+        console.error('verifyPayment:', err);
+        renderError('Network error while checking your payment. Please retry.', 'NETWORK');
+      } finally {
+        loaderOff();
+      }
+    }
+
+    async function runSetupComplete() {
+      clearMessages();
+
+      const workerBase = String(PAYMENTS_WORKER_URL || '').trim().replace(/\/+$/, '');
+      const forename = els.forename.value.trim();
+      const surname = els.surname.value.trim();
+      const password = els.password.value;
+      const password2 = els.password2.value;
+      const phone = els.phone.value.trim();
+      const programId = els.program.value.trim();
+      const email = els.emailView.value.trim();
+
+      if (!forename || !surname) {
+        showStatus(els.setupErrBox, 'error', 'Please enter your first name and surname.');
+        return;
+      }
+
+      if (!password || password.length < 8) {
+        showStatus(els.setupErrBox, 'error', 'Password must be at least 8 characters.');
+        return;
+      }
+
+      if (password !== password2) {
+        showStatus(els.setupErrBox, 'error', 'Passwords do not match.');
+        return;
+      }
+
+      if (!programId) {
+        showStatus(els.setupErrBox, 'error', 'Please choose your programme.');
+        return;
+      }
+
+      currentSetupToken = String(currentSetupToken || localStorage.getItem('qa_setup_token') || '').trim();
+
+      if (!currentSetupToken) {
+        showStatus(els.setupErrBox, 'error', 'Setup token is missing. Please retry verification first.');
+        return;
+      }
+
+      if (!workerBase || workerBase.includes('PASTE_YOUR_DEPLOYED_WORKER_BASE_URL_HERE')) {
+        showStatus(els.setupErrBox, 'error', 'PAYMENTS_WORKER_URL has not been set yet in payment-confirmation.html.');
+        return;
+      }
+
+      loaderOn();
+      els.setupBtn.disabled = true;
+      els.setupBtn.textContent = 'Creating account…';
+
+      try {
+        const res = await fetch(`${workerBase}/payments/setup-complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            reference: currentReference,
+            setup_token: currentSetupToken,
+            forename,
+            surname,
+            password,
+            phone_number: phone,
+            program_id: programId
+          })
+        });
+
+        const out = await res.json().catch(() => null);
+
+        if (!res.ok || !out || !out.ok) {
+          throw new Error(
+            (out && (out.message || out.error)) ||
+            'Could not complete setup'
+          );
+        }
+
+        if (email) localStorage.setItem('qa_last_email', email);
+        if (phone) localStorage.setItem('qa_last_phone', phone);
+        if (programId) localStorage.setItem('qa_last_program_id', programId);
+
+        localStorage.removeItem('qa_setup_token');
+
+        showStatus(els.setupOkBox, 'ok', 'Setup completed successfully.');
+        renderActivated(out);
+      } catch (err) {
+        console.error('runSetupComplete:', err);
+        showStatus(
+          els.setupErrBox,
+          'error',
+          err.message || 'Could not complete setup. Please retry.'
+        );
+        updateSupportLinks();
+      } finally {
+        loaderOff();
+        els.setupBtn.disabled = false;
+        els.setupBtn.textContent = 'Create Account & Activate';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      currentReference = getReference();
+      currentSetupToken = String(localStorage.getItem('qa_setup_token') || '').trim();
+
+      els.refTxt.textContent = currentReference || '—';
+      els.emailView.value = String(localStorage.getItem('qa_last_email') || '').trim();
+      els.phone.value = String(localStorage.getItem('qa_last_phone') || '').trim();
+
+      const savedProgram = String(localStorage.getItem('qa_last_program_id') || '').trim();
+      if (savedProgram) els.program.value = savedProgram;
+
+      updateSupportLinks();
+
+      els.retryBtn.addEventListener('click', () => {
+        pollCount = 0;
+        verifyPayment(false);
+      });
+
+      els.setupBtn.addEventListener('click', runSetupComplete);
+
+      els.hideSetupBtn.addEventListener('click', () => {
+        showSetup(false);
+        showActions(true);
+      });
+
+      verifyPayment(true);
+    });
+  </script>
+</body>
+</html>
