@@ -31,7 +31,18 @@
       <a href="/student/announcements.html">📢 Announcements</a>
       <a href="/student/downloads.html">📥 Downloads</a>
       <a href="/student/messages.html">💬 Messages</a>
-      <a href="/student/telegram.html">✈️ Telegram</a>
+  <a href="/student/telegram.html">✈️ Telegram</a>
+
+      <div class="sidebar-account-divider"></div>
+
+      <div class="sidebar-dropdown" id="sidebarAccountDropdown">
+        <div class="sidebar-dropdown-toggle" id="sidebarAccountToggle">
+          👤 My Account <span class="sidebar-dropdown-arrow">▾</span>
+        </div>
+        <div class="sidebar-dropdown-menu" id="sidebarAccountMenu">
+          <a href="/student/upgrade.html">💳 Upgrade / Extend</a>
+        </div>
+      </div>
     </nav>
   </aside>`;
 
@@ -51,6 +62,11 @@
   cursor: pointer;
   transition: background 0.15s;
   user-select: none;
+}
+.sidebar-account-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 10px 16px;
 }
 .sidebar-dropdown-toggle:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .sidebar-dropdown-toggle.active { background: var(--accent); color: #fff; }
@@ -96,7 +112,11 @@
     if (toggle) toggle.classList.add('active');
     if (dropdown) dropdown.classList.add('open');
   }
-
+const accountToggle = document.getElementById('sidebarAccountToggle');
+  const accountDropdown = document.getElementById('sidebarAccountDropdown');
+  accountToggle.addEventListener('click', () => {
+    accountDropdown.classList.toggle('open');
+  });
   // ── D) Toggle behaviour ─────────────────────────────────────
   var toggleEl = document.getElementById('sidebarCoursesToggle');
   if (toggleEl) {
