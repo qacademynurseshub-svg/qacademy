@@ -11,7 +11,7 @@
     }
   },
   "vars": {
-    "SUPABASE_URL": "https://https://zrakjibtxyzoqcdtvpmq.supabase.co",
+    "SUPABASE_URL": "https://zrakjibtxyzoqcdtvpmq.supabase.co",
     "APP_BASE_URL": "https://qacademy-gamma.pages.dev",
     "APP_ORIGIN": "https://qacademy-gamma.pages.dev"
   }
