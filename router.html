@@ -223,21 +223,33 @@
       color: var(--accent, #2d7d72);
     }
 
-    /* ── Sign out ────────────────────────────────────────── */
-    .router-footer {
-      margin-top: 24px;
-      text-align: center;
-    }
-    .btn-signout {
-      background: none;
-      border: none;
-      font-size: 13px;
-      color: var(--text-muted, #64748b);
-      cursor: pointer;
-      padding: 6px 12px;
-      border-radius: 8px;
-    }
-    .btn-signout:hover { color: var(--danger, #dc2626); }
+/* ── Sign out ────────────────────────────────────────── */
+.router-footer {
+  margin-top: 24px;
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  justify-content: center;
+}
+.btn-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--white, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  color: var(--text-muted, #64748b);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 10px 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(30,58,95,0.06);
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-signout:hover {
+  border-color: rgba(220,38,38,0.3);
+  color: var(--danger, #dc2626);
+}
 
   </style>
 </head>
