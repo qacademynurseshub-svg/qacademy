@@ -596,11 +596,12 @@
       • Creating a pack consumes allowance. Deleting later does not restore it.
     </div>
 
-    <div class="kv-pills">
-      <span class="pill" id="offlineCoursePill">Course: —</span>
-      <span class="pill" id="offlineCountPill">Questions: —</span>
-      <span class="pill" id="offlineAllowancePill">Allowance: —</span>
-    </div>
+<div class="kv-pills">
+  <span class="pill" id="offlineCoursePill">Course: —</span>
+  <span class="pill" id="offlineCountPill">Questions: —</span>
+  <span class="pill" id="offlineAllowancePill">Allowance: —</span>
+  <span class="pill" id="offlineFreshnessPill" style="display:none;">Fresh: — • Reused: —</span>
+</div>
 
     <div class="field" style="margin-bottom:8px;">
       <label for="modalPackName">Pack name</label>
@@ -1231,31 +1232,37 @@ async function openOfflineModal(){
   el.modalPackName.value = packName;
   el.offlineCoursePill.textContent = `Course: ${getCourseTitle(state.courseId)}`;
   el.offlineCountPill.textContent = `Questions: ${Math.min(n, pool.length)}`;
+  el.offlineFreshnessPill.style.display = 'none';
+el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
 
   if (allowance && allowance.ok) {
     el.offlineAllowancePill.textContent = `Allowance: ${allowance.remaining} left of ${allowance.downloads_per_course}`;
     el.offlineModalError.textContent = '';
     el.offlineCreateBtn.disabled = !allowance.allowed;
 
-    if (!allowance.allowed) {
-      el.offlineModalError.textContent = allowanceMessageForReason('limit_reached', allowance);
-      el.offlineModal.dataset.itemIds = '[]';
-      el.offlineModal.style.display = 'flex';
-      el.statusBox.textContent = 'Offline pack creation is currently blocked.';
-      el.buildBtn.disabled = false;
-      return;
-    }
-  } else {
-    const reason = allowance && allowance.blocked_reason ? allowance.blocked_reason : 'allowance_check_failed';
-    el.offlineAllowancePill.textContent = 'Allowance: blocked';
-    el.offlineModalError.textContent = allowanceMessageForReason(reason, allowance);
-    el.offlineCreateBtn.disabled = true;
-    el.offlineModal.dataset.itemIds = '[]';
-    el.offlineModal.style.display = 'flex';
-    el.statusBox.textContent = 'Offline pack creation is currently blocked.';
-    el.buildBtn.disabled = false;
-    return;
-  }
+if (!allowance.allowed) {
+  el.offlineModalError.textContent = allowanceMessageForReason('limit_reached', allowance);
+  el.offlineFreshnessPill.style.display = 'none';
+  el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
+  el.offlineModal.dataset.itemIds = '[]';
+  el.offlineModal.style.display = 'flex';
+  el.statusBox.textContent = 'Offline pack creation is currently blocked.';
+  el.buildBtn.disabled = false;
+  return;
+}
+} else {
+  const reason = allowance && allowance.blocked_reason ? allowance.blocked_reason : 'allowance_check_failed';
+  el.offlineAllowancePill.textContent = 'Allowance: blocked';
+  el.offlineModalError.textContent = allowanceMessageForReason(reason, allowance);
+  el.offlineCreateBtn.disabled = true;
+  el.offlineFreshnessPill.style.display = 'none';
+  el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
+  el.offlineModal.dataset.itemIds = '[]';
+  el.offlineModal.style.display = 'flex';
+  el.statusBox.textContent = 'Offline pack creation is currently blocked.';
+  el.buildBtn.disabled = false;
+  return;
+}
 
   el.statusBox.textContent = 'Choosing fresh questions for your offline pack…';
 
@@ -1278,7 +1285,9 @@ async function openOfflineModal(){
     el.buildBtn.disabled = false;
     return;
   }
-
+el.offlineFreshnessPill.style.display = 'inline-flex';
+el.offlineFreshnessPill.textContent =
+  `Fresh: ${selection.unused_selected || 0} • Reused: ${selection.reused_selected || 0}`;
   el.offlineModal.dataset.itemIds = JSON.stringify(chosen);
   el.offlineModal.style.display = 'flex';
 
@@ -1291,11 +1300,13 @@ async function openOfflineModal(){
 
   el.buildBtn.disabled = false;
 }
-  function closeOfflineModal(){
-    el.offlineModal.style.display = 'none';
-    el.offlineModalError.textContent = '';
-    el.offlineCreateBtn.disabled = false;
-  }
+function closeOfflineModal(){
+  el.offlineModal.style.display = 'none';
+  el.offlineModalError.textContent = '';
+  el.offlineCreateBtn.disabled = false;
+  el.offlineFreshnessPill.style.display = 'none';
+  el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
+}
 
   async function createPackFromModal(){
     let chosen = [];
@@ -1490,14 +1501,15 @@ async function openOfflineModal(){
       selectAllTopicsBtn: byId('selectAllTopicsBtn'),
       clearTopicsBtn: byId('clearTopicsBtn'),
       clearConceptsBtn: byId('clearConceptsBtn'),
-      offlineModal: byId('offlineModal'),
-      offlineCoursePill: byId('offlineCoursePill'),
-      offlineCountPill: byId('offlineCountPill'),
-      offlineAllowancePill: byId('offlineAllowancePill'),
-      modalPackName: byId('modalPackName'),
-      offlineModalError: byId('offlineModalError'),
-      offlineCancelBtn: byId('offlineCancelBtn'),
-      offlineCreateBtn: byId('offlineCreateBtn')
+offlineModal: byId('offlineModal'),
+offlineCoursePill: byId('offlineCoursePill'),
+offlineCountPill: byId('offlineCountPill'),
+offlineAllowancePill: byId('offlineAllowancePill'),
+offlineFreshnessPill: byId('offlineFreshnessPill'),
+modalPackName: byId('modalPackName'),
+offlineModalError: byId('offlineModalError'),
+offlineCancelBtn: byId('offlineCancelBtn'),
+offlineCreateBtn: byId('offlineCreateBtn')
     });
 
     el.userName.textContent = PROFILE.forename || PROFILE.name || PROFILE.email;
