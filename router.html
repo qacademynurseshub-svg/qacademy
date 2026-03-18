@@ -456,14 +456,20 @@
         setPill('taPill', statusLabel, 'pending');
       }
 
-    } else {
-      // STUDENT — My Classes entry
-      byId('taDesc').textContent = 'Join teacher classes, take assigned quizzes, and view your results.';
-      byId('btnTA').textContent  = 'Open My Classes →';
-      byId('btnTA').disabled     = false;
-      byId('btnTA').onclick      = () => window.location.href = DESTINATIONS.studentMyTeacher;
-      setPill('taPill', 'Student', 'ready');
-    }
+ } else {
+  // STUDENT — show both options: My Classes + Request Teacher Access
+  byId('taDesc').innerHTML =
+    'Join teacher classes and take assigned quizzes. ' +
+    'Or if you are a teacher, request access to create your own classes and quizzes.' +
+    '<br><br>' +
+    '<a href="/myteacher/teacher/access-request.html" ' +
+    'style="font-size:13px; color:var(--accent); font-weight:600; text-decoration:underline;">' +
+    'Request teacher access →</a>';
+  byId('btnTA').textContent = 'Open My Classes →';
+  byId('btnTA').disabled    = false;
+  byId('btnTA').onclick     = () => window.location.href = DESTINATIONS.studentMyTeacher;
+  setPill('taPill', 'Student', 'ready');
+}
 
     // 5. Show cards, hide spinner
     setStatus('Welcome back, ' + displayName, 'Choose which area to open.');
