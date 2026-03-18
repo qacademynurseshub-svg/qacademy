@@ -8,11 +8,12 @@
   <style>
 
     /* ── Layout ──────────────────────────────────────────── */
-    .page-wrap {
-      display: flex;
-      min-height: 100vh;
-      background: var(--bg, #f8fafc);
-    }
+.page-wrap {
+  display: flex;
+  flex-direction: column;  /* add this */
+  min-height: 100vh;
+  background: var(--bg, #f8fafc);
+}
     .main-content {
       flex: 1;
       min-width: 0;
@@ -450,7 +451,7 @@
       <div class="panel detail-panel" id="detailPanel">
         <div class="panel-head">
           <h2 id="detailTitle">Class Details</h2>
-          <div style="display:flex; gap:8px;" id="detailActions" style="display:none;">
+<div id="detailActions" style="display:none;">
             <button class="btn btn-sm" id="btnEditClass" disabled>✎ Edit</button>
             <button class="btn btn-sm" id="btnInvite" disabled>⤴ Invite</button>
           </div>
