@@ -117,12 +117,11 @@
       display: inline-block; padding: 3px 10px;
       border-radius: 20px; font-size: 12px; font-weight: 600;
     }
-    .chip.ACTIVE   { background: #f0fdf4; color: var(--success); }
-    .chip.EXPIRED  { background: #fef2f2; color: var(--danger); }
-    .chip.CANCELLED{ background: #f3f4f6; color: var(--text-muted); }
-    .chip.TRIAL    { background: var(--primary-light); color: var(--primary); }
-    .chip.expiring { background: #fff7ed; color: var(--warning); }
-
+.chip.ACTIVE   { background: #f0fdf4; color: var(--success); }
+.chip.EXPIRED  { background: #fef2f2; color: var(--danger); }
+.chip.REVOKED  { background: #f3f4f6; color: var(--text-muted); }
+.chip.TRIAL    { background: var(--primary-light); color: var(--primary); }
+.chip.expiring { background: #fff7ed; color: var(--warning); }
     .source-chip {
       display: inline-block; padding: 2px 8px;
       border-radius: 4px; font-size: 11px; font-weight: 600;
@@ -345,15 +344,15 @@
         <label>Search student</label>
         <input type="text" id="filterSearch" placeholder="Name or email…" oninput="applyFilters()" />
       </div>
-      <div class="filter-group">
-        <label>Status</label>
-        <select id="filterStatus" onchange="applyFilters()">
-          <option value="">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="EXPIRED">Expired</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
-      </div>
+  <div class="filter-group">
+  <label>Status</label>
+  <select id="filterStatus" onchange="applyFilters()">
+    <option value="">All statuses</option>
+    <option value="ACTIVE">Active</option>
+    <option value="EXPIRED">Expired</option>
+    <option value="REVOKED">Revoked</option>
+  </select>
+</div>
       <div class="filter-group">
         <label>Kind</label>
         <select id="filterKind" onchange="applyFilters()">
@@ -375,15 +374,15 @@
           <option value="">All programmes</option>
         </select>
       </div>
-      <div class="filter-group">
-        <label>Source</label>
-        <select id="filterSource" onchange="applyFilters()">
-          <option value="">All sources</option>
-          <option value="PAYMENT">Payment</option>
-          <option value="ADMIN">Admin</option>
-          <option value="IMPORT">Import</option>
-        </select>
-      </div>
+  <div class="filter-group">
+  <label>Source</label>
+  <select id="filterSource" onchange="applyFilters()">
+    <option value="">All sources</option>
+    <option value="PAYSTACK">Paystack</option>
+    <option value="ADMIN">Admin</option>
+    <option value="SELF_TRIAL_SIGNUP">Self-trial signup</option>
+  </select>
+</div>
       <button class="filter-toggle" id="expiringToggle" onclick="toggleExpiring()">
         ⚠️ Expiring Soon
       </button>
@@ -474,17 +473,17 @@
 <!-- ── Cancel Confirm Modal ── -->
 <div class="modal-overlay" id="cancelModal">
   <div class="modal">
-    <div class="modal-header">
-      <h3 id="cancelModalTitle">Cancel Subscription</h3>
-      <button class="panel-close" onclick="closeCancelModal()">×</button>
-    </div>
+<div class="modal-header">
+  <h3 id="cancelModalTitle">Revoke Subscription</h3>
+  <button class="icon-btn" onclick="closeCancelModal()">✕</button>
+</div>
     <div class="modal-body">
       <p style="font-size:14px;" id="cancelModalMsg"></p>
       <div class="alert alert-error" id="cancelError" style="margin-top:14px;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeCancelModal()">No, keep it</button>
-      <button class="btn btn-danger" id="cancelConfirmBtn" onclick="confirmCancel()">Yes, cancel it</button>
+      <button class="btn btn-danger" id="cancelConfirmBtn" onclick="confirmCancel()">Yes, revoke it</button>
     </div>
   </div>
 </div>
@@ -522,23 +521,22 @@
           <p class="form-hint">Or pick a product — expiry auto-calculates.</p>
         </div>
       </div>
-      <div class="form-group">
-        <label>Status *</label>
-        <select id="editStatus">
-          <option value="ACTIVE">Active</option>
-          <option value="TRIAL">Trial</option>
-          <option value="EXPIRED">Expired</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Source</label>
-        <select id="editSource">
-          <option value="ADMIN">Admin</option>
-          <option value="PAYMENT">Payment</option>
-          <option value="IMPORT">Import</option>
-        </select>
-      </div>
+  <div class="form-group">
+  <label>Status *</label>
+  <select id="editStatus">
+    <option value="ACTIVE">Active</option>
+    <option value="EXPIRED">Expired</option>
+    <option value="REVOKED">Revoked</option>
+  </select>
+</div>
+<div class="form-group">
+  <label>Source</label>
+  <select id="editSource">
+    <option value="ADMIN">Admin</option>
+    <option value="PAYSTACK">Paystack</option>
+    <option value="SELF_TRIAL_SIGNUP">Self-trial signup</option>
+  </select>
+</div>
       <div class="form-group">
         <label>Source Reference</label>
         <input type="text" id="editSourceRef" placeholder="e.g. payment reference or note" />
@@ -597,23 +595,28 @@
   }
 
   // ─── Load products for dropdowns ─────────────────
-  async function loadProducts() {
-    // getProducts() from api.js — active products only (correct for grant modal)
-    allProducts = await getProducts();
+async function loadProducts() {
+  // Admin page should see all products, including archived ones
+  allProducts = await getAllProducts();
 
-    // Populate filter dropdown
-    const filterSel = document.getElementById('filterProduct');
-    allProducts.forEach(p => {
-      filterSel.innerHTML += `<option value="${p.product_id}">${p.name}</option>`;
-    });
+  // Filter dropdown — all products
+  const filterSel = document.getElementById('filterProduct');
+  filterSel.innerHTML = `<option value="">All products</option>`;
+  allProducts.forEach(p => {
+    filterSel.innerHTML += `<option value="${p.product_id}">${p.name}</option>`;
+  });
 
-    // Populate grant modal dropdown
-    const grantSel = document.getElementById('grantProduct');
-    allProducts.forEach(p => {
+  // Grant modal — active products only
+  const grantSel = document.getElementById('grantProduct');
+  grantSel.innerHTML = `<option value="">Select product</option>`;
+  allProducts
+    .filter(p => String(p.status || '').toLowerCase() === 'active')
+    .forEach(p => {
       grantSel.innerHTML += `<option value="${p.product_id}" data-days="${p.duration_days}">${p.name} (${p.kind})</option>`;
     });
-    document.getElementById('grantProduct').addEventListener('change', updateDurationPreview);
-  }
+
+  document.getElementById('grantProduct').addEventListener('change', updateDurationPreview);
+}
 
   // ─── Load programmes for filter ──────────────────
   async function loadProgrammes() {
@@ -743,10 +746,16 @@
         ? `<span class="chip expiring">⚠️ Expiring</span>`
         : `<span class="chip ${s.status}">${s.status}</span>`;
 
-      // Ref column — shows source ref if available
-      const refCol = s.source_ref && s.source_ref !== 'admin_grant'
-        ? `<a class="ref-link" href="/admin/payments.html?ref=${s.source_ref}" title="View payment">${s.source_ref.substring(0,12)}…</a>`
-        : `<span style="color:var(--text-muted); font-size:12px;">${s.source_ref === 'admin_grant' ? 'Admin grant' : '—'}</span>`;
+// Ref column — payment refs only link to payments page
+let refCol = `<span style="color:var(--text-muted); font-size:12px;">—</span>`;
+
+if (s.source === 'PAYSTACK' && s.source_ref) {
+  refCol = `<a class="ref-link" href="/admin/payments.html?ref=${s.source_ref}" title="View payment">${s.source_ref.substring(0,12)}…</a>`;
+} else if (s.source === 'ADMIN') {
+  refCol = `<span style="color:var(--text-muted); font-size:12px;">${s.source_ref || 'Admin grant'}</span>`;
+} else if (s.source === 'SELF_TRIAL_SIGNUP') {
+  refCol = `<span style="color:var(--text-muted); font-size:12px;">${s.source_ref || 'Self-trial'}</span>`;
+}
 
       const isFirstForUser = !seenUsers.has(s.user_id);
       seenUsers.add(s.user_id);
@@ -850,42 +859,42 @@ if (s.status === 'ACTIVE') {
     selectedSubId = null;
   }
 
-  // ─── Cancel subscription ──────────────────────────
-  function openCancelModal(subId, studentName) {
-    cancelTargetId = subId;
-    document.getElementById('cancelModalTitle').textContent = 'Cancel Subscription';
-    document.getElementById('cancelModalMsg').textContent =
-      `Are you sure you want to cancel the subscription for ${studentName}? This will immediately revoke their course access.`;
-    document.getElementById('cancelError').classList.remove('show');
-    document.getElementById('cancelModal').classList.add('show');
+// ─── Revoke subscription ──────────────────────────
+function openCancelModal(subId, studentName) {
+  cancelTargetId = subId;
+  document.getElementById('cancelModalTitle').textContent = 'Revoke Subscription';
+  document.getElementById('cancelModalMsg').textContent =
+    `Are you sure you want to revoke the subscription for ${studentName}? This will immediately remove their course access.`;
+  document.getElementById('cancelError').classList.remove('show');
+  document.getElementById('cancelModal').classList.add('show');
+}
+
+function closeCancelModal() {
+  document.getElementById('cancelModal').classList.remove('show');
+  cancelTargetId = null;
+}
+
+async function confirmCancel() {
+  if (!cancelTargetId) return;
+
+  const btn = document.getElementById('cancelConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Revoking…';
+
+  const result = await adminRevokeSubscription(cancelTargetId);
+
+  if (!result.success) {
+    document.getElementById('cancelError').textContent = result.message;
+    document.getElementById('cancelError').classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Yes, revoke it';
+    return;
   }
 
-  function closeCancelModal() {
-    document.getElementById('cancelModal').classList.remove('show');
-    cancelTargetId = null;
-  }
-
-  async function confirmCancel() {
-    if (!cancelTargetId) return;
-    const btn = document.getElementById('cancelConfirmBtn');
-    btn.disabled = true; btn.textContent = 'Cancelling…';
-
-    const { error } = await db
-      .from('subscriptions')
-      .update({ status: 'CANCELLED' })
-      .eq('subscription_id', cancelTargetId);
-
-    if (error) {
-      document.getElementById('cancelError').textContent = error.message;
-      document.getElementById('cancelError').classList.add('show');
-      btn.disabled = false; btn.textContent = 'Yes, cancel it';
-      return;
-    }
-
-    closeCancelModal();
-    closePanel();
-    await loadData();
-  }
+  closeCancelModal();
+  closePanel();
+  await loadData();
+}
 
   // ─── Grant Subscription Modal ─────────────────────
   let grantForUserId   = null;
@@ -1000,42 +1009,52 @@ if (s.status === 'ACTIVE') {
   });
 
   // Submit grant
-  async function submitGrant() {
-    const userId    = document.getElementById('grantUserId').value;
-    const productId = document.getElementById('grantProduct').value;
-    const startVal  = document.getElementById('grantStartDate').value;
-    const errorEl   = document.getElementById('grantError');
-    const successEl = document.getElementById('grantSuccess');
-    const btn       = document.getElementById('grantSubmitBtn');
+async function submitGrant() {
+  const userId    = document.getElementById('grantUserId').value;
+  const productId = document.getElementById('grantProduct').value;
+  const startVal  = document.getElementById('grantStartDate').value;
+  const errorEl   = document.getElementById('grantError');
+  const successEl = document.getElementById('grantSuccess');
+  const btn       = document.getElementById('grantSubmitBtn');
 
-    errorEl.classList.remove('show');
-    successEl.classList.remove('show');
+  errorEl.classList.remove('show');
+  successEl.classList.remove('show');
 
-    if (!userId)    { errorEl.textContent = 'Please select a student.'; errorEl.classList.add('show'); return; }
-    if (!productId) { errorEl.textContent = 'Please select a product.'; errorEl.classList.add('show'); return; }
-
-    btn.disabled = true; btn.textContent = 'Granting…';
-
-    // Use assignSubscription() from api.js — handles expiry calc, status, source_ref
-    const result = await assignSubscription(userId, productId, startVal || null);
-
-    if (!result.success) {
-      errorEl.textContent = result.message;
-      errorEl.classList.add('show');
-      btn.disabled = false; btn.textContent = 'Grant Access';
-      return;
-    }
-
-    successEl.textContent = '✅ Subscription granted! The student now has access. (Email sent via your email system.)';
-    successEl.classList.add('show');
-    btn.textContent = 'Granted ✓';
-
-    await loadData();
-
-    setTimeout(() => {
-      closeGrantModal();
-    }, 2500);
+  if (!userId) {
+    errorEl.textContent = 'Please select a student.';
+    errorEl.classList.add('show');
+    return;
   }
+
+  if (!productId) {
+    errorEl.textContent = 'Please select a product.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Granting…';
+
+  const result = await adminGrantSubscription(userId, productId, startVal || null);
+
+  if (!result.success) {
+    errorEl.textContent = result.message;
+    errorEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Grant Access';
+    return;
+  }
+
+  successEl.textContent = '✅ Subscription granted successfully.';
+  successEl.classList.add('show');
+  btn.textContent = 'Granted ✓';
+
+  await loadData();
+
+  setTimeout(() => {
+    closeGrantModal();
+  }, 1800);
+}
 
   // ─── Edit Subscription Modal ──────────────────────
   function openEditModal(subId) {
@@ -1088,53 +1107,67 @@ if (s.status === 'ACTIVE') {
     document.getElementById('editExpiryDate').value = expiry.toISOString().substring(0,10);
   }
 
-  async function submitEdit() {
-    const subId     = document.getElementById('editSubId').value;
-    const productId = document.getElementById('editProduct').value;
-    const startVal  = document.getElementById('editStartDate').value;
-    const expiryVal = document.getElementById('editExpiryDate').value;
-    const status    = document.getElementById('editStatus').value;
-    const source    = document.getElementById('editSource').value;
-    const sourceRef = document.getElementById('editSourceRef').value.trim();
-    const errorEl   = document.getElementById('editError');
-    const successEl = document.getElementById('editSuccess');
-    const btn       = document.getElementById('editSubmitBtn');
+async function submitEdit() {
+  const subId     = document.getElementById('editSubId').value;
+  const productId = document.getElementById('editProduct').value;
+  const startVal  = document.getElementById('editStartDate').value;
+  const expiryVal = document.getElementById('editExpiryDate').value;
+  const status    = document.getElementById('editStatus').value;
+  const source    = document.getElementById('editSource').value;
+  const sourceRef = document.getElementById('editSourceRef').value.trim();
+  const errorEl   = document.getElementById('editError');
+  const successEl = document.getElementById('editSuccess');
+  const btn       = document.getElementById('editSubmitBtn');
 
-    errorEl.classList.remove('show');
-    successEl.classList.remove('show');
+  errorEl.classList.remove('show');
+  successEl.classList.remove('show');
 
-    if (!productId) { errorEl.textContent = 'Please select a product.'; errorEl.classList.add('show'); return; }
-    if (!startVal)  { errorEl.textContent = 'Please set a start date.';  errorEl.classList.add('show'); return; }
-    if (!expiryVal) { errorEl.textContent = 'Please set an expiry date.'; errorEl.classList.add('show'); return; }
-
-    btn.disabled = true; btn.textContent = 'Saving…';
-
-    const { error } = await db
-      .from('subscriptions')
-      .update({
-        product_id  : productId,
-        start_utc   : new Date(startVal).toISOString(),
-        expires_utc : new Date(expiryVal).toISOString(),
-        status,
-        source,
-        source_ref  : sourceRef || null
-      })
-      .eq('subscription_id', subId);
-
-    if (error) {
-      errorEl.textContent = error.message;
-      errorEl.classList.add('show');
-      btn.disabled = false; btn.textContent = 'Save Changes';
-      return;
-    }
-
-    successEl.textContent = '✅ Subscription updated successfully.';
-    successEl.classList.add('show');
-    btn.textContent = 'Saved ✓';
-
-    await loadData();
-    setTimeout(() => { closeEditModal(); closePanel(); }, 1500);
+  if (!productId) {
+    errorEl.textContent = 'Please select a product.';
+    errorEl.classList.add('show');
+    return;
   }
+
+  if (!startVal) {
+    errorEl.textContent = 'Please set a start date.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  if (!expiryVal) {
+    errorEl.textContent = 'Please set an expiry date.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const result = await adminUpdateSubscription({
+    subscription_id: subId,
+    product_id: productId,
+    start_date: startVal,
+    expiry_date: expiryVal,
+    status,
+    source,
+    source_ref: sourceRef || null
+  });
+
+  if (!result.success) {
+    errorEl.textContent = result.message;
+    errorEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+    return;
+  }
+
+  successEl.textContent = '✅ Subscription updated successfully.';
+  successEl.classList.add('show');
+  btn.textContent = 'Saved ✓';
+
+  await loadData();
+  setTimeout(() => { closeEditModal(); closePanel(); }, 1500);
+}
 
   init();
   // ─── Sync Status ──────────────────────────────────
@@ -1145,23 +1178,16 @@ async function syncStatus() {
   btn.disabled = true;
   btn.textContent = 'Syncing…';
 
-  const now = new Date().toISOString();
+  const result = await adminSyncExpiredSubscriptions();
 
-  const { data, error } = await db
-    .from('subscriptions')
-    .update({ status: 'EXPIRED' })
-    .eq('status', 'ACTIVE')
-    .lt('expires_utc', now)
-    .select('subscription_id');
-
-  if (error) {
-    alert('Sync failed: ' + error.message);
+  if (!result.success) {
+    alert('Sync failed: ' + result.message);
     btn.disabled = false;
     btn.textContent = '🔄 Sync Status';
     return;
   }
 
-  const count = data?.length || 0;
+  const count = result.data?.updated_count || 0;
   btn.textContent = count > 0 ? `✅ ${count} updated` : '✅ Up to date';
 
   await loadData();
@@ -1169,7 +1195,7 @@ async function syncStatus() {
   setTimeout(() => {
     btn.disabled = false;
     btn.textContent = '🔄 Sync Status';
-  }, 3000);
+  }, 1800);
 }
 </script>
 </body>
