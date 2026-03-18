@@ -1114,7 +1114,89 @@ function safeArray(values) {
     ? [...new Set(values.map(v => String(v || '').trim()).filter(Boolean))]
     : [];
 }
+async function getUsedOfflinePackItemIds(userId, courseId, periodStartIso = null) {
+  const safeUserId = String(userId || '').trim();
+  const safeCourseId = String(courseId || '').trim().toUpperCase();
 
+  if (!safeUserId || !safeCourseId) return new Set();
+
+  let query = db
+    .from('offline_packs')
+    .select('item_ids')
+    .eq('user_id', safeUserId)
+    .eq('course_id', safeCourseId)
+    .eq('status', 'active');
+
+  if (periodStartIso) {
+    query = query.gte('created_utc', periodStartIso);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('getUsedOfflinePackItemIds:', error);
+    return new Set();
+  }
+
+  const used = new Set();
+
+  (data || []).forEach(row => {
+    const ids = Array.isArray(row.item_ids) ? row.item_ids : [];
+    ids.forEach(id => {
+      const safeId = String(id || '').trim();
+      if (safeId) used.add(safeId);
+    });
+  });
+
+  return used;
+}
+
+async function pickOfflinePackItemIds(userId, courseId, poolItems, n, periodStartIso = null) {
+  const pool = Array.isArray(poolItems) ? poolItems : [];
+  const target = Math.max(0, Number(n || 0));
+
+  if (!pool.length || target < 1) {
+    return {
+      item_ids: [],
+      unused_selected: 0,
+      reused_selected: 0,
+      pool_size: pool.length
+    };
+  }
+
+  const usedSet = await getUsedOfflinePackItemIds(userId, courseId, periodStartIso);
+
+  const unusedCandidates = [];
+  const usedCandidates = [];
+
+  pool.forEach(item => {
+    const itemId = String(item && item.item_id || '').trim();
+    if (!itemId) return;
+
+    if (usedSet.has(itemId)) usedCandidates.push(item);
+    else unusedCandidates.push(item);
+  });
+
+  const takeUnused = Math.min(target, unusedCandidates.length);
+  const needMore = Math.max(0, target - takeUnused);
+
+  const pickedUnused = takeUnused > 0
+    ? shuffleArray(unusedCandidates).slice(0, takeUnused)
+    : [];
+
+  const pickedUsed = needMore > 0
+    ? shuffleArray(usedCandidates).slice(0, needMore)
+    : [];
+
+  const picked = pickedUnused.concat(pickedUsed);
+
+  return {
+    item_ids: picked.map(x => String(x.item_id || '').trim()).filter(Boolean),
+    unused_selected: pickedUnused.length,
+    reused_selected: pickedUsed.length,
+    pool_size: pool.length
+  };
+}
 function maskEmailForOffline(email) {
   const raw = String(email || '').trim();
   if (!raw || !raw.includes('@')) return '';
