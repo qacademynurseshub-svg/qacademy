@@ -375,3 +375,293 @@ async function updateMemberProfile(classId, userId, memberFieldsJson) {
   if (error) { console.error('updateMemberProfile:', error); return { success: false, message: error.message }; }
   return { success: true };
 }
+
+
+// ============================================================
+// Slice 5: Teacher Question Bank
+// ============================================================
+
+// ------------------------------------------------------------
+// GET BANK FILTER OPTIONS
+// Returns distinct subject, maintopic, subtopic values
+// from this teacher's bank — used to populate the three
+// filter dropdowns dynamically.
+// Called on page load and after every save so new tags
+// appear immediately without a full page refresh.
+// Used by: myteacher/teacher/bank.html
+// ------------------------------------------------------------
+async function getBankFilterOptions(teacherId) {
+  const { data, error } = await db
+    .from('teacher_bank_items')
+    .select('subject, maintopic, subtopic')
+    .eq('teacher_id', teacherId)
+    .neq('status', 'ARCHIVED');   // only surface tags from active items
+
+  if (error) { console.error('getBankFilterOptions:', error); return { subjects: [], maintopics: [], subtopics: [] }; }
+
+  const subjects   = [...new Set((data || []).map(r => r.subject).filter(Boolean))].sort();
+  const maintopics = [...new Set((data || []).map(r => r.maintopic).filter(Boolean))].sort();
+  const subtopics  = [...new Set((data || []).map(r => r.subtopic).filter(Boolean))].sort();
+
+  return { subjects, maintopics, subtopics };
+}
+
+
+// ------------------------------------------------------------
+// GET BANK ITEMS
+// Fetches all items for this teacher with optional filters.
+// All columns are returned — the card list renders full
+// stem, all options, rationale, and image.
+//
+// filters: {
+//   status      — 'ACTIVE' | 'ARCHIVED' | 'ALL'  (default: 'ACTIVE')
+//   subject     — exact match string or ''
+//   maintopic   — exact match string or ''
+//   subtopic    — exact match string or ''
+//   difficulty  — 'Easy' | 'Moderate' | 'Hard' or ''
+//   keyword     — substring search against stem
+// }
+//
+// Results ordered by updated_at DESC so most recently
+// edited items appear first.
+// Used by: myteacher/teacher/bank.html
+// ------------------------------------------------------------
+async function getBankItems(teacherId, filters = {}) {
+  const {
+    status     = 'ACTIVE',
+    subject    = '',
+    maintopic  = '',
+    subtopic   = '',
+    difficulty = '',
+    keyword    = ''
+  } = filters;
+
+  let query = db
+    .from('teacher_bank_items')
+    .select('*')
+    .eq('teacher_id', teacherId)
+    .order('updated_at', { ascending: false });
+
+  // Status filter — ALL means no status constraint
+  if (status && status !== 'ALL') {
+    query = query.eq('status', status);
+  }
+
+  if (subject)    query = query.eq('subject',   subject);
+  if (maintopic)  query = query.eq('maintopic', maintopic);
+  if (subtopic)   query = query.eq('subtopic',  subtopic);
+  if (difficulty) query = query.eq('difficulty', difficulty);
+
+  // Keyword: case-insensitive substring match on stem
+  // ilike is Supabase's case-insensitive LIKE
+  if (keyword) query = query.ilike('stem', `%${keyword}%`);
+
+  const { data, error } = await query;
+  if (error) { console.error('getBankItems:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET SINGLE BANK ITEM
+// Fetches one full row by bank_item_id.
+// Called when opening the editor for an existing item —
+// ensures the form always has fresh data, not stale list cache.
+// Returns null if not found.
+// Used by: myteacher/teacher/bank.html editor
+// ------------------------------------------------------------
+async function getBankItem(bankItemId) {
+  const { data, error } = await db
+    .from('teacher_bank_items')
+    .select('*')
+    .eq('bank_item_id', bankItemId)
+    .maybeSingle();
+
+  if (error) { console.error('getBankItem:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
+// CREATE BANK ITEM
+// Inserts a new question into teacher_bank_items.
+// bank_item_id is generated here as TBANK_ + Date.now()
+// so the page can show the ID before the save completes.
+// source_type is always 'TEACHER' for manually created items.
+// Returns { success, item } on success or { success: false, message }
+// Used by: myteacher/teacher/bank.html editor
+// ------------------------------------------------------------
+async function createBankItem(teacherId, payload) {
+  const now        = new Date().toISOString();
+  const bankItemId = 'TBANK_' + Date.now();
+
+  const row = {
+    bank_item_id   : bankItemId,
+    teacher_id     : teacherId,
+    status         : 'ACTIVE',
+    source_type    : 'TEACHER',
+    created_at     : now,
+    updated_at     : now,
+
+    // question fields — spread from payload
+    question_type  : payload.question_type  || 'MCQ',
+    stem           : payload.stem,
+    option_a       : payload.option_a       || null,
+    fb_a           : payload.fb_a           || null,
+    option_b       : payload.option_b       || null,
+    fb_b           : payload.fb_b           || null,
+    option_c       : payload.option_c       || null,
+    fb_c           : payload.fb_c           || null,
+    option_d       : payload.option_d       || null,
+    fb_d           : payload.fb_d           || null,
+    option_e       : payload.option_e       || null,
+    fb_e           : payload.fb_e           || null,
+    option_f       : payload.option_f       || null,
+    fb_f           : payload.fb_f           || null,
+    correct        : payload.correct,
+    rationale      : payload.rationale      || null,
+    rationale_img  : payload.rationale_img  || null,
+    subject        : payload.subject        || null,
+    maintopic      : payload.maintopic      || null,
+    subtopic       : payload.subtopic       || null,
+    difficulty     : payload.difficulty     || null,
+    marks          : payload.marks          || 1,
+    shuffle_options: payload.shuffle_options !== undefined ? payload.shuffle_options : true,
+  };
+
+  const { data, error } = await db
+    .from('teacher_bank_items')
+    .insert(row)
+    .select('*')
+    .single();
+
+  if (error) { console.error('createBankItem:', error); return { success: false, message: error.message }; }
+  return { success: true, item: data };
+}
+
+
+// ------------------------------------------------------------
+// UPDATE BANK ITEM
+// Applies a patch (only the changed fields) to an existing row.
+// Always updates updated_at.
+// The page builds the patch by comparing form values to the
+// original loaded item — only sends what changed.
+// Returns { success } or { success: false, message }
+// Used by: myteacher/teacher/bank.html editor
+// ------------------------------------------------------------
+async function updateBankItem(bankItemId, patch) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_bank_items')
+    .update({ ...patch, updated_at: now })
+    .eq('bank_item_id', bankItemId);
+
+  if (error) { console.error('updateBankItem:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// ARCHIVE / RESTORE BANK ITEM
+// Soft operation — sets status to ARCHIVED or back to ACTIVE.
+// Never deletes rows (audit trail, snapshot integrity).
+// action: 'ARCHIVE' | 'RESTORE'
+// Returns { success } or { success: false, message }
+// Used by: myteacher/teacher/bank.html card footer + editor
+// ------------------------------------------------------------
+async function setArchiveBankItem(bankItemId, action) {
+  const newStatus = action === 'RESTORE' ? 'ACTIVE' : 'ARCHIVED';
+  const now       = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_bank_items')
+    .update({ status: newStatus, updated_at: now })
+    .eq('bank_item_id', bankItemId);
+
+  if (error) { console.error('setArchiveBankItem:', error); return { success: false, message: error.message }; }
+  return { success: true, newStatus };
+}
+
+
+// ------------------------------------------------------------
+// APPEND TO DRAFT ITEMS  (Picker mode)
+// Used when the teacher picks questions from the bank and
+// adds them to a quiz draft in the quiz manager.
+//
+// Fetches the current draft_items_json from teacher_quizzes,
+// merges in the new bankItemIds (appending, no duplicates),
+// writes back.
+//
+// draft_items_json shape: { items: ["TBANK_001", "TBANK_002", ...] }
+// The items array is an ordered list of bank_item_ids that
+// the quiz builder uses to build its question list.
+//
+// Returns { success, added, skipped, total }
+// — added:   how many new IDs were appended
+// — skipped: how many were already in the draft
+// — total:   new total item count in the draft
+//
+// Used by: myteacher/teacher/bank.html (picker mode dock)
+// Wired into: myteacher/teacher/quizzes.html in Slice 6
+// ------------------------------------------------------------
+async function appendToDraftItems(teacherQuizId, bankItemIds) {
+  if (!teacherQuizId || !bankItemIds || !bankItemIds.length) {
+    return { success: false, message: 'Missing quiz ID or item IDs.' };
+  }
+
+  // 1. Fetch the current quiz row — we only need draft_items_json
+  const { data: quiz, error: fetchError } = await db
+    .from('teacher_quizzes')
+    .select('draft_items_json, status')
+    .eq('teacher_quiz_id', teacherQuizId)
+    .maybeSingle();
+
+  if (fetchError) { console.error('appendToDraftItems fetch:', fetchError); return { success: false, message: fetchError.message }; }
+  if (!quiz)      { return { success: false, message: 'Quiz not found.' }; }
+  if (quiz.status === 'PUBLISHED') { return { success: false, message: 'Cannot edit a published quiz.' }; }
+
+  // 2. Parse existing draft items
+  let existingItems = [];
+  try {
+    const parsed = typeof quiz.draft_items_json === 'string'
+      ? JSON.parse(quiz.draft_items_json)
+      : (quiz.draft_items_json || {});
+    existingItems = Array.isArray(parsed.items) ? parsed.items : [];
+  } catch (_) {
+    existingItems = [];
+  }
+
+  // 3. Merge — append new IDs, skip duplicates, preserve order
+  const existingSet = new Set(existingItems.map(id => String(id).trim()));
+  let added   = 0;
+  let skipped = 0;
+
+  bankItemIds.forEach(id => {
+    id = String(id || '').trim();
+    if (!id) return;
+    if (existingSet.has(id)) {
+      skipped++;
+    } else {
+      existingSet.add(id);
+      existingItems.push(id);
+      added++;
+    }
+  });
+
+  const total = existingItems.length;
+
+  // 4. Write back
+  const now = new Date().toISOString();
+  const { error: updateError } = await db
+    .from('teacher_quizzes')
+    .update({
+      draft_items_json: JSON.stringify({ items: existingItems }),
+      updated_at      : now
+    })
+    .eq('teacher_quiz_id', teacherQuizId);
+
+  if (updateError) { console.error('appendToDraftItems update:', updateError); return { success: false, message: updateError.message }; }
+
+  return { success: true, added, skipped, total };
+}
