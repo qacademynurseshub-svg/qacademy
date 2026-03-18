@@ -267,7 +267,91 @@ async function assignSubscription(userId, productId, startDate = null) {
   return { success: true, subscriptionId };
 }
 
+// ------------------------------------------------------------
+// WORKER HELPERS — TRUSTED ADMIN ACTIONS
+// Uses the existing backend worker as the secure write boundary
+// ------------------------------------------------------------
+function workerBaseUrl() {
+  const raw = String(PAYMENTS_API_BASE || '').trim();
+  if (!raw) throw new Error('Missing PAYMENTS_API_BASE in /js/config.js');
+  return raw.replace(/\/+$/, '');
+}
 
+async function workerAuthedJson(path, { method = 'GET', body = null } = {}) {
+  const { data: { session }, error: sessionError } = await db.auth.getSession();
+
+  if (sessionError || !session?.access_token) {
+    return { success: false, message: 'Please sign in again.' };
+  }
+
+  const headers = {
+    Authorization: `Bearer ${session.access_token}`
+  };
+
+  if (body !== null) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const res = await fetch(workerBaseUrl() + path, {
+    method,
+    headers,
+    body: body !== null ? JSON.stringify(body) : undefined
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok || !data?.ok) {
+    return {
+      success: false,
+      message: data?.message || data?.error || `Request failed (${res.status})`,
+      data
+    };
+  }
+
+  return { success: true, data };
+}
+
+async function adminGrantSubscription(userId, productId, startDate = null) {
+  return workerAuthedJson('/admin/subscriptions/grant', {
+    method: 'POST',
+    body: {
+      user_id: userId,
+      product_id: productId,
+      start_date: startDate || null
+    }
+  });
+}
+
+async function adminUpdateSubscription(payload) {
+  return workerAuthedJson('/admin/subscriptions/update', {
+    method: 'POST',
+    body: {
+      subscription_id: payload.subscription_id,
+      product_id: payload.product_id,
+      start_date: payload.start_date,
+      expiry_date: payload.expiry_date,
+      status: payload.status,
+      source: payload.source,
+      source_ref: payload.source_ref || null
+    }
+  });
+}
+
+async function adminRevokeSubscription(subscriptionId) {
+  return workerAuthedJson('/admin/subscriptions/revoke', {
+    method: 'POST',
+    body: {
+      subscription_id: subscriptionId
+    }
+  });
+}
+
+async function adminSyncExpiredSubscriptions() {
+  return workerAuthedJson('/admin/subscriptions/sync-expired', {
+    method: 'POST',
+    body: {}
+  });
+}
 // ------------------------------------------------------------
 // USER ACCOUNT ACTIONS
 // All return: { success: true } or { success: false, message }
