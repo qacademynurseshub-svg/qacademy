@@ -832,14 +832,12 @@
       </div>`;
 
     // Actions depending on status
-    let actions = `<button class="btn btn-ghost" onclick="closePanel()">Close</button>`;
-    actions += `<button class="btn btn-primary" onclick="openEditModal('${s.subscription_id}')">✏️ Edit</button>`;
-    if (s.status === 'ACTIVE' || s.status === 'TRIAL') {
-      actions += `<button class="btn btn-danger" onclick="openCancelModal('${s.subscription_id}', '${name}')">Cancel Subscription</button>`;
-    }
-    if (s.status === 'EXPIRED' || s.status === 'CANCELLED') {
-      actions += `<button class="btn btn-success" onclick="openGrantForUser('${u.user_id}', '${name}', '${u.email}')">Renew / Grant New</button>`;
-    }
+let actions = `<button class="btn btn-ghost" onclick="closePanel()">Close</button>`;
+actions += `<button class="btn btn-primary" onclick="openEditModal('${s.subscription_id}')">✏️ Edit</button>`;
+actions += `<button class="btn btn-success" onclick="openGrantForUser('${u.user_id}', '${name}', '${u.email}')">+ Grant Subscription</button>`;
+if (s.status === 'ACTIVE') {
+  actions += `<button class="btn btn-danger" onclick="openCancelModal('${s.subscription_id}', '${name}')">Cancel Subscription</button>`;
+}
     document.getElementById('panelActions').innerHTML = actions;
 
     document.getElementById('overlay').classList.add('show');
