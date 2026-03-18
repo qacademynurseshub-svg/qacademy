@@ -9,12 +9,12 @@ QAcademy Nurses Hub is a web-based learning management system for nursing studen
 |---|---|
 | Frontend | Vanilla HTML / CSS / JS — no build step |
 | Hosting | Cloudflare Pages (`qacademy-gamma.pages.dev`) |
-| Database & Auth | Supabase |
+| Database & Auth | Supabase (free tier) |
 | Version Control | GitHub (`mybackpacc-byte/qacademy-gamma`) |
-| Payments | Paystack (planned — Cloudflare Worker, isolated) |
+| Payments | Paystack — Cloudflare Worker deployed (`payments-worker/`) |
 | Messaging | Telegram (planned) |
 
-No separate backend server. Everything is JAMstack. A single Cloudflare Worker will be added later, isolated, for Paystack webhook handling only.
+No separate backend server. Everything is JAMstack. The Cloudflare Worker is isolated to payments only — it does not touch the rest of the frontend build.
 
 ---
 
@@ -24,67 +24,109 @@ No separate backend server. Everything is JAMstack. A single Cloudflare Worker w
 - `js/api.js` is the shared data layer. Shared reads go here. Page-specific logic stays in the page file.
 - When adding to `api.js`, provide only the new function block — never a full rewrite.
 - Item IDs are globally unique and course-prefixed: `GP_001`, `RN_MED_001`, etc.
-- `announcement_id` generated as `ANN_` + `Date.now()` (TEXT PRIMARY KEY, manually supplied).
-- Font stack: Plus Jakarta Sans (homepage), Inter (all dashboard/app pages).
 
 ---
 
-## Build Status by Phase
+## Brand Palette
+```css
+--primary:       #1e3a5f
+--primary-dark:  #142d4c
+--primary-light: #edf6f5
+--accent:        #2d7d72
+```
 
-| Phase | Name | Status |
-|---|---|---|
-| 1 | Foundation | ✅ Complete |
-| 2 | Student Dashboard | ✅ Complete |
-| 3 | Quiz Engine | ✅ Complete |
-| 4 | Quiz Builder | ⚠️ Testing |
-| 5 | Offline Packs | ⏳ Deferred |
-| 6 | Messaging | ⏳ Later |
-| 7 | Teacher Assess | ⏳ Deferred |
-| 8 | Payments | ⏳ Later |
-| 9 | Telegram | ⏳ Later |
-| 10 | Admin Tools | ✅ Mostly complete (payments shell only) |
+---
+
+## Build Progress
+
+### Done ✅
+- Foundation: Supabase, Cloudflare Pages, GitHub repo
+- Auth pages: login, register, forgot-password, reset-password
+- Student dashboard: course cards, subscription bar, announcements strip, recent attempts
+- Admin dashboard: stats, recent users, quick links
+- Brand colours, landing page, logo
+- `js/api.js` — full shared data layer including all quiz engine functions
+- `admin/users.html` — full CRUD, side panel, assign subscription
+- `admin/subscriptions.html` — full CRUD, 7 stat cards, 6 filters, Sync Status button, Grant from panel
+- `admin/products.html` — full CRUD, course picker, Telegram keys
+- `admin/courses.html` — two tabs: Programmes + Courses
+- `admin/announcements.html` — full CRUD, 8 scopes, audience summary, scheduling
+- `admin/fixed-quizzes.html` — 4-pane flow: List → Details → Picker → Review
+- `admin/question-bank.html` — browse cards, edit panel, image upload to Supabase Storage, CSV import, batch filter
+- `admin/config.html` — edit values, add new keys, delete with warning
+- Mobile hamburger menu — fixed top-left, slide-in, injected via sidebar JS files
+- Programme-specific TRIAL products, auto-assigned on registration
+- Shared sidebar: `js/admin-sidebar.js` + `js/student-sidebar.js`
+- `student/announcements.html` — 4 tabs, Mark as Read, Dismiss
+- `student/course.html` — dynamic course page, access check
+- `student/fixed-quizzes.html` — card state machine
+- `student/learning-history.html` — full attempt history, filters, Resume / Review / Retake
+- `student/quiz-builder.html` — 5-step wizard, topic + concept modes ✅ signed off
+- `runner/instant.html` — practice mode, 3 feedback modes, full feature set
+- `runner/timed.html` — exam mode, countdown timer, auto-submit
+- All 11 `items_*` tables created and seeded
+- `quizzes` table + sample quizzes
+- `attempts` table
+- `config` table with 5 keys
+- Supabase Storage: `rationale-images` bucket created, public policy set
+- **Payments — Cloudflare Worker** (`payments-worker/`) fully deployed:
+  - `POST /payments/init-public` — new student pays before having an account
+  - `POST /payments/init-upgrade` — existing logged-in student upgrades
+  - `GET /payments/verify` — confirms payment with Paystack, activates subscription
+  - `POST /payments/setup-complete` — creates account for new students post-payment
+  - Payment statuses: `INIT → PAID → ACTIVATED` + `SETUP_REQUIRED` flow
+  - `payments` table in Supabase for full audit trail
+- `subscribe.html` — public payment page for new students
+- `student/upgrade.html` — upgrade page for existing logged-in students
+- `payment-confirmation.html` — post-payment redirect handler, calls verify
+
+### Next Up ⏭️
+1. `admin/payments.html` — view and manage all payment records
+2. Messaging: `student/messages.html` + admin side
+3. Telegram integration
+4. Downloads / offline packs (`student/downloads.html`)
+5. Teacher Assess system (classes, question bank, quiz builder, results)
+6. RLS policies — tighten all tables before go-live
+
+### Intentionally Deferred
+- Sequential runner mode
 
 ---
 
 ## Page Reference
-
-### Public Pages
-| Page | Status | Notes |
-|---|---|---|
-| index.html | ✅ Done | Marketing homepage — dynamic programmes from Supabase, path block, NMC exam structure, socials strip, ambient background |
-| login.html | ✅ Done | Email/password login, back-to-home link |
-| register.html | ✅ Done | Auto-assigns trial product based on programme |
-| forgot-password.html | ✅ Done | Supabase reset email |
-| reset-password.html | ✅ Done | Password recovery flow |
-| subscribe.html | ✅ Done | Payment/subscription page (pre-login) |
 
 ### Admin Pages
 | Page | Status | Notes |
 |---|---|---|
 | admin/dashboard.html | ✅ Done | Stats, recent users, quick links |
 | admin/users.html | ✅ Done | Full CRUD, side panel, assign subscription |
-| admin/subscriptions.html | ✅ Done | Full CRUD, 7 stat cards, 6 filters |
+| admin/subscriptions.html | ✅ Done | Full CRUD, 7 stat cards, 6 filters, Sync Status, Grant from panel |
 | admin/products.html | ✅ Done | Full CRUD, course picker, Telegram keys |
 | admin/courses.html | ✅ Done | Two tabs: Programmes + Courses |
-| admin/announcements.html | ✅ Done | Full CRUD, 8 scopes, audience summary, scheduling |
+| admin/announcements.html | ✅ Done | Full CRUD, 8 scopes, audience summary |
 | admin/fixed-quizzes.html | ✅ Done | 4-pane: List → Details → Picker → Review |
 | admin/question-bank.html | ✅ Done | Browse, edit, create, image upload, CSV import |
 | admin/config.html | ✅ Done | Edit values, add keys, delete with warning |
-| admin/payments.html | ⏳ Later | Shell only |
+| admin/payments.html | ⏳ Next | Worker done, admin page not yet built |
 
 ### Student Pages
 | Page | Status | Notes |
 |---|---|---|
-| student/dashboard.html | ✅ Done | Courses, announcements strip, recent attempts, subscription bar |
+| student/dashboard.html | ✅ Done | Courses, announcements, recent attempts |
 | student/announcements.html | ✅ Done | 4 tabs, Mark as Read, Dismiss |
 | student/course.html | ✅ Done | Dynamic, access check |
 | student/fixed-quizzes.html | ✅ Done | Card state machine |
 | student/learning-history.html | ✅ Done | Filters, paginated, Resume/Review/Retake |
-| student/quiz-builder.html | ⚠️ Testing | 5 steps, topic + concept modes |
-| student/upgrade.html | ✅ Done | Upgrade/extend access for logged-in users |
-| student/messages.html | ⏳ Later | Shell only |
-| student/downloads.html | ⏳ Later | Shell only |
-| student/telegram.html | ⏳ Later | Shell only |
+| student/quiz-builder.html | ✅ Done | 5 steps, topic + concept modes |
+| student/upgrade.html | ✅ Done | Upgrade payment flow for logged-in students |
+| student/downloads.html | ⏳ Later | Offline packs / PDF downloads |
+| student/messages.html | ⏳ Later | Thread-based messaging |
+
+### Public Pages
+| Page | Status | Notes |
+|---|---|---|
+| subscribe.html | ✅ Done | Public payment page for new students |
+| payment-confirmation.html | ✅ Done | Post-payment redirect, calls verify |
 
 ### Runners
 | Runner | Status | Notes |
@@ -97,26 +139,19 @@ URL patterns:
 - `?attempt_id=ATT_xxx&review=1` — review completed attempt
 - `?quiz_id=GP_Q001&preview=1` — admin preview (no DB write)
 
+### Payments Worker Routes
+| Route | Method | Purpose |
+|---|---|---|
+| /payments/init-public | POST | New student (no account) initiates payment |
+| /payments/init-upgrade | POST | Logged-in student upgrades subscription |
+| /payments/verify | GET | Verify payment with Paystack, activate subscription |
+| /payments/setup-complete | POST | Create account for student who paid before registering |
+
 ---
 
-## Navigation
-
-### Student Sidebar (`js/student-sidebar.js`)
-- Dashboard
-- My Courses (collapsible — populated dynamically)
-- Fixed Quizzes
-- Quiz Builder
-- Learning History
-- Announcements
-- Downloads
-- Messages
-- Telegram
-- **My Account** (collapsible — bottom of nav)
-  - Upgrade / Extend (`student/upgrade.html`)
-  - *(Profile and other items to be added)*
-
-### Home Page (`index.html`)
-Top nav: Subscribe link (text), Sign In (outline button), Register Free (solid button).
+## admin/subscriptions.html — Behaviour Notes
+- **Sync Status button:** manually flips `ACTIVE → EXPIRED` where `expires_utc < now()`. One direction only. Run on each admin visit to keep status column truthful. Required because Supabase free tier has no pg_cron for scheduled jobs.
+- **Grant Subscription in panel:** appears on ALL subscription statuses (not just expired/cancelled). Pre-fills the student automatically via `openGrantForUser(userId, name, email)`.
 
 ---
 
@@ -133,7 +168,9 @@ Top nav: Subscribe link (text), Sign In (outline button), Register Free (solid b
 
 ---
 
-## Config Table Keys
+## Config Table
+Every key is a system key referenced by platform code. Never rename or delete unless certain nothing depends on it.
+
 | Key | Value | What it controls |
 |---|---|---|
 | `runner_questions_per_page` | `2` | Questions per page in both runners |
@@ -141,14 +178,6 @@ Top nav: Subscribe link (text), Sign In (outline button), Register Free (solid b
 | `builder_max_questions` | `50` | Max questions student can request in builder |
 | `builder_default_questions` | `20` | Default question count in builder |
 | `builder_minutes_per_question` | `1` | Time estimate per question in builder |
-
----
-
-## Mobile Navigation
-Hamburger (☰) injected by both sidebar JS files:
-- Fixed top-left on mobile (≤768px), hidden on desktop
-- Slides sidebar in from left, dark overlay behind it
-- Tap overlay or nav link to close
 
 ---
 
@@ -168,20 +197,20 @@ Hamburger (☰) injected by both sidebar JS files:
 - `getItemsByIds()`, `getItemsByFilters()`, `getItemFilterOptions()`
 - `getBuilderCourseItems()`
 - `getQuizAvailability()`, `spawnFixedAttempt()`, `spawnBuilderAttempt()`
-- `saveAttemptProgress()`, `finishAttempt()`, `retakeAttempt()`
+- `saveAttemptProgress()`, `saveTimedAttemptProgress()`, `markTimedAttemptStarted()`
+- `finishAttempt()`, `retakeAttempt()`
 - `getAttemptForReview()`, `getStudentAttempts()`, `getAttemptById()`
 
 ---
 
-## Automation Principle
-The platform is built to automate. Adding new content never requires code changes:
-- Add programme → insert row in `programs` → appears on homepage and register page automatically
-- Add course → insert row in `courses` → appears in student dashboard and sidebar
-- Add product → insert row in `products` → appears in subscribe and upgrade pages
+## Automation
+- Add programme → insert row in `programs`
+- Add course → insert row in `courses` + create `items_{course_id}` table
+- Add product → insert row in `products`
 - Add announcement → use `admin/announcements.html`
 - Add fixed quiz → use `admin/fixed-quizzes.html`
 - Add/edit questions → use `admin/question-bank.html`
-- Change platform settings → use `admin/config.html`
+- Change settings → use `admin/config.html`
 
 ---
 
@@ -199,17 +228,12 @@ All tables use `dev_allow_all` policies during build. Replace with proper role-b
 
 ---
 
-## What's Next
-1. Finalise and sign off quiz builder (`student/quiz-builder.html`)
-2. Paystack webhook — Cloudflare Worker (isolated single file)
-3. `admin/payments.html` — full payment records page
-4. Messaging: `student/messages.html` + admin messages view
-5. Telegram bot integration
-6. Real question bank import — 616 GP questions ready in CSV
-7. RLS policy tightening before go-live
-
-### Intentionally Deferred
-- My Teacher feature (teacher classes, question banks, teacher-created quizzes)
-- Sequential runner mode
-- Offline packs / PDF downloads
-- Student profile page (`student/profile.html`) — placeholder in My Account sidebar menu
+## Before Going Live Checklist
+- [ ] Replace dev_allow_all RLS with proper role-based policies
+- [ ] Set up custom SMTP for emails
+- [ ] Turn on email confirmation in Supabase Auth
+- [ ] Set up custom domain on Cloudflare
+- [x] Set up Paystack webhook (Cloudflare Worker) ✅
+- [ ] Remove test accounts
+- [ ] Rotate Supabase anon key if ever committed publicly
+- [ ] Review and clean up question bank content before go-live
