@@ -223,33 +223,33 @@
       color: var(--accent, #2d7d72);
     }
 
-/* ── Sign out ────────────────────────────────────────── */
-.router-footer {
-  margin-top: 24px;
-  width: 100%;
-  max-width: 680px;
-  display: flex;
-  justify-content: center;
-}
-.btn-signout {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--white, #fff);
-  border: 1px solid var(--border, #e2e8f0);
-  color: var(--text-muted, #64748b);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 10px 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(30,58,95,0.06);
-  transition: border-color 0.15s, color 0.15s;
-}
-.btn-signout:hover {
-  border-color: rgba(220,38,38,0.3);
-  color: var(--danger, #dc2626);
-}
+    /* ── Sign out ────────────────────────────────────────── */
+    .router-footer {
+      margin-top: 24px;
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      justify-content: center;
+    }
+    .btn-signout {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--white, #fff);
+      border: 1px solid var(--border, #e2e8f0);
+      color: var(--text-muted, #64748b);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 10px 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(30,58,95,0.06);
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-signout:hover {
+      border-color: rgba(220,38,38,0.3);
+      color: var(--danger, #dc2626);
+    }
 
   </style>
 </head>
@@ -312,13 +312,13 @@
         <p class="card-desc" id="taDesc">
           Classes, quizzes, question bank and results.
         </p>
-  <button class="btn-go" id="btnTA" disabled>
-  Open My Classes →
-</button>
-<button class="btn-go secondary" id="btnRequestAccess" style="display:none; margin-top:8px;">
-  Request Teacher Access →
-</button>
-<p class="card-note" id="taNote" style="display:none;"></p>
+        <button class="btn-go" id="btnTA" disabled>
+          Open My Classes →
+        </button>
+        <button class="btn-go secondary" id="btnRequestAccess" style="display:none; margin-top:8px;">
+          Request Teacher Access →
+        </button>
+        <p class="card-note" id="taNote" style="display:none;"></p>
       </div>
     </div>
 
@@ -433,8 +433,8 @@
         .eq('teacher_id', profile.user_id)
         .maybeSingle();
 
-      const isActive = teacherProfile && teacherProfile.active === true;
-      const reqStatus = teacherProfile
+      const isActive   = teacherProfile && teacherProfile.active === true;
+      const reqStatus  = teacherProfile
         ? String(teacherProfile.request_status || '').toUpperCase()
         : 'PENDING';
 
@@ -459,16 +459,54 @@
         setPill('taPill', statusLabel, 'pending');
       }
 
-} else {
-  // STUDENT — show both options: My Classes + Request Teacher Access
-  byId('taDesc').textContent = 'Join teacher classes and take assigned quizzes. Or if you are a teacher, request access to create your own classes and quizzes.';
-  byId('btnTA').textContent  = 'Open My Classes →';
-  byId('btnTA').disabled     = false;
-  byId('btnTA').onclick      = () => window.location.href = DESTINATIONS.studentMyTeacher;
-  byId('btnRequestAccess').style.display = 'flex';
-  byId('btnRequestAccess').onclick = () => window.location.href = DESTINATIONS.teacherRequest;
-  setPill('taPill', 'Student', 'ready');
-}
+    } else {
+      // ── STUDENT: check teacher_profiles first ──────────
+      // A student who has already submitted a request should see their
+      // actual status (Pending/Disabled), not the default two-button view.
+      const { data: teacherProfile } = await db
+        .from('teacher_profiles')
+        .select('active, request_status')
+        .eq('teacher_id', profile.user_id)
+        .maybeSingle();
+
+      if (teacherProfile && teacherProfile.active === true) {
+        // Approved but role not yet updated — treat as pending/contact admin
+        byId('taDesc').textContent   = 'Your teacher access has been approved. Please contact admin if your role has not updated.';
+        byId('btnTA').textContent    = 'View Request Status →';
+        byId('btnTA').disabled       = false;
+        byId('btnTA').onclick        = () => window.location.href = DESTINATIONS.teacherRequest;
+        byId('btnTA').className      = 'btn-go secondary';
+        setPill('taPill', 'Approved', 'ready');
+
+      } else if (teacherProfile && String(teacherProfile.request_status || '').toUpperCase() === 'DISABLED') {
+        byId('taDesc').textContent   = 'Your teacher access has been disabled. Contact admin for support.';
+        byId('btnTA').textContent    = 'View Request Status →';
+        byId('btnTA').disabled       = false;
+        byId('btnTA').onclick        = () => window.location.href = DESTINATIONS.teacherRequest;
+        byId('btnTA').className      = 'btn-go secondary';
+        setPill('taPill', 'Disabled', 'pending');
+
+      } else if (teacherProfile && String(teacherProfile.request_status || '').toUpperCase() === 'PENDING') {
+        byId('taDesc').textContent   = 'Your teacher access request is pending admin approval.';
+        byId('btnTA').textContent    = 'View Request Status →';
+        byId('btnTA').disabled       = false;
+        byId('btnTA').onclick        = () => window.location.href = DESTINATIONS.teacherRequest;
+        byId('btnTA').className      = 'btn-go secondary';
+        byId('taNote').textContent   = 'You can still use My Classes as a student while waiting.';
+        byId('taNote').style.display = 'block';
+        setPill('taPill', 'Pending', 'pending');
+
+      } else {
+        // No request yet — show default two-button view
+        byId('taDesc').textContent = 'Join teacher classes and take assigned quizzes. Or if you are a teacher, request access to create your own classes and quizzes.';
+        byId('btnTA').textContent  = 'Open My Classes →';
+        byId('btnTA').disabled     = false;
+        byId('btnTA').onclick      = () => window.location.href = DESTINATIONS.studentMyTeacher;
+        byId('btnRequestAccess').style.display = 'flex';
+        byId('btnRequestAccess').onclick = () => window.location.href = DESTINATIONS.teacherRequest;
+        setPill('taPill', 'Student', 'ready');
+      }
+    }
 
     // 5. Show cards, hide spinner
     setStatus('Welcome back, ' + displayName, 'Choose which area to open.');
