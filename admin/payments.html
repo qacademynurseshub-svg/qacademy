@@ -430,24 +430,44 @@ async function init() {
 
 // ─── Load all payments ────────────────────────────
 async function loadData() {
-  // Join with users (name, email, program_id) and products (name)
-  const { data, error } = await db
-    .from('payments')
-    .select(`
-      *,
-      users ( user_id, name, forename, surname, email, program_id ),
-      products ( name )
-    `)
-    .order('created_at', { ascending: false });
+  // Load payments and users separately — no FK join
+  const [paymentsResult, users] = await Promise.all([
+    db.from('payments').select('*').order('created_at', { ascending: false }),
+    getUsers()
+  ]);
 
-  if (error) {
-    console.error('loadData:', error);
+  if (paymentsResult.error) {
+    console.error('loadData:', paymentsResult.error);
     document.getElementById('tableArea').innerHTML =
-      `<div class="empty-state">Error loading payments: ${error.message}</div>`;
+      `<div class="empty-state">Error loading payments: ${paymentsResult.error.message}</div>`;
     return;
   }
 
-  allPayments = data || [];
+  // Build email → user lookup map for fast client-side matching
+  const usersByEmail = {};
+  const usersById    = {};
+  users.forEach(u => {
+    if (u.email) usersByEmail[u.email.toLowerCase()] = u;
+    if (u.user_id) usersById[u.user_id] = u;
+  });
+
+  // Attach matched user and product name to each payment row
+  allPayments = (paymentsResult.data || []).map(p => {
+    const matchedUser =
+      (p.user_id && usersById[p.user_id]) ||
+      (p.email   && usersByEmail[p.email.toLowerCase()]) ||
+      null;
+
+    // Also find product name from allProducts (already loaded)
+    const matchedProduct = allProducts.find(x => x.product_id === p.product_id) || null;
+
+    return {
+      ...p,
+      users:    matchedUser   ? { user_id: matchedUser.user_id, name: matchedUser.name, forename: matchedUser.forename, surname: matchedUser.surname, email: matchedUser.email, program_id: matchedUser.program_id } : null,
+      products: matchedProduct ? { name: matchedProduct.name } : null
+    };
+  });
+
   updateStats();
   applyFilters();
   renderRevenue();
