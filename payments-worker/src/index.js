@@ -15,18 +15,37 @@ export default {
         });
       }
 
-      if (request.method === 'POST' && url.pathname === '/payments/init-public') {
-        return await handleInitPublic(request, env);
-      }
-            if (request.method === 'POST' && url.pathname === '/payments/init-upgrade') {
-        return await handleInitUpgrade(request, env);
-      }
+if (request.method === 'POST' && url.pathname === '/admin/subscriptions/grant') {
+  return await handleAdminGrantSubscription(request, env);
+}
+
+if (request.method === 'POST' && url.pathname === '/admin/subscriptions/update') {
+  return await handleAdminUpdateSubscription(request, env);
+}
+
+if (request.method === 'POST' && url.pathname === '/admin/subscriptions/revoke') {
+  return await handleAdminRevokeSubscription(request, env);
+}
+
+if (request.method === 'POST' && url.pathname === '/admin/subscriptions/sync-expired') {
+  return await handleAdminSyncExpiredSubscriptions(request, env);
+}
+
+if (request.method === 'POST' && url.pathname === '/payments/init-public') {
+  return await handleInitPublic(request, env);
+}
+
+if (request.method === 'POST' && url.pathname === '/payments/init-upgrade') {
+  return await handleInitUpgrade(request, env);
+}
+
 if (request.method === 'POST' && url.pathname === '/payments/setup-complete') {
   return await handleSetupComplete(request, env);
 }
-      if (request.method === 'GET' && url.pathname === '/payments/verify') {
-        return await handleVerify(request, env);
-      }
+
+if (request.method === 'GET' && url.pathname === '/payments/verify') {
+  return await handleVerify(request, env);
+}
 
       return json(
         { ok: false, error: 'not_found' },
@@ -336,7 +355,7 @@ async function getUserById(env, userId) {
 }
 async function getUserByAuthId(env, authId) {
   return sbMaybeOne(env, 'users', {
-    select: 'user_id,email,auth_id,forename,surname,name,active,program_id,phone_number',
+    select: 'user_id,email,auth_id,forename,surname,name,active,program_id,phone_number,role',
     filters: {
       auth_id: `eq.${authId}`
     }
@@ -408,7 +427,167 @@ async function getSubscriptionByPaymentRef(env, reference) {
     }
   });
 }
+const ADMIN_SUB_STATUSES = ['ACTIVE', 'EXPIRED', 'REVOKED'];
+const ADMIN_SUB_SOURCES  = ['SELF_TRIAL_SIGNUP', 'PAYSTACK', 'ADMIN'];
 
+async function sbPatchMany(env, table, payload, filters = {}) {
+  const params = buildFilterParams(filters);
+
+  const res = await fetch(`${sbBase(env)}/${table}?${params.toString()}`, {
+    method: 'PATCH',
+    headers: {
+      ...sbHeaders(env),
+      Prefer: 'return=representation'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Supabase patch failed on ${table}: ${text}`);
+  }
+
+  return text ? JSON.parse(text) : [];
+}
+
+function normalizeUpper(val) {
+  return String(val || '').trim().toUpperCase();
+}
+
+function isDateOnlyString(val) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(val || '').trim());
+}
+
+function dateOnlyToStartIso(val) {
+  const s = String(val || '').trim();
+  if (!isDateOnlyString(s)) return '';
+  return `${s}T00:00:00.000Z`;
+}
+
+function dateOnlyToEndIso(val) {
+  const s = String(val || '').trim();
+  if (!isDateOnlyString(s)) return '';
+  return `${s}T23:59:59.999Z`;
+}
+
+async function getSubscriptionById(env, subscriptionId) {
+  return sbMaybeOne(env, 'subscriptions', {
+    select: '*',
+    filters: {
+      subscription_id: `eq.${subscriptionId}`
+    }
+  });
+}
+
+async function getActiveSubscriptionForUserProduct(env, { userId, productId, excludeSubscriptionId = '' }) {
+  const filters = {
+    user_id: `eq.${userId}`,
+    product_id: `eq.${productId}`,
+    status: 'eq.ACTIVE',
+    expires_utc: `gt.${nowIso()}`
+  };
+
+  if (excludeSubscriptionId) {
+    filters.subscription_id = `neq.${excludeSubscriptionId}`;
+  }
+
+  return sbMaybeOne(env, 'subscriptions', {
+    select: 'subscription_id,user_id,product_id,start_utc,expires_utc,status,source,source_ref',
+    filters
+  });
+}
+
+async function requireAdminFromRequest(request, env, body = null) {
+  const accessToken =
+    getBearerToken(request) ||
+    String(body?.access_token || '').trim();
+
+  if (!accessToken) {
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          error: 'missing_access_token',
+          message: 'Admin session required'
+        },
+        401,
+        corsHeaders(request, env)
+      )
+    };
+  }
+
+  const authUser = await authGetUserFromAccessToken(env, accessToken);
+
+  if (!authUser?.id) {
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          error: 'invalid_or_expired_session',
+          message: 'Please sign in again and retry'
+        },
+        401,
+        corsHeaders(request, env)
+      )
+    };
+  }
+
+  const adminUser = await getUserByAuthId(env, authUser.id);
+
+  if (!adminUser) {
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          error: 'user_profile_not_found',
+          message: 'Signed-in user found, but no matching users row exists'
+        },
+        404,
+        corsHeaders(request, env)
+      )
+    };
+  }
+
+  if (adminUser.active === false || adminUser.active === 'false') {
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          error: 'user_inactive',
+          message: 'Your account is inactive'
+        },
+        403,
+        corsHeaders(request, env)
+      )
+    };
+  }
+
+  if (String(adminUser.role || '').trim().toUpperCase() !== 'ADMIN') {
+    return {
+      ok: false,
+      response: json(
+        {
+          ok: false,
+          error: 'forbidden',
+          message: 'Admin role required'
+        },
+        403,
+        corsHeaders(request, env)
+      )
+    };
+  }
+
+  return {
+    ok: true,
+    accessToken,
+    authUser,
+    adminUser
+  };
+}
 /* ============================================================
  * ACTIVATION HELPER
  * Rule:
@@ -1399,4 +1578,368 @@ async function handleSetupComplete(request, env) {
       corsHeaders(request, env)
     );
   }
+}
+/* ============================================================
+ * ADMIN SUBSCRIPTIONS
+ * Trusted admin-only writes
+ * ============================================================ */
+
+async function handleAdminGrantSubscription(request, env) {
+  const body = await readJson(request);
+
+  if (!body) {
+    return json({ ok: false, error: 'invalid_json' }, 400, corsHeaders(request, env));
+  }
+
+  const adminCtx = await requireAdminFromRequest(request, env, body);
+  if (!adminCtx.ok) return adminCtx.response;
+
+  const userId = String(body.user_id || '').trim();
+  const productId = normalizeUpper(body.product_id);
+  const startDate = String(body.start_date || '').trim();
+
+  if (!userId) {
+    return json(
+      { ok: false, error: 'missing_user_id', message: 'Target user is required' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (!productId) {
+    return json(
+      { ok: false, error: 'missing_product_id', message: 'Product is required' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  const targetUser = await getUserById(env, userId);
+  if (!targetUser) {
+    return json(
+      { ok: false, error: 'user_not_found', message: 'Target user was not found' },
+      404,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (targetUser.active === false || targetUser.active === 'false') {
+    return json(
+      { ok: false, error: 'user_inactive', message: 'Target user is inactive' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  const product = await getProductById(env, productId, true);
+  if (!product) {
+    return json(
+      { ok: false, error: 'product_not_found_or_inactive', message: 'Product not found or inactive' },
+      404,
+      corsHeaders(request, env)
+    );
+  }
+
+  const duplicate = await getActiveSubscriptionForUserProduct(env, { userId, productId });
+  if (duplicate) {
+    return json(
+      {
+        ok: false,
+        error: 'duplicate_active_subscription',
+        message: 'This user already has an active unexpired subscription for that product'
+      },
+      409,
+      corsHeaders(request, env)
+    );
+  }
+
+  let startIso = nowIso();
+  if (startDate) {
+    startIso = dateOnlyToStartIso(startDate);
+    if (!startIso) {
+      return json(
+        { ok: false, error: 'invalid_start_date', message: 'Start date must be YYYY-MM-DD' },
+        400,
+        corsHeaders(request, env)
+      );
+    }
+  }
+
+  const durationDays = Number(product.duration_days || 0);
+  const expiresIso = addDaysIso(startIso, durationDays);
+
+  const inserted = await sbInsert(env, 'subscriptions', {
+    subscription_id: makeId('SUB'),
+    user_id: userId,
+    product_id: productId,
+    start_utc: startIso,
+    expires_utc: expiresIso,
+    status: 'ACTIVE',
+    source: 'ADMIN',
+    source_ref: 'admin_grant',
+    expiry_reminded: false
+  });
+
+  return json(
+    {
+      ok: true,
+      subscription: inserted,
+      granted_by_user_id: adminCtx.adminUser.user_id
+    },
+    200,
+    corsHeaders(request, env)
+  );
+}
+
+async function handleAdminUpdateSubscription(request, env) {
+  const body = await readJson(request);
+
+  if (!body) {
+    return json({ ok: false, error: 'invalid_json' }, 400, corsHeaders(request, env));
+  }
+
+  const adminCtx = await requireAdminFromRequest(request, env, body);
+  if (!adminCtx.ok) return adminCtx.response;
+
+  const subscriptionId = String(body.subscription_id || '').trim();
+  const productId = normalizeUpper(body.product_id);
+  const startDate = String(body.start_date || '').trim();
+  const expiryDate = String(body.expiry_date || '').trim();
+  const status = normalizeUpper(body.status);
+  const source = normalizeUpper(body.source);
+  const sourceRefInput = String(body.source_ref || '').trim();
+
+  if (!subscriptionId) {
+    return json(
+      { ok: false, error: 'missing_subscription_id', message: 'Subscription ID is required' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (!productId) {
+    return json(
+      { ok: false, error: 'missing_product_id', message: 'Product is required' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (!isDateOnlyString(startDate)) {
+    return json(
+      { ok: false, error: 'invalid_start_date', message: 'Start date must be YYYY-MM-DD' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (!isDateOnlyString(expiryDate)) {
+    return json(
+      { ok: false, error: 'invalid_expiry_date', message: 'Expiry date must be YYYY-MM-DD' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (!ADMIN_SUB_STATUSES.includes(status)) {
+    return json(
+      { ok: false, error: 'invalid_status', message: `Allowed statuses: ${ADMIN_SUB_STATUSES.join(', ')}` },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (!ADMIN_SUB_SOURCES.includes(source)) {
+    return json(
+      { ok: false, error: 'invalid_source', message: `Allowed sources: ${ADMIN_SUB_SOURCES.join(', ')}` },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  const existing = await getSubscriptionById(env, subscriptionId);
+  if (!existing) {
+    return json(
+      { ok: false, error: 'subscription_not_found', message: 'Subscription not found' },
+      404,
+      corsHeaders(request, env)
+    );
+  }
+
+  const product = await getProductById(env, productId, false);
+  if (!product) {
+    return json(
+      { ok: false, error: 'product_not_found', message: 'Product not found' },
+      404,
+      corsHeaders(request, env)
+    );
+  }
+
+  const startIso = dateOnlyToStartIso(startDate);
+  const expiresIso = dateOnlyToEndIso(expiryDate);
+
+  if (!startIso || !expiresIso) {
+    return json(
+      { ok: false, error: 'invalid_dates', message: 'Start and expiry dates are required' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (new Date(expiresIso).getTime() <= new Date(startIso).getTime()) {
+    return json(
+      { ok: false, error: 'invalid_date_range', message: 'Expiry date must be after start date' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  if (status === 'ACTIVE' && new Date(expiresIso).getTime() > Date.now()) {
+    const duplicate = await getActiveSubscriptionForUserProduct(env, {
+      userId: existing.user_id,
+      productId,
+      excludeSubscriptionId: subscriptionId
+    });
+
+    if (duplicate) {
+      return json(
+        {
+          ok: false,
+          error: 'duplicate_active_subscription',
+          message: 'Another active unexpired subscription already exists for this user and product'
+        },
+        409,
+        corsHeaders(request, env)
+      );
+    }
+  }
+
+  const finalSourceRef =
+    source === 'ADMIN'
+      ? (sourceRefInput || 'admin_grant')
+      : (sourceRefInput || null);
+
+  const updated = await sbPatch(
+    env,
+    'subscriptions',
+    {
+      product_id: productId,
+      start_utc: startIso,
+      expires_utc: expiresIso,
+      status,
+      source,
+      source_ref: finalSourceRef
+    },
+    {
+      subscription_id: `eq.${subscriptionId}`
+    }
+  );
+
+  return json(
+    {
+      ok: true,
+      subscription: updated,
+      updated_by_user_id: adminCtx.adminUser.user_id
+    },
+    200,
+    corsHeaders(request, env)
+  );
+}
+
+async function handleAdminRevokeSubscription(request, env) {
+  const body = await readJson(request);
+
+  if (!body) {
+    return json({ ok: false, error: 'invalid_json' }, 400, corsHeaders(request, env));
+  }
+
+  const adminCtx = await requireAdminFromRequest(request, env, body);
+  if (!adminCtx.ok) return adminCtx.response;
+
+  const subscriptionId = String(body.subscription_id || '').trim();
+
+  if (!subscriptionId) {
+    return json(
+      { ok: false, error: 'missing_subscription_id', message: 'Subscription ID is required' },
+      400,
+      corsHeaders(request, env)
+    );
+  }
+
+  const existing = await getSubscriptionById(env, subscriptionId);
+  if (!existing) {
+    return json(
+      { ok: false, error: 'subscription_not_found', message: 'Subscription not found' },
+      404,
+      corsHeaders(request, env)
+    );
+  }
+
+  const updated = await sbPatch(
+    env,
+    'subscriptions',
+    {
+      status: 'REVOKED'
+    },
+    {
+      subscription_id: `eq.${subscriptionId}`
+    }
+  );
+
+  return json(
+    {
+      ok: true,
+      subscription: updated,
+      revoked_by_user_id: adminCtx.adminUser.user_id
+    },
+    200,
+    corsHeaders(request, env)
+  );
+}
+
+async function handleAdminSyncExpiredSubscriptions(request, env) {
+  const body = await readJson(request).catch(() => null);
+
+  const adminCtx = await requireAdminFromRequest(request, env, body || {});
+  if (!adminCtx.ok) return adminCtx.response;
+
+  const due = await sbSelect(env, 'subscriptions', {
+    select: 'subscription_id',
+    filters: {
+      status: 'eq.ACTIVE',
+      expires_utc: `lt.${nowIso()}`
+    }
+  });
+
+  if (!due.length) {
+    return json(
+      {
+        ok: true,
+        updated_count: 0
+      },
+      200,
+      corsHeaders(request, env)
+    );
+  }
+
+  const updated = await sbPatchMany(
+    env,
+    'subscriptions',
+    {
+      status: 'EXPIRED'
+    },
+    {
+      status: 'eq.ACTIVE',
+      expires_utc: `lt.${nowIso()}`
+    }
+  );
+
+  return json(
+    {
+      ok: true,
+      updated_count: updated.length
+    },
+    200,
+    corsHeaders(request, env)
+  );
 }
