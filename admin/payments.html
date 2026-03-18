@@ -432,7 +432,7 @@ async function init() {
 async function loadData() {
   // Load payments and users separately — no FK join
   const [paymentsResult, users] = await Promise.all([
-    db.from('payments').select('*').order('created_at', { ascending: false }),
+db.from('payments').select('*').order('paid_utc', { ascending: false, nullsFirst: false }),
     getUsers()
   ]);
 
@@ -525,8 +525,8 @@ function applyFilters() {
     if (status    && p.status !== status)     return false;
     if (product   && p.product_id !== product) return false;
     if (programme && progId !== programme)    return false;
-    if (from && p.created_at && p.created_at.substring(0,10) < from) return false;
-    if (to   && p.created_at && p.created_at.substring(0,10) > to)   return false;
+    if (from && p.paid_utc && p.paid_utc.substring(0,10) < from) return false;
+if (to   && p.paid_utc && p.paid_utc.substring(0,10) > to)   return false;
     return true;
   });
 
@@ -565,9 +565,9 @@ function renderTable(payments) {
       : p.amount_minor_expected
         ? `(${formatMoney(p.amount_minor_expected, p.currency)})`
         : '—';
-    const date    = p.created_at
-      ? new Date(p.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
-      : '—';
+    const date = p.paid_utc
+  ? new Date(p.paid_utc).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+  : '—';
 
     rows += `
       <tr onclick="openPanel('${escAttr(p.reference)}')">
@@ -592,8 +592,8 @@ function renderTable(payments) {
           <th>Product</th>
           <th>Amount</th>
           <th>Status</th>
-          <th>Date</th>
-        </tr>
+<th>Paid</th>
+</tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
