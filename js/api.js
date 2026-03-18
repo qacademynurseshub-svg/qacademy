@@ -1088,7 +1088,580 @@ async function spawnBuilderAttempt(userId, courseId, itemIds, mode, meta = {}) {
   return data;
 }
 
+// ============================================================
+// OFFLINE PACK FUNCTIONS
+// Shared by:
+//   - student/offline-pack-builder.html
+//   - student/offline-pack-renderer.html
+//   - student/my-offline-packs.html
+//
+// Design:
+//   - Reuse the SAME builder filtering/picking flow client-side
+//   - At submit time, do offline-specific checks here
+//   - Save immutable snapshot row to offline_packs
+//   - Renderer reads only from saved snapshot
+// ============================================================
 
+// ------------------------------------------------------------
+// OFFLINE HELPERS
+// ------------------------------------------------------------
+function makeOfflinePackId() {
+  return 'PACK_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function safeArray(values) {
+  return Array.isArray(values)
+    ? [...new Set(values.map(v => String(v || '').trim()).filter(Boolean))]
+    : [];
+}
+
+function maskEmailForOffline(email) {
+  const raw = String(email || '').trim();
+  if (!raw || !raw.includes('@')) return '';
+  const [name, domain] = raw.split('@');
+  if (!name || !domain) return raw;
+
+  if (name.length <= 2) {
+    return `${name[0] || '*'}***@${domain}`;
+  }
+
+  return `${name.slice(0, 3)}***@${domain}`;
+}
+
+function buildOfflineOwnerLabel(name, maskedEmail) {
+  const safeName = String(name || '').trim() || 'QAcademy Student';
+  const safeMail = String(maskedEmail || '').trim();
+  return safeMail
+    ? `Prepared for: ${safeName} (${safeMail})`
+    : `Prepared for: ${safeName}`;
+}
+
+function canonicalOfflineDifficultyLabel(d) {
+  const s = String(d || '').trim().toLowerCase();
+  if (s === 'easy') return 'Easy';
+  if (s === 'moderate' || s === 'medium') return 'Moderate';
+  if (s === 'hard' || s === 'difficult') return 'Hard';
+  return String(d || '').trim();
+}
+
+function buildOfflinePackDisplayLabel(meta = {}) {
+  const maintopics   = safeArray(meta.maintopics);
+  const difficulties = safeArray(meta.difficulties).map(canonicalOfflineDifficultyLabel).filter(Boolean);
+  const n            = Number(meta.n || meta.question_count || 0);
+
+  let focus = 'Offline Pack';
+
+  if (meta.selection_mode === 'concept') {
+    const concepts = safeArray(meta.concepts);
+    const q = String(meta.concept_query || '').trim();
+
+    if (concepts.length === 1 && !q) {
+      focus = concepts[0];
+    } else if (concepts.length > 1) {
+      focus = 'Concept Mix';
+    } else if (q) {
+      focus = q;
+    } else if (maintopics.length === 1) {
+      focus = maintopics[0];
+    }
+  } else {
+    if (maintopics.length === 1) {
+      focus = maintopics[0];
+    } else if (maintopics.length > 1) {
+      focus = 'Mixed Topics';
+    } else {
+      focus = 'Full Bank';
+    }
+  }
+
+  let diffPart = 'Mixed';
+  const canon = [...new Set(difficulties)];
+
+  if (canon.length === 1) diffPart = `${canon[0]} only`;
+  else if (canon.length === 2) diffPart = `${canon[0]} + ${canon[1]}`;
+
+  return `${focus} (${diffPart}${n > 0 ? `, ${n}Q` : ''})`;
+}
+
+function buildOfflinePackDefaultName(meta = {}) {
+  return buildOfflinePackDisplayLabel(meta).slice(0, 80) || 'Offline Pack';
+}
+
+function isActiveSubscriptionNow(sub) {
+  if (!sub) return false;
+  if (String(sub.status || '').toUpperCase() !== 'ACTIVE') return false;
+
+  const now = Date.now();
+  const exp = sub.expires_utc ? new Date(sub.expires_utc).getTime() : null;
+  if (!exp || Number.isNaN(exp)) return false;
+
+  return exp > now;
+}
+
+function includesCourse(sub, courseId) {
+  const cid = String(courseId || '').trim().toUpperCase();
+  const arr = Array.isArray(sub?.products?.courses_included) ? sub.products.courses_included : [];
+  return arr.map(v => String(v || '').trim().toUpperCase()).includes(cid);
+}
+
+function isTrialProduct(sub) {
+  return String(sub?.products?.kind || '').trim().toUpperCase() === 'TRIAL';
+}
+
+// ------------------------------------------------------------
+// OFFLINE USER / SUBS HELPERS
+// ------------------------------------------------------------
+async function getOfflinePackUserProfile(userId) {
+  const { data, error } = await db
+    .from('users')
+    .select('user_id, name, forename, surname, email')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error('getOfflinePackUserProfile:', error);
+    return null;
+  }
+
+  const fullName =
+    String(data.name || '').trim() ||
+    `${String(data.forename || '').trim()} ${String(data.surname || '').trim()}`.trim() ||
+    'QAcademy Student';
+
+  return {
+    user_id: data.user_id,
+    owner_name: fullName,
+    owner_email: String(data.email || '').trim()
+  };
+}
+
+async function getSubscriptionsForOfflineCourse(userId, courseId) {
+  const { data, error } = await db
+    .from('subscriptions')
+    .select(`
+      subscription_id,
+      user_id,
+      product_id,
+      start_utc,
+      expires_utc,
+      status,
+      source,
+      products (
+        product_id,
+        name,
+        kind,
+        courses_included
+      )
+    `)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('getSubscriptionsForOfflineCourse:', error);
+    return [];
+  }
+
+  return (data || []).filter(sub => includesCourse(sub, courseId));
+}
+
+// ------------------------------------------------------------
+// OFFLINE ALLOWANCE
+// Returns:
+// {
+//   ok,
+//   allowed,
+//   blocked_reason,         // null | not_subscribed | renew_required | trial_not_allowed
+//   course_id,
+//   downloads_per_course,
+//   used_this_period,
+//   remaining,
+//   period_start,
+//   is_trial
+// }
+// ------------------------------------------------------------
+async function getOfflinePackAllowance(userId, courseId) {
+  const safeCourseId = String(courseId || '').trim().toUpperCase();
+  const cfg = await getConfig();
+
+  const downloadsPerCourse = Number(cfg.offline_packs_per_course) > 0
+    ? Number(cfg.offline_packs_per_course)
+    : 3;
+
+  const allCourseSubs = await getSubscriptionsForOfflineCourse(userId, safeCourseId);
+
+  if (!allCourseSubs.length) {
+    return {
+      ok: false,
+      allowed: false,
+      blocked_reason: 'not_subscribed',
+      course_id: safeCourseId,
+      downloads_per_course: downloadsPerCourse,
+      used_this_period: 0,
+      remaining: 0,
+      period_start: null,
+      is_trial: false
+    };
+  }
+
+  const activeCourseSubs = allCourseSubs.filter(isActiveSubscriptionNow);
+
+  if (!activeCourseSubs.length) {
+    return {
+      ok: false,
+      allowed: false,
+      blocked_reason: 'renew_required',
+      course_id: safeCourseId,
+      downloads_per_course: downloadsPerCourse,
+      used_this_period: 0,
+      remaining: 0,
+      period_start: null,
+      is_trial: false
+    };
+  }
+
+  const qualifyingSubs = activeCourseSubs.filter(sub => !isTrialProduct(sub));
+
+  if (!qualifyingSubs.length) {
+    return {
+      ok: false,
+      allowed: false,
+      blocked_reason: 'trial_not_allowed',
+      course_id: safeCourseId,
+      downloads_per_course: downloadsPerCourse,
+      used_this_period: 0,
+      remaining: 0,
+      period_start: null,
+      is_trial: true
+    };
+  }
+
+  const periodStartIso = qualifyingSubs
+    .map(sub => String(sub.start_utc || '').trim())
+    .filter(Boolean)
+    .sort()[0] || null;
+
+  let query = db
+    .from('offline_packs')
+    .select('pack_id, created_utc', { count: 'exact' })
+    .eq('user_id', userId)
+    .eq('course_id', safeCourseId)
+    .eq('status', 'active');
+
+  if (periodStartIso) {
+    query = query.gte('created_utc', periodStartIso);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error('getOfflinePackAllowance:', error);
+    return {
+      ok: false,
+      allowed: false,
+      blocked_reason: 'allowance_check_failed',
+      course_id: safeCourseId,
+      downloads_per_course: downloadsPerCourse,
+      used_this_period: 0,
+      remaining: 0,
+      period_start: periodStartIso,
+      is_trial: false
+    };
+  }
+
+  const usedThisPeriod = Number(count || 0);
+  const remaining = Math.max(0, downloadsPerCourse - usedThisPeriod);
+
+  return {
+    ok: true,
+    allowed: remaining > 0,
+    blocked_reason: null,
+    course_id: safeCourseId,
+    downloads_per_course: downloadsPerCourse,
+    used_this_period: usedThisPeriod,
+    remaining,
+    period_start: periodStartIso,
+    is_trial: false
+  };
+}
+
+// ------------------------------------------------------------
+// CREATE OFFLINE PACK
+// payload shape:
+// {
+//   course_id,
+//   item_ids,               // REQUIRED final chosen item IDs in order
+//   question_count,         // optional
+//   pack_name,              // optional
+//   selection_mode,         // 'topics' | 'concept'
+//   maintopics,             // array
+//   subtopics,              // array
+//   difficulties,           // array
+//   question_types,         // array
+//   concepts,               // array (not stored separately, used for naming only)
+//   concept_query,          // string
+//   display_label           // optional
+// }
+//
+// Returns:
+// {
+//   success,
+//   pack_id,
+//   blocked_reason,
+//   remaining,
+//   pack
+// }
+// ------------------------------------------------------------
+async function createOfflinePack(userId, payload = {}) {
+  const safeCourseId = String(payload.course_id || '').trim().toUpperCase();
+  const safeIds = safeArray(payload.item_ids);
+  const cfg = await getConfig();
+
+  const maxQuestions = Number(cfg.offline_max_questions) > 0
+    ? Number(cfg.offline_max_questions)
+    : 50;
+
+  if (!safeCourseId) {
+    return { success: false, blocked_reason: 'missing_course_id', message: 'Course is required.' };
+  }
+
+  if (!safeIds.length) {
+    return { success: false, blocked_reason: 'no_items_match', message: 'No questions were selected.' };
+  }
+
+  if (safeIds.length > maxQuestions) {
+    return {
+      success: false,
+      blocked_reason: 'question_limit_exceeded',
+      message: `This offline pack exceeds the current limit of ${maxQuestions} questions.`
+    };
+  }
+
+  const allowance = await getOfflinePackAllowance(userId, safeCourseId);
+  if (!allowance.ok) {
+    return {
+      success: false,
+      blocked_reason: allowance.blocked_reason || 'not_allowed',
+      message: 'Offline pack access is currently blocked.',
+      allowance
+    };
+  }
+
+  if (allowance.remaining < 1) {
+    return {
+      success: false,
+      blocked_reason: 'limit_reached',
+      message: 'You have reached your offline pack limit for this course.',
+      allowance
+    };
+  }
+
+  const profile = await getOfflinePackUserProfile(userId);
+  if (!profile) {
+    return { success: false, blocked_reason: 'user_not_found', message: 'User profile not found.' };
+  }
+
+  const packId = makeOfflinePackId();
+  const ownerEmailMask = maskEmailForOffline(profile.owner_email);
+  const watermark = {
+    pack_id: packId,
+    user_id: String(userId).trim(),
+    owner_name: profile.owner_name,
+    owner_email_mask: ownerEmailMask,
+    owner_label: buildOfflineOwnerLabel(profile.owner_name, ownerEmailMask)
+  };
+
+  const metaForLabels = {
+    n: safeIds.length,
+    question_count: safeIds.length,
+    selection_mode: payload.selection_mode || 'topics',
+    maintopics: payload.maintopics || [],
+    difficulties: payload.difficulties || [],
+    concepts: payload.concepts || [],
+    concept_query: payload.concept_query || ''
+  };
+
+  const displayLabel =
+    String(payload.display_label || '').trim() ||
+    buildOfflinePackDisplayLabel(metaForLabels);
+
+  const packName =
+    String(payload.pack_name || '').trim() ||
+    buildOfflinePackDefaultName(metaForLabels);
+
+  const insertRow = {
+    pack_id:         packId,
+    user_id:         String(userId).trim(),
+    course_id:       safeCourseId,
+    pack_name:       packName.slice(0, 120),
+    selection_mode:  String(payload.selection_mode || 'topics').trim().toLowerCase() === 'concept' ? 'concept' : 'topics',
+    maintopics:      safeArray(payload.maintopics),
+    subtopics:       safeArray(payload.subtopics),
+    difficulties:    safeArray(payload.difficulties),
+    question_types:  safeArray(payload.question_types),
+    concept_query:   String(payload.concept_query || '').trim() || null,
+    display_label:   displayLabel,
+    item_ids:        safeIds,
+    question_count:  safeIds.length,
+    watermark:       watermark,
+    status:          'active'
+  };
+
+  const { data, error } = await db
+    .from('offline_packs')
+    .insert(insertRow)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('createOfflinePack:', error);
+    return { success: false, blocked_reason: 'insert_failed', message: error.message };
+  }
+
+  return {
+    success: true,
+    pack_id: packId,
+    remaining: Math.max(0, (allowance.remaining || 0) - 1),
+    pack: {
+      ...data,
+      created_at: data.created_utc,
+      topics: data.maintopics,
+      question_ids: data.item_ids
+    }
+  };
+}
+
+// ------------------------------------------------------------
+// GET OFFLINE PACK FOR RENDER
+// Returns:
+// {
+//   success,
+//   pack,
+//   items,
+//   missing_item_ids
+// }
+// ------------------------------------------------------------
+async function getOfflinePackForRender(userId, packId) {
+  const { data: pack, error } = await db
+    .from('offline_packs')
+    .select('*')
+    .eq('pack_id', packId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('getOfflinePackForRender:', error);
+    return { success: false, error: 'pack_lookup_failed', message: error.message };
+  }
+
+  if (!pack) {
+    return { success: false, error: 'pack_not_found', message: 'Offline pack not found.' };
+  }
+
+  if (String(pack.status || '').toLowerCase() !== 'active') {
+    return { success: false, error: 'pack_inactive', message: 'This offline pack is not active.' };
+  }
+
+  const savedIds = Array.isArray(pack.item_ids) ? pack.item_ids : [];
+  const items = await getItemsByIds(pack.course_id, savedIds);
+
+  const foundSet = new Set((items || []).map(it => String(it.item_id || '').trim()));
+  const missingItemIds = savedIds.filter(id => !foundSet.has(String(id || '').trim()));
+
+  return {
+    success: true,
+    pack: {
+      ...pack,
+      created_at: pack.created_utc,
+      topics: Array.isArray(pack.maintopics) ? pack.maintopics : [],
+      question_ids: savedIds
+    },
+    items: items || [],
+    missing_item_ids: missingItemIds
+  };
+}
+
+// ------------------------------------------------------------
+// LIST OFFLINE PACKS
+// filters:
+// {
+//   course_id: '',
+//   status: '',
+//   limit: 100,
+//   offset: 0
+// }
+//
+// Returns:
+// {
+//   success,
+//   total,
+//   items: [
+//     {
+//       pack_id,
+//       course_id,
+//       course_title,
+//       course_name,   // alias for old page compatibility
+//       pack_name,
+//       question_count,
+//       status,
+//       created_utc,
+//       created_at     // alias for old page compatibility
+//     }
+//   ]
+// }
+// ------------------------------------------------------------
+async function listOfflinePacks(userId, filters = {}) {
+  const safeLimit  = Math.max(1, Math.min(Number(filters.limit || 100), 200));
+  const safeOffset = Math.max(0, Number(filters.offset || 0));
+
+  let query = db
+    .from('offline_packs')
+    .select('*', { count: 'exact' })
+    .eq('user_id', userId)
+    .order('created_utc', { ascending: false })
+    .range(safeOffset, safeOffset + safeLimit - 1);
+
+  if (filters.course_id) query = query.eq('course_id', String(filters.course_id).trim().toUpperCase());
+  if (filters.status)    query = query.eq('status', String(filters.status).trim().toLowerCase());
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error('listOfflinePacks:', error);
+    return { success: false, total: 0, items: [], message: error.message };
+  }
+
+  const rows = data || [];
+  const courseIds = [...new Set(rows.map(r => String(r.course_id || '').trim()).filter(Boolean))];
+
+  let courseTitleMap = {};
+  if (courseIds.length) {
+    const { data: courses } = await db
+      .from('courses')
+      .select('course_id, title')
+      .in('course_id', courseIds);
+
+    (courses || []).forEach(c => {
+      courseTitleMap[String(c.course_id || '').trim().toUpperCase()] = String(c.title || '').trim();
+    });
+  }
+
+  const items = rows.map(row => {
+    const cid = String(row.course_id || '').trim().toUpperCase();
+    const courseTitle = courseTitleMap[cid] || cid;
+
+    return {
+      ...row,
+      course_title: courseTitle,
+      course_name: courseTitle,
+      created_at: row.created_utc
+    };
+  });
+
+  return {
+    success: true,
+    total: Number(count || items.length),
+    items
+  };
+}
 // ------------------------------------------------------------
 // SAVE ATTEMPT PROGRESS (AUTOSAVE)
 // Returns: { success: true } or { success: false, message }
