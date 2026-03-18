@@ -333,11 +333,12 @@ async function getExistingMembership(userId, classId) {
 // ------------------------------------------------------------
 async function joinClass(userId, classId, teacherId, displayName, email, memberFieldsJson) {
   const now      = new Date().toISOString();
-  const memberId = makeClassMemberId();
+  const memberId = makeClassMemberId();  // ← was missing
 
   const { error } = await db
     .from('teacher_class_members')
     .insert({
+      member_id         : memberId,       // ← add this line
       class_id          : classId,
       user_id           : userId,
       teacher_id        : teacherId,
@@ -352,7 +353,6 @@ async function joinClass(userId, classId, teacherId, displayName, email, memberF
   if (error) { console.error('joinClass:', error); return { success: false, message: error.message }; }
   return { success: true };
 }
-
 
 // ------------------------------------------------------------
 // UPDATE MEMBER PROFILE
