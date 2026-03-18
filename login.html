@@ -113,34 +113,27 @@
   });
 
   // Redirect user to their correct dashboard based on role
-  async function redirectByRole(authId) {
-    const { data: profile } = await db
-      .from('users')
-      .select('role, must_change_password')
-      .eq('auth_id', authId)
-      .single();
+async function redirectByRole(authId) {
+  const { data: profile } = await db
+    .from('users')
+    .select('role, must_change_password')
+    .eq('auth_id', authId)
+    .single();
 
-    if (!profile) {
-      // Profile not yet created — send to student dashboard by default
-      window.location.href = '/student/dashboard.html';
-      return;
-    }
-
-    // Check if password change is required
-    if (profile.must_change_password) {
-      window.location.href = '/change-password.html';
-      return;
-    }
-
-    // Redirect by role
-    if (profile.role === 'ADMIN') {
-      window.location.href = '/admin/dashboard.html';
-    } else if (profile.role === 'TEACHER') {
-      window.location.href = '/teacher/dashboard.html';
-    } else {
-      window.location.href = '/student/dashboard.html';
-    }
+  if (!profile) {
+    window.location.href = '/router.html';
+    return;
   }
+
+  // Check if password change is required
+  if (profile.must_change_password) {
+    window.location.href = '/change-password.html';
+    return;
+  }
+
+  // All roles go to Router — Router handles the rest
+  window.location.href = '/router.html';
+}
 </script>
 
 </body>
