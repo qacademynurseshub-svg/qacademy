@@ -239,6 +239,7 @@
       </div>
 
       <!-- ── State: Pending ── -->
+      <!-- Patch 2: resubmit form fields removed. Single button only. -->
       <div class="ar-state" id="statePending">
         <div class="ar-big-title">Request pending</div>
         <div class="ar-desc">
@@ -249,27 +250,6 @@
           You can still use My Classes as a student while waiting for approval.
         </div>
         <button class="btn-primary" id="btnResubmit">Resubmit request</button>
-        <div id="resubmitFormWrap" style="display:none;">
-          <div class="ar-divider"></div>
-          <div class="ar-form">
-            <div class="ar-field">
-              <label for="resubOrg">Organisation (optional)</label>
-              <input type="text" id="resubOrg" placeholder="e.g. School / Hospital / Training centre" />
-            </div>
-            <div class="ar-field">
-              <label for="resubPhone">Phone number (optional)</label>
-              <input type="tel" id="resubPhone" placeholder="Optional" />
-            </div>
-            <div class="ar-field">
-              <label for="resubNote">Short note (optional)</label>
-              <textarea id="resubNote" placeholder="e.g. Following up on my previous request."></textarea>
-            </div>
-            <div class="ar-form-actions">
-              <button class="btn-primary" id="btnSubmitResub" type="button">Submit resubmission</button>
-              <button class="btn-ghost"   id="btnCancelResub" type="button">Cancel</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- ── State: Disabled ── -->
@@ -324,8 +304,9 @@
   </div><!-- /.ar-card -->
 
   <!-- Footer -->
+  <!-- Patch 4: My Classes link corrected to /myteacher/student/dashboard.html -->
   <div class="ar-footer">
-    <a href="/myteacher/student/my-classes.html" style="font-size:13px; color:var(--text-muted);">
+    <a href="/myteacher/student/dashboard.html" style="font-size:13px; color:var(--text-muted);">
       Go to My Classes
     </a>
     <span style="color:var(--border)">|</span>
@@ -411,8 +392,6 @@
 
     // 4. Determine state
     if (teacherProfile && teacherProfile.active === true) {
-      // Approved and active — should have been routed to dashboard
-      // but handle gracefully if they land here directly
       byId('cardTitle').textContent = 'Access approved';
       byId('cardDesc').textContent  = 'Your teacher access is active.';
       setPill('Approved', 'ar-pill-approved');
@@ -432,7 +411,6 @@
       bindPendingEvents();
 
     } else {
-      // No profile or rejected — show request form
       byId('cardTitle').textContent = 'Request teacher access';
       byId('cardDesc').textContent  = 'Submit a request to get started.';
       setPill('Not requested', 'ar-pill-none');
@@ -441,15 +419,14 @@
     }
   }
 
-  // ── Submit new request ────────────────────────────────────
+  // ── Submit request (new or resubmit) ─────────────────────
   async function submitRequest(org, phone, note, isResubmit) {
-    const btn = byId(isResubmit ? 'btnSubmitResub' : 'btnSubmitReq');
+    const btn = byId(isResubmit ? 'btnResubmit' : 'btnSubmitReq');
     btn.disabled = true;
     btn.textContent = 'Submitting…';
 
     const now = new Date().toISOString();
 
-    // Check if profile already exists
     const { data: existing } = await db
       .from('teacher_profiles')
       .select('teacher_id, request_count')
@@ -459,13 +436,9 @@
     let error;
 
     if (existing) {
-      // Update existing profile — increment count
       const { error: updateError } = await db
         .from('teacher_profiles')
         .update({
-          organisation    : org  || existing.organisation,
-          phone_number    : phone|| existing.phone_number,
-          request_note    : note || existing.request_note,
           request_status  : 'PENDING',
           request_count   : (existing.request_count || 0) + 1,
           last_request_at : now,
@@ -474,7 +447,6 @@
         .eq('teacher_id', PROFILE.user_id);
       error = updateError;
     } else {
-      // Insert new profile
       const { error: insertError } = await db
         .from('teacher_profiles')
         .insert({
@@ -499,7 +471,7 @@
     if (error) {
       showToast('Error', error.message || 'Submission failed. Please try again.');
       btn.disabled = false;
-      btn.textContent = isResubmit ? 'Submit resubmission' : 'Submit request';
+      btn.textContent = isResubmit ? 'Resubmit request' : 'Submit request';
       return;
     }
 
@@ -538,23 +510,10 @@
   }
 
   // ── Bind pending / resubmit events ───────────────────────
+  // Patch 3: single onclick — no form fields, no toggle logic
   function bindPendingEvents() {
     byId('btnResubmit').addEventListener('click', () => {
-      byId('resubmitFormWrap').style.display = 'block';
-      byId('btnResubmit').style.display      = 'none';
-      byId('resubOrg').focus();
-    });
-
-    byId('btnCancelResub').addEventListener('click', () => {
-      byId('resubmitFormWrap').style.display = 'none';
-      byId('btnResubmit').style.display      = 'inline-flex';
-    });
-
-    byId('btnSubmitResub').addEventListener('click', () => {
-      const org   = byId('resubOrg').value.trim();
-      const phone = byId('resubPhone').value.trim();
-      const note  = byId('resubNote').value.trim();
-      submitRequest(org, phone, note, true);
+      submitRequest('', '', '', true);
     });
   }
 
