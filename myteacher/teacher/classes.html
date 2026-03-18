@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Classes — QAcademy Teacher</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .page-wrap {
+      display: flex;
+      min-height: 100vh;
+      background: var(--bg, #f8fafc);
+    }
+    .main-content {
+      flex: 1;
+      min-width: 0;
+      padding: 24px 20px 40px;
+    }
+
+    /* ── Page header ─────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .page-header h1 { font-size: 22px; font-weight: 800; color: var(--primary); margin: 0 0 4px; }
+    .page-header p  { font-size: 14px; color: var(--text-muted); margin: 0; }
+
+    /* ── Two-column grid ─────────────────────────────────── */
+    .classes-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .classes-grid { grid-template-columns: 1fr; }
+      .detail-panel { display: none; }
+      .detail-panel.mobile-show { display: block; }
+    }
+
+    /* ── Panel shell ─────────────────────────────────────── */
+    .panel {
+      background: var(--white, #fff);
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(30,58,95,0.06);
+    }
+    .panel-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border, #e2e8f0);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .panel-head h2 { font-size: 14px; font-weight: 700; color: var(--primary); margin: 0; }
+    .panel-body    { padding: 14px 16px; }
+
+    /* ── Search + filter bar ─────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .filter-bar input,
+    .filter-bar select {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      outline: none;
+      background: #fff;
+      color: var(--text);
+    }
+    .filter-bar input:focus,
+    .filter-bar select:focus {
+      border-color: var(--accent, #2d7d72);
+      box-shadow: 0 0 0 3px rgba(45,125,114,0.10);
+    }
+    .filter-bar select { max-width: 130px; flex: none; }
+
+    /* ── Class list ──────────────────────────────────────── */
+    .class-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .class-card {
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      background: #fff;
+    }
+    .class-card:hover {
+      border-color: var(--accent, #2d7d72);
+      box-shadow: 0 2px 8px rgba(45,125,114,0.10);
+    }
+    .class-card.active {
+      border-color: var(--accent, #2d7d72);
+      box-shadow: 0 0 0 3px rgba(45,125,114,0.12);
+      background: rgba(45,125,114,0.03);
+    }
+    .class-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0 0 6px;
+    }
+    .class-card-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg, #f8fafc);
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 999px;
+      padding: 3px 8px;
+    }
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid;
+    }
+    .status-chip.active   { background: rgba(45,125,114,0.08); color: var(--accent, #2d7d72); border-color: rgba(45,125,114,0.22); }
+    .status-chip.archived { background: rgba(100,116,139,0.08); color: var(--text-muted); border-color: var(--border); }
+
+    /* ── Empty state ─────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+    .empty-state p { font-size: 13px; line-height: 1.55; margin: 0; }
+
+    /* ── Detail panel ────────────────────────────────────── */
+    .detail-empty {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .detail-empty .icon { font-size: 32px; margin-bottom: 10px; }
+
+    /* Join code box */
+    .code-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg, #f8fafc);
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 4px;
+    }
+    .join-code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: var(--primary);
+      flex: 1;
+    }
+
+    /* Custom fields display */
+    .cf-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      background: var(--primary-light, #edf6f5);
+      color: var(--accent, #2d7d72);
+      border: 1px solid rgba(45,125,114,0.18);
+      border-radius: 8px;
+      padding: 4px 9px;
+      margin: 3px 3px 3px 0;
+    }
+    .cf-tag.required { font-weight: 700; }
+
+    /* Section label */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin: 0 0 8px;
+    }
+    .section-block { margin-bottom: 20px; }
+
+    /* Members table */
+    .table-wrap {
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 12px;
+      overflow: auto;
+      background: #fff;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 480px; font-size: 13px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border, #e2e8f0); text-align: left; vertical-align: top; }
+    th { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; background: var(--bg, #f8fafc); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(45,125,114,0.02); }
+    .member-name  { font-weight: 600; color: var(--primary); }
+    .member-email { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Member filter bar */
+    .member-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .member-bar input,
+    .member-bar select {
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 13px;
+      outline: none;
+      background: #fff;
+    }
+    .member-bar input { flex: 1; min-width: 0; }
+    .member-bar input:focus,
+    .member-bar select:focus {
+      border-color: var(--accent, #2d7d72);
+      box-shadow: 0 0 0 3px rgba(45,125,114,0.10);
+    }
+
+    /* Divider */
+    .divider { height: 1px; background: var(--border, #e2e8f0); margin: 16px 0; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 8px 14px;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px; background: #fff;
+      color: var(--text); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s;
+      text-decoration: none;
+    }
+    .btn:hover { background: var(--bg, #f8fafc); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--accent, #2d7d72);
+      border-color: rgba(45,125,114,0.3);
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.92; background: var(--accent, #2d7d72); }
+    .btn-danger {
+      border-color: rgba(220,38,38,0.25);
+      color: var(--danger, #dc2626);
+      background: rgba(220,38,38,0.04);
+    }
+    .btn-danger:hover { background: rgba(220,38,38,0.08); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: none; align-items: center; justify-content: center;
+      z-index: 200; padding: 16px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid var(--border, #e2e8f0);
+      box-shadow: 0 20px 60px rgba(30,58,95,0.14);
+      width: 100%; max-width: 600px;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border, #e2e8f0);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .modal-head h3 { font-size: 15px; font-weight: 800; color: var(--primary); margin: 0; }
+    .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+    .modal-foot {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border, #e2e8f0);
+      display: flex; gap: 10px; justify-content: flex-end;
+      flex-shrink: 0; flex-wrap: wrap;
+    }
+
+    /* Form fields */
+    .form-field { margin-bottom: 16px; }
+    .form-field label {
+      display: block; font-size: 13px; font-weight: 700;
+      color: var(--text); margin-bottom: 6px;
+    }
+    .form-field input,
+    .form-field select {
+      width: 100%; border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px; padding: 9px 11px;
+      font-size: 14px; outline: none;
+      background: #fff; color: var(--text);
+    }
+    .form-field input:focus,
+    .form-field select:focus {
+      border-color: var(--accent, #2d7d72);
+      box-shadow: 0 0 0 3px rgba(45,125,114,0.10);
+    }
+    .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 5px; line-height: 1.45; }
+
+    /* Custom field cards in modal */
+    .cf-builder { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .cf-row {
+      display: flex; gap: 8px; align-items: center;
+      background: var(--bg, #f8fafc);
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px; padding: 10px 12px;
+    }
+    .cf-row input[type="text"] {
+      flex: 1; border: 1px solid var(--border, #e2e8f0);
+      border-radius: 8px; padding: 7px 10px;
+      font-size: 13px; outline: none; background: #fff;
+    }
+    .cf-row input[type="text"]:focus {
+      border-color: var(--accent, #2d7d72);
+      box-shadow: 0 0 0 2px rgba(45,125,114,0.10);
+    }
+    .cf-required-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text-muted);
+      cursor: pointer; white-space: nowrap;
+    }
+    .cf-required-toggle input { width: auto; cursor: pointer; }
+
+    /* Modal alert */
+    .modal-alert {
+      border-radius: 10px; padding: 10px 12px;
+      font-size: 13px; line-height: 1.5;
+      margin-bottom: 14px; border: 1px solid; display: none;
+    }
+    .modal-alert.show  { display: block; }
+    .modal-alert.error { background: rgba(220,38,38,0.05); border-color: rgba(220,38,38,0.22); color: #991b1b; }
+    .modal-alert.ok    { background: rgba(45,125,114,0.06); border-color: rgba(45,125,114,0.22); color: var(--accent); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+      background: #fff; border: 1px solid var(--border, #e2e8f0);
+      border-radius: 12px; padding: 12px 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      min-width: 240px; max-width: 360px; display: none;
+      transition: opacity 0.2s;
+    }
+    .toast.show   { display: block; }
+    .toast.ok     { border-color: rgba(45,125,114,0.3); }
+    .toast.error  { border-color: rgba(220,38,38,0.3); }
+    .toast-title  { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+    .toast-msg    { font-size: 12px; color: var(--text-muted); }
+
+    /* Invite modal textarea */
+    .invite-textarea {
+      width: 100%; min-height: 200px; resize: vertical;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px; padding: 10px 12px;
+      font-size: 13px; line-height: 1.6;
+      font-family: inherit; outline: none; background: #fff;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(30,58,95,0.12);
+      border-top-color: var(--primary);
+      animation: spin 0.8s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+  <!-- Nav injected by JS -->
+  <div id="nav"></div>
+
+  <main class="main-content">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <h1>My Classes</h1>
+        <p id="pageSubtitle">Loading…</p>
+      </div>
+      <button class="btn btn-primary" id="btnNewClass">＋ New Class</button>
+    </div>
+
+    <!-- Two-column grid -->
+    <div class="classes-grid">
+
+      <!-- Left: class list -->
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Classes</h2>
+          <span id="classCountChip" style="font-size:12px; color:var(--text-muted);"></span>
+        </div>
+        <div class="panel-body">
+          <div class="filter-bar">
+            <input type="text" id="classSearch" placeholder="Search classes…" />
+            <select id="classStatusFilter">
+              <option value="ALL">All</option>
+              <option value="ACTIVE" selected>Active</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </div>
+          <div class="class-list" id="classList">
+            <div class="empty-state">
+              <div class="icon">⏳</div>
+              <p>Loading classes…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: detail panel -->
+      <div class="panel detail-panel" id="detailPanel">
+        <div class="panel-head">
+          <h2 id="detailTitle">Class Details</h2>
+          <div style="display:flex; gap:8px;" id="detailActions" style="display:none;">
+            <button class="btn btn-sm" id="btnEditClass" disabled>✎ Edit</button>
+            <button class="btn btn-sm" id="btnInvite" disabled>⤴ Invite</button>
+          </div>
+        </div>
+        <div class="panel-body" id="detailBody">
+          <div class="detail-empty">
+            <div class="icon">👈</div>
+            <p>Select a class to view details and members.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Modal: Create / Edit Class ───────────────────────── -->
+<div class="modal-backdrop" id="classModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">New Class</h3>
+      <button class="btn btn-sm" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-alert" id="modalAlert"></div>
+
+      <div class="form-field">
+        <label for="mTitle">Class title *</label>
+        <input type="text" id="mTitle" placeholder="e.g. ICU Revision Group A" maxlength="120" />
+      </div>
+
+      <div class="form-field">
+        <label for="mStatus">Status</label>
+        <select id="mStatus">
+          <option value="ACTIVE">Active</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+      </div>
+
+      <div class="divider"></div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+        <div>
+          <div style="font-size:13px; font-weight:700; color:var(--primary);">Student identifiers</div>
+          <div class="form-hint">Teacher-defined fields (max 4). Students fill these when joining. Example: Index Number, School.</div>
+        </div>
+        <button class="btn btn-sm" id="btnAddField" type="button">＋ Add field</button>
+      </div>
+
+      <div class="cf-builder" id="cfBuilder"></div>
+
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalSave">Save class</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Invite Message ────────────────────────────── -->
+<div class="modal-backdrop" id="inviteModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Invite students</h3>
+      <button class="btn btn-sm" id="inviteClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px; color:var(--text-muted); margin:0 0 12px;">
+        Copy and share this message with your students via WhatsApp, Telegram, or email.
+      </p>
+      <textarea class="invite-textarea" id="inviteText" readonly></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="btnCopyInvite">Copy message</button>
+      <button class="btn btn-primary" id="inviteDone">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toastTitle"></div>
+  <div class="toast-msg"   id="toastMsg"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/teacher-api.js"></script>
+<script src="/js/myteacher-teacher-nav.js"></script>
+<script>
+
+  // ── State ─────────────────────────────────────────────────
+  let PROFILE        = null;
+  let allClasses     = [];      // full list from DB
+  let filteredClasses = [];     // after search/filter
+  let memberCounts   = {};      // { class_id: count }
+  let selectedClassId = null;
+  let selectedClass  = null;
+  let allMembers     = [];      // members for selected class
+  let filteredMembers = [];
+  let modalMode      = 'create'; // 'create' | 'edit'
+  let modalFields    = [];       // [{ label, key, required }]
+  let searchTimer    = null;
+  let memberTimer    = null;
+
+  const MAX_FIELDS = 4;
+
+  // ── Helpers ───────────────────────────────────────────────
+  function byId(id) { return document.getElementById(id); }
+  function esc(s)   { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  let toastTimer = null;
+  function showToast(title, msg, type) {
+    byId('toastTitle').textContent = title || '';
+    byId('toastMsg').textContent   = msg   || '';
+    const el = byId('toast');
+    el.className = 'toast show ' + (type || '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3400);
+  }
+
+  function showModalAlert(msg, type) {
+    const el = byId('modalAlert');
+    el.textContent = msg || '';
+    el.className = 'modal-alert ' + (type || '') + (msg ? ' show' : '');
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // ── Boot ──────────────────────────────────────────────────
+  async function boot() {
+    PROFILE = await guardPage('TEACHER');
+    if (!PROFILE) return;
+
+    byId('pageSubtitle').textContent = `Welcome, ${PROFILE.forename || PROFILE.name || PROFILE.email}`;
+
+    await loadClasses();
+    bindEvents();
+  }
+
+  // ── Load classes ──────────────────────────────────────────
+  async function loadClasses() {
+    byId('classList').innerHTML = `<div class="empty-state"><div class="spinner" style="margin:0 auto 10px;"></div><p>Loading classes…</p></div>`;
+
+    const statusFilter = byId('classStatusFilter').value;
+    allClasses = await getTeacherClasses(PROFILE.user_id, { statusFilter });
+
+    // Batch fetch member counts
+    if (allClasses.length) {
+      memberCounts = await getMemberCounts(allClasses.map(c => c.class_id));
+    }
+
+    applyClassFilter();
+  }
+
+  // ── Apply search filter ───────────────────────────────────
+  function applyClassFilter() {
+    const q = (byId('classSearch').value || '').toLowerCase().trim();
+    filteredClasses = q
+      ? allClasses.filter(c => c.title.toLowerCase().includes(q))
+      : [...allClasses];
+
+    renderClassList();
+  }
+
+  // ── Render class list ─────────────────────────────────────
+  function renderClassList() {
+    const list = byId('classList');
+    byId('classCountChip').textContent = filteredClasses.length
+      ? `${filteredClasses.length} class${filteredClasses.length !== 1 ? 'es' : ''}`
+      : '';
+
+    if (!filteredClasses.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🏫</div>
+          <p>${allClasses.length ? 'No classes match your search.' : 'No classes yet. Create your first class to get started.'}</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = '';
+    filteredClasses.forEach(cls => {
+      const count  = memberCounts[cls.class_id] || 0;
+      const isActive = selectedClassId === cls.class_id;
+      const div = document.createElement('div');
+      div.className = 'class-card' + (isActive ? ' active' : '');
+      div.innerHTML = `
+        <div class="class-card-title">${esc(cls.title)}</div>
+        <div class="class-card-meta">
+          <span class="status-chip ${cls.status === 'ACTIVE' ? 'active' : 'archived'}">${esc(cls.status)}</span>
+          <span class="meta-chip">👥 ${count} member${count !== 1 ? 's' : ''}</span>
+          <span class="meta-chip">🔑 ${esc(cls.join_code)}</span>
+        </div>`;
+      div.addEventListener('click', () => selectClass(cls.class_id));
+      list.appendChild(div);
+    });
+  }
+
+  // ── Select a class ────────────────────────────────────────
+  async function selectClass(classId) {
+    selectedClassId = classId;
+    selectedClass   = allClasses.find(c => c.class_id === classId) || null;
+
+    // Update list highlight
+    renderClassList();
+
+    // Enable detail buttons
+    byId('btnEditClass').disabled = false;
+    byId('btnInvite').disabled    = false;
+    byId('detailActions').removeAttribute('style');
+
+    // Render detail
+    renderDetail();
+
+    // Load members
+    await loadMembers();
+  }
+
+  // ── Render detail panel ───────────────────────────────────
+  function renderDetail() {
+    if (!selectedClass) return;
+    const cls    = selectedClass;
+    const fields = parseCustomFields(cls.custom_fields_json);
+
+    byId('detailTitle').textContent = cls.title;
+
+    byId('detailBody').innerHTML = `
+
+      <!-- Join code -->
+      <div class="section-block">
+        <div class="section-label">Join code</div>
+        <div class="code-box">
+          <div class="join-code" id="joinCodeDisplay">${esc(cls.join_code)}</div>
+          <button class="btn btn-sm" id="btnCopyCode">Copy</button>
+          <button class="btn btn-sm btn-danger" id="btnRegenCode">Regenerate</button>
+        </div>
+        <div class="form-hint">Share this code with students. Regenerating invalidates the old code immediately.</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Custom fields -->
+      <div class="section-block">
+        <div class="section-label">Student identifiers</div>
+        <div id="cfDisplay">
+          ${fields.length
+            ? fields.map(f => `<span class="cf-tag ${f.required ? 'required' : ''}">${esc(f.label)}${f.required ? ' *' : ''}</span>`).join('')
+            : '<span style="font-size:13px; color:var(--text-muted);">No custom fields defined.</span>'
+          }
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Members -->
+      <div class="section-block">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+          <div class="section-label" style="margin:0;">Members</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="memberSearch" placeholder="Search members…" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;outline:none;width:180px;" />
+            <select id="memberStatusFilter" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;outline:none;">
+              <option value="ACTIVE">Active</option>
+              <option value="ALL">All</option>
+              <option value="REMOVED">Removed</option>
+            </select>
+          </div>
+        </div>
+        <div id="memberTableWrap">
+          <div class="empty-state"><div class="spinner" style="margin:0 auto;"></div></div>
+        </div>
+      </div>
+    `;
+
+    // Wire detail events
+    byId('btnCopyCode').addEventListener('click', copyJoinCode);
+    byId('btnRegenCode').addEventListener('click', regenCode);
+    byId('memberSearch').addEventListener('input', () => {
+      clearTimeout(memberTimer);
+      memberTimer = setTimeout(applyMemberFilter, 220);
+    });
+    byId('memberStatusFilter').addEventListener('change', loadMembers);
+  }
+
+  // ── Load members ──────────────────────────────────────────
+  async function loadMembers() {
+    if (!selectedClassId) return;
+    const statusFilter = byId('memberStatusFilter')
+      ? byId('memberStatusFilter').value
+      : 'ACTIVE';
+
+    byId('memberTableWrap').innerHTML = `<div class="empty-state"><div class="spinner" style="margin:0 auto;"></div></div>`;
+
+    allMembers = await getClassMembers(selectedClassId, { statusFilter });
+    applyMemberFilter();
+  }
+
+  // ── Apply member filter ───────────────────────────────────
+  function applyMemberFilter() {
+    const q = byId('memberSearch')
+      ? (byId('memberSearch').value || '').toLowerCase().trim()
+      : '';
+
+    filteredMembers = q
+      ? allMembers.filter(m =>
+          (m.display_name || '').toLowerCase().includes(q) ||
+          (m.email || '').toLowerCase().includes(q) ||
+          (m.user_id || '').toLowerCase().includes(q)
+        )
+      : [...allMembers];
+
+    renderMembersTable();
+  }
+
+  // ── Render members table ──────────────────────────────────
+  function renderMembersTable() {
+    const wrap   = byId('memberTableWrap');
+    const fields = parseCustomFields(selectedClass?.custom_fields_json);
+
+    if (!filteredMembers.length) {
+      wrap.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>${allMembers.length ? 'No members match your search.' : 'No members yet. Share the join code with your students.'}</p></div>`;
+      return;
+    }
+
+    // Dynamic column headers from custom fields
+    const fieldHeaders = fields.map(f => `<th>${esc(f.label)}</th>`).join('');
+
+    const rows = filteredMembers.map(m => {
+      const memberFields = m.member_fields_json
+        ? (typeof m.member_fields_json === 'string' ? JSON.parse(m.member_fields_json) : m.member_fields_json)
+        : {};
+
+      const fieldCells = fields.map(f =>
+        `<td>${esc(memberFields[f.key] || '—')}</td>`
+      ).join('');
+
+      const isRemoved = m.status === 'REMOVED';
+
+      return `
+        <tr style="${isRemoved ? 'opacity:0.5;' : ''}">
+          <td>
+            <div class="member-name">${esc(m.display_name || '—')}</div>
+            <div class="member-email">${esc(m.email || '')}</div>
+          </td>
+          ${fieldCells}
+          <td>${formatDate(m.joined_at)}</td>
+          <td>
+            ${!isRemoved
+              ? `<button class="btn btn-sm btn-danger" onclick="confirmRemoveMember('${esc(m.class_id)}','${esc(m.user_id)}','${esc(m.display_name || m.email || m.user_id)}')">Remove</button>`
+              : `<span style="font-size:12px;color:var(--text-muted);">Removed</span>`
+            }
+          </td>
+        </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Member</th>
+              ${fieldHeaders}
+              <th>Joined</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">${filteredMembers.length} member${filteredMembers.length !== 1 ? 's' : ''}</div>
+    `;
+  }
+
+  // ── Copy join code ────────────────────────────────────────
+  async function copyJoinCode() {
+    const code = selectedClass?.join_code || '';
+    try {
+      await navigator.clipboard.writeText(code);
+      showToast('Copied', 'Join code copied to clipboard.', 'ok');
+    } catch {
+      showToast('Copy failed', 'Please copy the code manually: ' + code, 'error');
+    }
+  }
+
+  // ── Regenerate join code ──────────────────────────────────
+  async function regenCode() {
+    if (!selectedClassId) return;
+    if (!confirm('Regenerate join code? The old code will stop working immediately.')) return;
+
+    const btn = byId('btnRegenCode');
+    btn.disabled = true;
+    btn.textContent = 'Regenerating…';
+
+    const result = await regenerateJoinCode(selectedClassId);
+
+    if (!result.success) {
+      showToast('Failed', result.message || 'Could not regenerate code.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Regenerate';
+      return;
+    }
+
+    // Update local state
+    selectedClass.join_code = result.join_code;
+    allClasses = allClasses.map(c =>
+      c.class_id === selectedClassId ? { ...c, join_code: result.join_code } : c
+    );
+
+    byId('joinCodeDisplay').textContent = result.join_code;
+    btn.disabled = false;
+    btn.textContent = 'Regenerate';
+    renderClassList();
+    showToast('Done', 'New join code is active.', 'ok');
+  }
+
+  // ── Remove member ─────────────────────────────────────────
+  async function confirmRemoveMember(classId, userId, name) {
+    if (!confirm(`Remove "${name}" from this class? They will lose access to assigned quizzes.`)) return;
+
+    const result = await removeMember(classId, userId);
+    if (!result.success) {
+      showToast('Failed', result.message || 'Could not remove member.', 'error');
+      return;
+    }
+
+    // Update counts and reload
+    memberCounts[classId] = Math.max(0, (memberCounts[classId] || 1) - 1);
+    renderClassList();
+    showToast('Removed', `${name} has been removed from the class.`, 'ok');
+    await loadMembers();
+  }
+
+  // ── Parse custom fields JSON ──────────────────────────────
+  function parseCustomFields(json) {
+    try {
+      const parsed = typeof json === 'string' ? JSON.parse(json) : json;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  // ── Modal: open ───────────────────────────────────────────
+  function openModal(mode) {
+    modalMode   = mode;
+    modalFields = [];
+    showModalAlert('', '');
+
+    if (mode === 'create') {
+      byId('modalTitle').textContent = 'New Class';
+      byId('mTitle').value   = '';
+      byId('mStatus').value  = 'ACTIVE';
+    } else {
+      byId('modalTitle').textContent = 'Edit Class';
+      byId('mTitle').value   = selectedClass?.title || '';
+      byId('mStatus').value  = selectedClass?.status || 'ACTIVE';
+      modalFields = parseCustomFields(selectedClass?.custom_fields_json).map(f => ({ ...f }));
+    }
+
+    renderModalFields();
+    byId('classModal').classList.add('show');
+    setTimeout(() => byId('mTitle').focus(), 50);
+  }
+
+  function closeModal() {
+    byId('classModal').classList.remove('show');
+  }
+
+  // ── Modal: render custom fields ───────────────────────────
+  function renderModalFields() {
+    const builder = byId('cfBuilder');
+    builder.innerHTML = '';
+
+    if (!modalFields.length) {
+      builder.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">No fields added yet.</div>`;
+      return;
+    }
+
+    modalFields.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'cf-row';
+      row.innerHTML = `
+        <input type="text" placeholder="Field label e.g. Index Number" value="${esc(f.label)}" data-idx="${i}" />
+        <label class="cf-required-toggle">
+          <input type="checkbox" data-idx="${i}" data-k="required" ${f.required ? 'checked' : ''} />
+          Required
+        </label>
+        <button class="btn btn-sm btn-danger" data-idx="${i}" data-action="remove" type="button">✕</button>
+      `;
+      builder.appendChild(row);
+    });
+
+    // Bind events
+    builder.querySelectorAll('input[type="text"]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const i = parseInt(inp.getAttribute('data-idx'), 10);
+        if (!isNaN(i) && modalFields[i]) modalFields[i].label = inp.value;
+      });
+    });
+    builder.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+      chk.addEventListener('change', () => {
+        const i = parseInt(chk.getAttribute('data-idx'), 10);
+        if (!isNaN(i) && modalFields[i]) modalFields[i].required = chk.checked;
+      });
+    });
+    builder.querySelectorAll('button[data-action="remove"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.getAttribute('data-idx'), 10);
+        modalFields.splice(i, 1);
+        renderModalFields();
+      });
+    });
+  }
+
+  // ── Modal: add field ──────────────────────────────────────
+  function addModalField() {
+    if (modalFields.length >= MAX_FIELDS) {
+      showToast('Limit reached', `Maximum ${MAX_FIELDS} custom fields per class.`, 'error');
+      return;
+    }
+    modalFields.push({ label: '', key: '', required: false });
+    renderModalFields();
+    // Focus the new input
+    const inputs = byId('cfBuilder').querySelectorAll('input[type="text"]');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }
+
+  // ── Modal: save ───────────────────────────────────────────
+  async function saveClass() {
+    const title = (byId('mTitle').value || '').trim();
+    const status = byId('mStatus').value;
+
+    if (!title) {
+      showModalAlert('Please enter a class title.', 'error');
+      byId('mTitle').focus();
+      return;
+    }
+
+    // Validate fields — drop blanks
+    const validFields = modalFields.filter(f => String(f.label || '').trim());
+    const customFieldsJson = buildCustomFieldsJson(validFields);
+
+    const btn = byId('modalSave');
+    btn.disabled    = true;
+    btn.textContent = 'Saving…';
+    showModalAlert('', '');
+
+    let result;
+
+    if (modalMode === 'create') {
+      result = await createClass(PROFILE.user_id, title, customFieldsJson);
+    } else {
+      result = await updateClass(selectedClassId, { title, status, custom_fields_json: customFieldsJson });
+    }
+
+    if (!result.success) {
+      showModalAlert(result.message || 'Save failed. Please try again.', 'error');
+      btn.disabled    = false;
+      btn.textContent = 'Save class';
+      return;
+    }
+
+    showModalAlert(modalMode === 'create' ? 'Class created!' : 'Class updated!', 'ok');
+    btn.textContent = 'Saved ✓';
+
+    // Reload list, auto-select new class if created
+    await loadClasses();
+
+    if (modalMode === 'create' && result.data) {
+      await selectClass(result.data.class_id);
+    } else if (modalMode === 'edit' && selectedClassId) {
+      // Refresh selected class data
+      selectedClass = allClasses.find(c => c.class_id === selectedClassId) || null;
+      renderDetail();
+    }
+
+    setTimeout(closeModal, 900);
+  }
+
+  // ── Invite message ────────────────────────────────────────
+  function openInvite() {
+    if (!selectedClass) return;
+    const cls    = selectedClass;
+    const fields = parseCustomFields(cls.custom_fields_json);
+
+    const lines = [];
+    lines.push(`Hello! You've been invited to join: ${cls.title}`);
+    lines.push(`Class join code: ${cls.join_code}`);
+    lines.push('');
+    lines.push('How to join:');
+    lines.push('1) Log into QAcademy');
+    lines.push('2) Open "My Classes" and tap "Join a Class"');
+    lines.push(`3) Enter this code: ${cls.join_code}`);
+    if (fields.length) {
+      lines.push('');
+      lines.push('When joining you will be asked for:');
+      fields.forEach(f => lines.push(`- ${f.label}${f.required ? ' (required)' : ''}`));
+    }
+    lines.push('');
+    lines.push('If you have any issues, please contact your teacher.');
+
+    byId('inviteText').value = lines.join('\n');
+    byId('inviteModal').classList.add('show');
+  }
+
+  async function copyInvite() {
+    try {
+      await navigator.clipboard.writeText(byId('inviteText').value);
+      showToast('Copied', 'Invite message copied to clipboard.', 'ok');
+    } catch {
+      showToast('Copy failed', 'Please select and copy the text manually.', 'error');
+    }
+  }
+
+  // ── Bind events ───────────────────────────────────────────
+  function bindEvents() {
+    byId('btnNewClass').addEventListener('click',  () => openModal('create'));
+    byId('btnEditClass').addEventListener('click', () => openModal('edit'));
+    byId('btnInvite').addEventListener('click',    openInvite);
+
+    byId('modalClose').addEventListener('click',  closeModal);
+    byId('modalCancel').addEventListener('click', closeModal);
+    byId('modalSave').addEventListener('click',   saveClass);
+    byId('btnAddField').addEventListener('click', addModalField);
+
+    byId('inviteClose').addEventListener('click', () => byId('inviteModal').classList.remove('show'));
+    byId('inviteDone').addEventListener('click',  () => byId('inviteModal').classList.remove('show'));
+    byId('btnCopyInvite').addEventListener('click', copyInvite);
+
+    byId('classSearch').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(applyClassFilter, 220);
+    });
+    byId('classStatusFilter').addEventListener('change', loadClasses);
+
+    // Close modals on backdrop click
+    byId('classModal').addEventListener('click', e => {
+      if (e.target === byId('classModal')) closeModal();
+    });
+    byId('inviteModal').addEventListener('click', e => {
+      if (e.target === byId('inviteModal')) byId('inviteModal').classList.remove('show');
+    });
+  }
+
+  // ── Run ───────────────────────────────────────────────────
+  boot();
+
+</script>
+</body>
+</html>
