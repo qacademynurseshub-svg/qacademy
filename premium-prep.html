@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NMC 2026 Premium Prep — QAcademy Nurses Hub</title>
+  <style>
+    :root{
+      --brand:#0b7a75;
+      --muted:#859998;
+      --ink:#1f2a28;
+      --bg:#f6f8f7;
+      --card:#ffffff;
+      --line:rgba(0,0,0,.08);
+      --soft:rgba(0,0,0,.04);
+      --danger:#b42318;
+      --ok:#027a48;
+      --warning:#b54708;
+      --radius:18px;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+
+    .wrap{
+      max-width:1050px;
+      margin:0 auto;
+      padding:24px 16px 48px;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:16px;
+      flex-wrap:wrap;
+    }
+
+    .topbar a{
+      color:var(--brand);
+      text-decoration:none;
+      font-weight:700;
+    }
+
+    .hero{
+      position:relative;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:24px;
+      background:
+        radial-gradient(900px 260px at 10% 0%, rgba(11,122,117,.10), transparent 60%),
+        radial-gradient(900px 260px at 90% 0%, rgba(133,153,152,.10), transparent 60%),
+        linear-gradient(135deg, rgba(11,122,117,.04), rgba(255,255,255,.9)),
+        #fff;
+      box-shadow:var(--shadow);
+      margin-bottom:18px;
+    }
+
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius:26px;
+      pointer-events:none;
+      background:linear-gradient(135deg, rgba(11,122,117,.18), rgba(133,153,152,.14), rgba(11,122,117,.10));
+      filter:blur(14px);
+      opacity:.55;
+    }
+
+    .hero > *{
+      position:relative;
+      z-index:1;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(11,122,117,.10);
+      color:var(--brand);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.02em;
+      margin-bottom:12px;
+    }
+
+    h1{
+      margin:0 0 10px;
+      font-size:clamp(28px, 4vw, 42px);
+      line-height:1.1;
+    }
+
+    .sub{
+      margin:0 0 14px;
+      color:#4b5b58;
+      line-height:1.6;
+      max-width:760px;
+    }
+
+    .hero-grid{
+      display:grid;
+      grid-template-columns:1.25fr .95fr;
+      gap:18px;
+      align-items:start;
+    }
+
+    .hero-points{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+      margin-top:14px;
+    }
+
+    .point{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.72);
+      border-radius:16px;
+      padding:12px 14px;
+      font-size:14px;
+      line-height:1.45;
+    }
+
+    .hero-card{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:20px;
+      padding:18px;
+      box-shadow:0 8px 24px rgba(0,0,0,.05);
+    }
+
+    .price-kicker{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      color:#5b6a67;
+      font-weight:800;
+      margin-bottom:8px;
+    }
+
+    .hero-price{
+      font-size:34px;
+      font-weight:900;
+      color:var(--brand);
+      line-height:1;
+      margin-bottom:8px;
+    }
+
+    .hero-note{
+      color:#5b6a67;
+      font-size:14px;
+      line-height:1.5;
+      margin-bottom:14px;
+    }
+
+    .hero-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      border-radius:14px;
+      padding:13px 16px;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.18s ease;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+    }
+
+    .btn:hover{ transform:translateY(-1px) }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; transform:none }
+
+    .btn-primary{
+      background:var(--brand);
+      color:#fff;
+    }
+
+    .btn-secondary{
+      background:#eef6f5;
+      color:var(--brand);
+      border:1px solid rgba(11,122,117,.18);
+    }
+
+    .panel{
+      display:none;
+      margin-top:18px;
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .panel.on{ display:block }
+
+    .panel-head{
+      padding:18px 18px 10px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(11,122,117,.04), rgba(255,255,255,0));
+    }
+
+    .step-pill{
+      display:inline-flex;
+      align-items:center;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#eef6f5;
+      color:var(--brand);
+      font-size:12px;
+      font-weight:800;
+      margin-bottom:8px;
+    }
+
+    .panel-head h2{
+      margin:0 0 6px;
+      font-size:22px;
+    }
+
+    .panel-head p{
+      margin:0;
+      color:#60706d;
+      line-height:1.55;
+    }
+
+    .panel-body{
+      padding:18px;
+    }
+
+    .search-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+      flex-wrap:wrap;
+    }
+
+    .count{
+      font-size:13px;
+      color:#60706d;
+      font-weight:700;
+    }
+
+    .input,
+    .select{
+      width:100%;
+      min-height:48px;
+      border:1px solid rgba(0,0,0,.12);
+      border-radius:14px;
+      padding:12px 14px;
+      font:inherit;
+      color:inherit;
+      background:#fff;
+      outline:none;
+    }
+
+    .input:focus,
+    .select:focus{
+      border-color:rgba(11,122,117,.45);
+      box-shadow:0 0 0 4px rgba(11,122,117,.08);
+    }
+
+    .program-list{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:12px;
+    }
+
+    .program-card{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:#fff;
+      padding:16px;
+      cursor:pointer;
+      transition:.18s ease;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      min-height:110px;
+    }
+
+    .program-card:hover{
+      transform:translateY(-1px);
+      border-color:rgba(11,122,117,.26);
+      box-shadow:0 10px 24px rgba(0,0,0,.05);
+    }
+
+    .program-card.selected{
+      border-color:rgba(11,122,117,.48);
+      box-shadow:0 0 0 4px rgba(11,122,117,.08);
+      background:linear-gradient(180deg, rgba(11,122,117,.04), rgba(255,255,255,1));
+    }
+
+    .program-name{
+      font-weight:800;
+      font-size:16px;
+      margin-bottom:6px;
+    }
+
+    .program-meta{
+      color:#61716e;
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .check{
+      min-width:34px;
+      height:34px;
+      border-radius:999px;
+      display:grid;
+      place-items:center;
+      font-weight:900;
+      border:1px solid var(--line);
+      color:#8a9795;
+      background:#fff;
+    }
+
+    .program-card.selected .check{
+      background:var(--brand);
+      border-color:var(--brand);
+      color:#fff;
+    }
+
+    .summary{
+      margin-top:16px;
+      border:1px solid var(--line);
+      background:#fbfcfc;
+      border-radius:18px;
+      padding:16px;
+    }
+
+    .summary-title{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      font-weight:800;
+      color:#60706d;
+      margin-bottom:10px;
+    }
+
+    .summary-main{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+
+    .summary-name{
+      font-size:18px;
+      font-weight:900;
+      margin-bottom:4px;
+    }
+
+    .summary-sub{
+      color:#61716e;
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .summary-price{
+      font-size:22px;
+      font-weight:900;
+      color:var(--brand);
+      white-space:nowrap;
+    }
+
+    .chips{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    .chip{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:999px;
+      padding:8px 10px;
+      font-size:12px;
+      color:#44524f;
+      font-weight:700;
+    }
+
+    .grid-2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-bottom:14px;
+    }
+
+    .field label{
+      font-size:14px;
+      font-weight:800;
+    }
+
+    .hint{
+      color:#60706d;
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    .alert{
+      display:none;
+      margin-top:14px;
+      border-radius:14px;
+      padding:12px 14px;
+      font-size:14px;
+      line-height:1.5;
+      font-weight:700;
+    }
+
+    .alert.show{ display:block }
+    .alert.error{
+      background:rgba(180,35,24,.08);
+      border:1px solid rgba(180,35,24,.16);
+      color:var(--danger);
+    }
+
+    .alert.success{
+      background:rgba(2,122,72,.08);
+      border:1px solid rgba(2,122,72,.16);
+      color:var(--ok);
+    }
+
+    .alert.warning{
+      background:rgba(181,71,8,.08);
+      border:1px solid rgba(181,71,8,.16);
+      color:var(--warning);
+    }
+
+    .actions-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:6px;
+    }
+
+    .loader{
+      position:fixed;
+      inset:0;
+      background:rgba(255,255,255,.7);
+      backdrop-filter:blur(4px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:999;
+    }
+
+    .loader.on{ display:flex }
+
+    .spinner{
+      width:52px;
+      height:52px;
+      border-radius:999px;
+      border:4px solid rgba(11,122,117,.15);
+      border-top-color:var(--brand);
+      animation:spin 1s linear infinite;
+    }
+
+    @keyframes spin{
+      to{ transform:rotate(360deg) }
+    }
+
+    .empty{
+      padding:18px;
+      border:1px dashed rgba(0,0,0,.14);
+      border-radius:16px;
+      color:#60706d;
+      background:#fafbfb;
+      font-weight:700;
+    }
+
+    @media (max-width:860px){
+      .hero-grid,
+      .grid-2,
+      .program-list{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader" id="loader">
+    <div class="spinner" aria-label="Loading"></div>
+  </div>
+
+  <div class="wrap">
+    <div class="topbar">
+      <div><strong>QAcademy Nurses Hub</strong></div>
+      <div>
+        Already have an account?
+        <a href="/login.html">Sign in</a>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="badge">NMC 2026 Premium Prep</div>
+
+      <div class="hero-grid">
+        <div>
+          <h1>Join the Premium Prep for your programme</h1>
+          <p class="sub">
+            Choose your programme, confirm your email, and pay securely with Paystack.
+            Your account setup continues after payment on the confirmation page.
+          </p>
+
+          <div class="hero-points">
+            <div class="point"><strong>Programme-first flow</strong><br>Pick the correct prep package for your programme.</div>
+            <div class="point"><strong>Pay first</strong><br>No long signup form before payment.</div>
+            <div class="point"><strong>Shared confirmation</strong><br>The existing confirmation page handles verify + setup.</div>
+            <div class="point"><strong>Separate from trial</strong><br>This page is only for paid Premium Prep.</div>
+          </div>
+        </div>
+
+        <div class="hero-card">
+          <div class="price-kicker">Starting from</div>
+          <div class="hero-price" id="heroPrice">—</div>
+          <div class="hero-note" id="heroNote">
+            Loading available premium prep packages…
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-primary" id="startBtn" type="button">Choose Programme</button>
+            <a class="btn btn-secondary" href="/register.html">Free Trial Instead</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel on" id="panelPrograms">
+      <div class="panel-head">
+        <div class="step-pill">Step 1 of 2</div>
+        <h2>Select your programme</h2>
+        <p>We will match you to the correct NMC 2026 Premium Prep product.</p>
+      </div>
+
+      <div class="panel-body">
+        <div class="search-row">
+          <div style="flex:1; min-width:260px;">
+            <input class="input" id="programSearch" type="text" placeholder="Search programme name or code…" />
+          </div>
+          <div class="count" id="programCount">0 programmes</div>
+        </div>
+
+        <div id="programList" class="program-list"></div>
+
+        <div class="summary" id="summaryBox" style="display:none;">
+          <div class="summary-title">Selected premium package</div>
+          <div class="summary-main">
+            <div>
+              <div class="summary-name" id="summaryName">—</div>
+              <div class="summary-sub" id="summarySub">—</div>
+            </div>
+            <div class="summary-price" id="summaryPrice">—</div>
+          </div>
+          <div class="chips" id="summaryChips"></div>
+        </div>
+
+        <div class="alert error" id="programError"></div>
+
+        <div class="actions-row">
+          <button class="btn btn-primary" id="toDetailsBtn" type="button" disabled>Continue</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panelDetails">
+      <div class="panel-head">
+        <div class="step-pill">Step 2 of 2</div>
+        <h2>Enter payment details</h2>
+        <p>Use the email you want linked to this payment and later account setup.</p>
+      </div>
+
+      <div class="panel-body">
+        <div class="summary" id="summaryBoxDetails">
+          <div class="summary-title">You are purchasing</div>
+          <div class="summary-main">
+            <div>
+              <div class="summary-name" id="detailSummaryName">—</div>
+              <div class="summary-sub" id="detailSummarySub">—</div>
+            </div>
+            <div class="summary-price" id="detailSummaryPrice">—</div>
+          </div>
+          <div class="chips" id="detailSummaryChips"></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:16px;">
+          <div class="field">
+            <label for="email">Email address</label>
+            <input class="input" id="email" type="email" autocomplete="email" placeholder="you@example.com" />
+          </div>
+
+          <div class="field">
+            <label for="email2">Confirm email</label>
+            <input class="input" id="email2" type="email" autocomplete="email" placeholder="Repeat your email" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="phone">Phone number <span class="hint">(optional)</span></label>
+            <input class="input" id="phone" type="tel" autocomplete="tel" placeholder="WhatsApp / MoMo number" />
+            <div class="hint">Optional. Useful for payment/contact continuity.</div>
+          </div>
+
+          <div class="field">
+            <label for="programReadonly">Programme</label>
+            <input class="input" id="programReadonly" type="text" readonly />
+            <div class="hint">This follows the programme you selected above.</div>
+          </div>
+        </div>
+
+        <div class="alert error" id="detailError"></div>
+        <div class="alert success" id="detailSuccess"></div>
+        <div class="alert warning" id="detailWarn"></div>
+
+        <div class="actions-row">
+          <button class="btn btn-secondary" id="backBtn" type="button">Back</button>
+          <button class="btn btn-primary" id="payBtn" type="button">Continue to Payment</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    const PREP_SUFFIX = '_2026_PREP';
+
+    const state = {
+      programs: [],
+      premiumPrograms: [],
+      selected: null
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function loaderOn(){ $('loader').classList.add('on'); }
+    function loaderOff(){ $('loader').classList.remove('on'); }
+
+    function escapeHtml(str){
+      return String(str || '').replace(/[&<>"']/g, (m) => ({
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#39;'
+      }[m]));
+    }
+
+    function fmtMoney(minor, currency){
+      const value = Number(minor || 0) / 100;
+      const cur = String(currency || 'GHS').toUpperCase();
+      try{
+        return new Intl.NumberFormat('en-GB', {
+          style:'currency',
+          currency: cur
+        }).format(value);
+      }catch(_){
+        return cur + ' ' + value.toFixed(2);
+      }
+    }
+
+    function showOnly(panelId){
+      $('panelPrograms').classList.toggle('on', panelId === 'panelPrograms');
+      $('panelDetails').classList.toggle('on', panelId === 'panelDetails');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function setAlert(id, message, show = true){
+      const el = $(id);
+      el.textContent = message || '';
+      el.classList.toggle('show', !!(show && message));
+    }
+
+    function workerBase(){
+      const raw = String(window.PAYMENTS_API_BASE || '').trim();
+      if (!raw) {
+        throw new Error('Missing PAYMENTS_API_BASE in /js/config.js');
+      }
+      return raw.replace(/\/+$/, '');
+    }
+
+    function getPremiumPrograms(programs, products){
+      const programMap = new Map(
+        (programs || []).map((p) => [
+          String(p.program_id || '').trim().toUpperCase(),
+          {
+            program_id: String(p.program_id || '').trim().toUpperCase(),
+            program_name: String(p.program_name || p.name || p.program_id || '').trim()
+          }
+        ]).filter(([pid]) => pid)
+      );
+
+      const grouped = new Map();
+
+      (products || []).forEach((product) => {
+        const productId = String(product.product_id || '').trim().toUpperCase();
+        if (!productId.endsWith(PREP_SUFFIX)) return;
+
+        const programId = productId.slice(0, -PREP_SUFFIX.length);
+        if (!programMap.has(programId)) return;
+
+        const normalized = {
+          ...product,
+          product_id: productId,
+          name: String(product.name || productId).trim(),
+          price_minor: Number(product.price_minor || 0),
+          currency: String(product.currency || 'GHS').trim().toUpperCase(),
+          duration_days: Number(product.duration_days || 0)
+        };
+
+        if (!grouped.has(programId)) grouped.set(programId, []);
+        grouped.get(programId).push(normalized);
+      });
+
+      return Array.from(grouped.entries())
+        .map(([programId, items]) => {
+          items.sort((a, b) =>
+            (Number(a.price_minor || 0) - Number(b.price_minor || 0)) ||
+            String(a.name || '').localeCompare(String(b.name || ''))
+          );
+
+          const chosen = items[0]; // v1: one premium product per programme
+          const program = programMap.get(programId);
+
+          return {
+            program_id: program.program_id,
+            program_name: program.program_name,
+            product: chosen
+          };
+        })
+        .sort((a, b) => a.program_name.localeCompare(b.program_name));
+    }
+
+    function getLowestPrice(items){
+      let lowest = null;
+      let currency = null;
+
+      for (const item of items || []) {
+        const p = item?.product;
+        if (!p) continue;
+
+        const minor = Number(p.price_minor || 0);
+        const cur = String(p.currency || 'GHS').toUpperCase();
+
+        if (!minor || minor <= 0) continue;
+        if (currency === null) currency = cur;
+        if (currency !== cur) return null;
+
+        if (lowest === null || minor < lowest) lowest = minor;
+      }
+
+      if (lowest === null) return null;
+      return { minor: lowest, currency };
+    }
+
+    function renderHero(){
+      const lowest = getLowestPrice(state.premiumPrograms);
+      $('heroPrice').textContent = lowest ? fmtMoney(lowest.minor, lowest.currency) : '—';
+      $('heroNote').textContent = state.premiumPrograms.length
+        ? 'Choose your programme to continue to secure payment.'
+        : 'No active Premium Prep products were found yet.';
+    }
+
+    function summaryChips(item){
+      const p = item.product;
+      const chips = [];
+
+      if (p.duration_days > 0) chips.push('Duration: ' + p.duration_days + ' days');
+      if (p.product_id) chips.push('Product: ' + p.product_id);
+
+      return chips;
+    }
+
+    function renderSummary(){
+      const item = state.selected;
+      const summaryVisible = !!item;
+
+      $('summaryBox').style.display = summaryVisible ? '' : 'none';
+      $('summaryBoxDetails').style.display = summaryVisible ? '' : 'none';
+      $('toDetailsBtn').disabled = !summaryVisible;
+
+      if (!item) return;
+
+      const price = fmtMoney(item.product.price_minor, item.product.currency);
+      const sub = item.program_name + ' • ' + item.product.name;
+
+      $('summaryName').textContent = item.product.name;
+      $('summarySub').textContent = sub;
+      $('summaryPrice').textContent = price;
+      $('summaryChips').innerHTML = summaryChips(item).map(c => `<span class="chip">${escapeHtml(c)}</span>`).join('');
+
+      $('detailSummaryName').textContent = item.product.name;
+      $('detailSummarySub').textContent = sub;
+      $('detailSummaryPrice').textContent = price;
+      $('detailSummaryChips').innerHTML = summaryChips(item).map(c => `<span class="chip">${escapeHtml(c)}</span>`).join('');
+
+      $('programReadonly').value = item.program_name + ' (' + item.program_id + ')';
+    }
+
+    function filteredPrograms(){
+      const q = String($('programSearch').value || '').trim().toLowerCase();
+      if (!q) return state.premiumPrograms;
+
+      return state.premiumPrograms.filter((item) => {
+        return item.program_name.toLowerCase().includes(q) || item.program_id.toLowerCase().includes(q);
+      });
+    }
+
+    function renderProgramCards(){
+      const items = filteredPrograms();
+      $('programCount').textContent = items.length + ' programme' + (items.length === 1 ? '' : 's');
+
+      const wrap = $('programList');
+      wrap.innerHTML = '';
+
+      if (!items.length) {
+        wrap.innerHTML = '<div class="empty">No matching premium programmes found.</div>';
+        return;
+      }
+
+      for (const item of items) {
+        const selected = state.selected && state.selected.program_id === item.program_id;
+        const price = fmtMoney(item.product.price_minor, item.product.currency);
+
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'program-card' + (selected ? ' selected' : '');
+        el.innerHTML = `
+          <div style="text-align:left;">
+            <div class="program-name">${escapeHtml(item.program_name)}</div>
+            <div class="program-meta">
+              ${escapeHtml(item.program_id)}<br>
+              ${escapeHtml(item.product.name)}<br>
+              <strong>${escapeHtml(price)}</strong>
+            </div>
+          </div>
+          <div class="check">${selected ? '✓' : ''}</div>
+        `;
+
+        el.addEventListener('click', () => {
+          state.selected = item;
+          localStorage.setItem('qa_join_program', item.program_id);
+          localStorage.setItem('qa_join_product', item.product.product_id);
+          setAlert('programError', '');
+          renderProgramCards();
+          renderSummary();
+        });
+
+        wrap.appendChild(el);
+      }
+    }
+
+    function validateDetails(){
+      const email = String($('email').value || '').trim().toLowerCase();
+      const email2 = String($('email2').value || '').trim().toLowerCase();
+      const phone = String($('phone').value || '').trim();
+
+      if (!state.selected) {
+        return { ok:false, message:'Please choose a programme first.' };
+      }
+
+      if (!email) return { ok:false, message:'Please enter your email address.', field:'email' };
+      if (!email2) return { ok:false, message:'Please confirm your email address.', field:'email2' };
+
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      if (!emailOk) return { ok:false, message:'Please enter a valid email address.', field:'email' };
+      if (email !== email2) return { ok:false, message:'Email addresses do not match.', field:'email2' };
+
+      const digits = phone.replace(/[^\d]/g, '');
+      if (phone && digits.length < 7) {
+        return { ok:false, message:'Phone number looks too short. Please check it or leave it blank.', field:'phone' };
+      }
+
+      return {
+        ok:true,
+        email,
+        email2,
+        phone,
+        program_id: state.selected.program_id,
+        product_id: state.selected.product.product_id
+      };
+    }
+
+    async function beginPayment(){
+      setAlert('detailError', '');
+      setAlert('detailSuccess', '');
+      setAlert('detailWarn', '');
+
+      const v = validateDetails();
+      if (!v.ok) {
+        setAlert('detailError', v.message);
+        if (v.field) $(v.field).focus();
+        return;
+      }
+
+      $('payBtn').disabled = true;
+      $('payBtn').textContent = 'Starting payment…';
+      loaderOn();
+
+      try {
+        const payload = {
+          email: v.email,
+          product_id: v.product_id,
+          program_id: v.program_id,
+          phone_number: v.phone || '',
+          callback_url: location.origin + '/payment-confirmation.html'
+        };
+
+        const resp = await fetch(workerBase() + '/payments/init-public', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const res = await resp.json().catch(() => null);
+
+        if (!resp.ok || !res || !res.ok) {
+          throw new Error(
+            (res && (res.message || res.error)) ||
+            'Could not start payment'
+          );
+        }
+
+        if (!res.authorization_url) {
+          throw new Error('Payment session was created without an authorization URL.');
+        }
+
+        localStorage.setItem('qa_last_reference', res.reference || '');
+        localStorage.setItem('qa_last_email', v.email);
+        localStorage.setItem('qa_last_phone', v.phone || '');
+        localStorage.setItem('qa_last_product_id', v.product_id);
+        localStorage.setItem('qa_last_program_id', v.program_id);
+        localStorage.setItem('qa_join_program', v.program_id);
+        localStorage.setItem('qa_join_product', v.product_id);
+
+        setAlert('detailSuccess', 'Redirecting to Paystack…');
+        location.href = res.authorization_url;
+      } catch (err) {
+        setAlert('detailError', err.message || 'Network error. Please try again.');
+      } finally {
+        loaderOff();
+        $('payBtn').disabled = false;
+        $('payBtn').textContent = 'Continue to Payment';
+      }
+    }
+
+    function restoreSelection(){
+      const qs = new URLSearchParams(location.search);
+      const requested = String(
+        qs.get('program_id') ||
+        localStorage.getItem('qa_join_program') ||
+        ''
+      ).trim().toUpperCase();
+
+      if (!requested) return;
+
+      const found = state.premiumPrograms.find(x => x.program_id === requested);
+      if (found) state.selected = found;
+    }
+
+    async function boot(){
+      loaderOn();
+      try {
+        const [programs, products] = await Promise.all([
+          getPrograms(),
+          getProducts()
+        ]);
+
+        state.programs = programs || [];
+        state.premiumPrograms = getPremiumPrograms(programs, products);
+
+        renderHero();
+
+        if (!state.premiumPrograms.length) {
+          $('programList').innerHTML = '<div class="empty">No active Premium Prep products were found. Confirm the premium product IDs end with <strong>_2026_PREP</strong> and are active.</div>';
+          setAlert('programError', 'No premium prep products are available yet.');
+          return;
+        }
+
+        restoreSelection();
+        renderProgramCards();
+        renderSummary();
+
+        const savedEmail = localStorage.getItem('qa_last_email') || '';
+        const savedPhone = localStorage.getItem('qa_last_phone') || '';
+
+        if (savedEmail) {
+          $('email').value = savedEmail;
+          $('email2').value = savedEmail;
+        }
+        if (savedPhone) $('phone').value = savedPhone;
+      } catch (err) {
+        $('programList').innerHTML = '<div class="empty">Could not load programmes or products. Please refresh the page.</div>';
+        setAlert('programError', err.message || 'Could not load page data.');
+      } finally {
+        loaderOff();
+      }
+    }
+
+    $('startBtn').addEventListener('click', () => {
+      showOnly('panelPrograms');
+    });
+
+    $('programSearch').addEventListener('input', renderProgramCards);
+
+    $('toDetailsBtn').addEventListener('click', () => {
+      if (!state.selected) {
+        setAlert('programError', 'Please choose a programme to continue.');
+        return;
+      }
+      renderSummary();
+      showOnly('panelDetails');
+    });
+
+    $('backBtn').addEventListener('click', () => {
+      showOnly('panelPrograms');
+    });
+
+    $('payBtn').addEventListener('click', beginPayment);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      if ($('panelDetails').classList.contains('on')) {
+        beginPayment();
+      }
+    });
+
+    boot();
+  </script>
+</body>
+</html>
