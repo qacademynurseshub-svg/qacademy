@@ -1213,46 +1213,84 @@
     }
   }
 
-  async function openOfflineModal(){
-    const pool = getFilteredPool();
-    const n = Number(state.questionCount || 0);
-    const chosen = shuffleArray(pool).slice(0, n).map(x => x.item_id);
+async function openOfflineModal(){
+  const pool = getFilteredPool();
+  const n = Number(state.questionCount || 0);
 
-    if (!chosen.length || !buildReady()) {
-      renderSummary();
-      return;
-    }
-
-    el.buildBtn.disabled = true;
-    el.statusBox.textContent = 'Checking your offline allowance…';
-
-    const allowance = await getOfflinePackAllowance(PROFILE.user_id, state.courseId);
-
-    const packName = String(state.packName || '').trim() || getSuggestedPackName();
-    el.modalPackName.value = packName;
-    el.offlineCoursePill.textContent = `Course: ${getCourseTitle(state.courseId)}`;
-    el.offlineCountPill.textContent = `Questions: ${n}`;
-
-    if (allowance && allowance.ok) {
-      el.offlineAllowancePill.textContent = `Allowance: ${allowance.remaining} left of ${allowance.downloads_per_course}`;
-      el.offlineModalError.textContent = '';
-      el.offlineCreateBtn.disabled = !allowance.allowed;
-      if (!allowance.allowed) {
-        el.offlineModalError.textContent = allowanceMessageForReason('limit_reached', allowance);
-      }
-    } else {
-      const reason = allowance && allowance.blocked_reason ? allowance.blocked_reason : 'allowance_check_failed';
-      el.offlineAllowancePill.textContent = 'Allowance: blocked';
-      el.offlineModalError.textContent = allowanceMessageForReason(reason, allowance);
-      el.offlineCreateBtn.disabled = true;
-    }
-
-    el.offlineModal.dataset.itemIds = JSON.stringify(chosen);
-    el.offlineModal.style.display = 'flex';
-    el.statusBox.textContent = 'Review the offline pack details in the confirmation box.';
-    el.buildBtn.disabled = false;
+  if (!pool.length || !n || !buildReady()) {
+    renderSummary();
+    return;
   }
 
+  el.buildBtn.disabled = true;
+  el.statusBox.textContent = 'Checking your offline allowance…';
+
+  const allowance = await getOfflinePackAllowance(PROFILE.user_id, state.courseId);
+
+  const packName = String(state.packName || '').trim() || getSuggestedPackName();
+  el.modalPackName.value = packName;
+  el.offlineCoursePill.textContent = `Course: ${getCourseTitle(state.courseId)}`;
+  el.offlineCountPill.textContent = `Questions: ${Math.min(n, pool.length)}`;
+
+  if (allowance && allowance.ok) {
+    el.offlineAllowancePill.textContent = `Allowance: ${allowance.remaining} left of ${allowance.downloads_per_course}`;
+    el.offlineModalError.textContent = '';
+    el.offlineCreateBtn.disabled = !allowance.allowed;
+
+    if (!allowance.allowed) {
+      el.offlineModalError.textContent = allowanceMessageForReason('limit_reached', allowance);
+      el.offlineModal.dataset.itemIds = '[]';
+      el.offlineModal.style.display = 'flex';
+      el.statusBox.textContent = 'Offline pack creation is currently blocked.';
+      el.buildBtn.disabled = false;
+      return;
+    }
+  } else {
+    const reason = allowance && allowance.blocked_reason ? allowance.blocked_reason : 'allowance_check_failed';
+    el.offlineAllowancePill.textContent = 'Allowance: blocked';
+    el.offlineModalError.textContent = allowanceMessageForReason(reason, allowance);
+    el.offlineCreateBtn.disabled = true;
+    el.offlineModal.dataset.itemIds = '[]';
+    el.offlineModal.style.display = 'flex';
+    el.statusBox.textContent = 'Offline pack creation is currently blocked.';
+    el.buildBtn.disabled = false;
+    return;
+  }
+
+  el.statusBox.textContent = 'Choosing fresh questions for your offline pack…';
+
+  const selection = await pickOfflinePackItemIds(
+    PROFILE.user_id,
+    state.courseId,
+    pool,
+    Math.min(n, pool.length),
+    allowance.period_start || null
+  );
+
+  const chosen = Array.isArray(selection.item_ids) ? selection.item_ids : [];
+
+  if (!chosen.length) {
+    el.offlineModalError.textContent = 'No items were selected for this pack.';
+    el.offlineCreateBtn.disabled = true;
+    el.offlineModal.dataset.itemIds = '[]';
+    el.offlineModal.style.display = 'flex';
+    el.statusBox.textContent = 'We could not prepare an offline pack from this selection.';
+    el.buildBtn.disabled = false;
+    return;
+  }
+
+  el.offlineModal.dataset.itemIds = JSON.stringify(chosen);
+  el.offlineModal.style.display = 'flex';
+
+  if (selection.reused_selected > 0) {
+    el.statusBox.textContent =
+      `Review the offline pack details. ${selection.unused_selected} fresh question(s) selected and ${selection.reused_selected} reused because the filtered pool is exhausted.`;
+  } else {
+    el.statusBox.textContent = 'Review the offline pack details in the confirmation box.';
+  }
+
+  el.buildBtn.disabled = false;
+}
   function closeOfflineModal(){
     el.offlineModal.style.display = 'none';
     el.offlineModalError.textContent = '';
