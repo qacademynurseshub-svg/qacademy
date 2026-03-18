@@ -1640,19 +1640,53 @@ async function handleAdminGrantSubscription(request, env) {
     );
   }
 
-  const duplicate = await getActiveSubscriptionForUserProduct(env, { userId, productId });
-  if (duplicate) {
+  const durationDays = Number(product.duration_days || 0);
+  if (!durationDays || durationDays <= 0) {
     return json(
-      {
-        ok: false,
-        error: 'duplicate_active_subscription',
-        message: 'This user already has an active unexpired subscription for that product'
-      },
-      409,
+      { ok: false, error: 'product_duration_invalid', message: 'Product duration is invalid' },
+      400,
       corsHeaders(request, env)
     );
   }
 
+  // Check whether the user already has the same product active and unexpired.
+  // If yes, we EXTEND it instead of blocking or creating a duplicate row.
+  const existing = await getActiveSubscriptionForUserProduct(env, { userId, productId });
+
+  if (existing) {
+    const nowMs = Date.now();
+    const currentExpiryMs = new Date(existing.expires_utc).getTime();
+    const baseIso = currentExpiryMs > nowMs ? existing.expires_utc : nowIso();
+    const newExpiresIso = addDaysIso(baseIso, durationDays);
+
+    const updated = await sbPatch(
+      env,
+      'subscriptions',
+      {
+        expires_utc: newExpiresIso,
+        status: 'ACTIVE',
+        source: 'ADMIN',
+        source_ref: 'admin_grant'
+      },
+      {
+        subscription_id: `eq.${existing.subscription_id}`
+      }
+    );
+
+    return json(
+      {
+        ok: true,
+        mode: 'extended_existing',
+        subscription: updated,
+        granted_by_user_id: adminCtx.adminUser.user_id
+      },
+      200,
+      corsHeaders(request, env)
+    );
+  }
+
+  // No active same-product row exists, so create a fresh one.
+  // If admin provided a start date, use midnight UTC of that date.
   let startIso = nowIso();
   if (startDate) {
     startIso = dateOnlyToStartIso(startDate);
@@ -1665,7 +1699,6 @@ async function handleAdminGrantSubscription(request, env) {
     }
   }
 
-  const durationDays = Number(product.duration_days || 0);
   const expiresIso = addDaysIso(startIso, durationDays);
 
   const inserted = await sbInsert(env, 'subscriptions', {
@@ -1683,6 +1716,7 @@ async function handleAdminGrantSubscription(request, env) {
   return json(
     {
       ok: true,
+      mode: 'created_new',
       subscription: inserted,
       granted_by_user_id: adminCtx.adminUser.user_id
     },
