@@ -251,3 +251,127 @@ async function getMemberCounts(classIds) {
   });
   return counts;
 }
+
+
+// ============================================================
+// Slice 4: Student — My Classes
+// ============================================================
+
+// ------------------------------------------------------------
+// GET STUDENT CLASSES
+// Returns all active class memberships for a student,
+// with the class details joined in a single query.
+// Used by: myteacher/student/my-classes.html
+// ------------------------------------------------------------
+async function getStudentClasses(userId) {
+  const { data, error } = await db
+    .from('teacher_class_members')
+    .select(`
+      *,
+      teacher_classes (
+        class_id,
+        title,
+        join_code,
+        status,
+        custom_fields_json,
+        teacher_id,
+        created_at
+      )
+    `)
+    .eq('user_id', userId)
+    .eq('status', 'ACTIVE')
+    .order('joined_at', { ascending: false });
+
+  if (error) { console.error('getStudentClasses:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET CLASS BY JOIN CODE
+// Validates a join code and returns the class if found and active.
+// Returns null if not found or archived.
+// Used by: myteacher/student/my-classes.html join flow
+// ------------------------------------------------------------
+async function getClassByJoinCode(joinCode) {
+  const { data, error } = await db
+    .from('teacher_classes')
+    .select('*')
+    .eq('join_code', String(joinCode || '').trim().toUpperCase())
+    .eq('status', 'ACTIVE')
+    .maybeSingle();
+
+  if (error) { console.error('getClassByJoinCode:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
+// CHECK IF STUDENT ALREADY MEMBER
+// Returns the existing membership row or null.
+// Used by: join flow — prevent duplicate joins
+// ------------------------------------------------------------
+async function getExistingMembership(userId, classId) {
+  const { data, error } = await db
+    .from('teacher_class_members')
+    .select('class_id, status')
+    .eq('user_id', userId)
+    .eq('class_id', classId)
+    .maybeSingle();
+
+  if (error) { console.error('getExistingMembership:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
+// JOIN CLASS
+// Inserts a new row into teacher_class_members.
+// memberFieldsJson: JSON string of { key: value } pairs
+// Returns { success, message }
+// Used by: myteacher/student/my-classes.html
+// ------------------------------------------------------------
+async function joinClass(userId, classId, teacherId, displayName, email, memberFieldsJson) {
+  const now      = new Date().toISOString();
+  const memberId = makeClassMemberId();
+
+  const { error } = await db
+    .from('teacher_class_members')
+    .insert({
+      class_id          : classId,
+      user_id           : userId,
+      teacher_id        : teacherId,
+      display_name      : displayName || '',
+      email             : email || '',
+      member_fields_json: memberFieldsJson || '{}',
+      status            : 'ACTIVE',
+      joined_at         : now,
+      updated_at        : now
+    });
+
+  if (error) { console.error('joinClass:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// UPDATE MEMBER PROFILE
+// Updates the member_fields_json for an existing membership.
+// memberFieldsJson: JSON string of { key: value } pairs
+// Used by: myteacher/student/my-classes.html profile tab
+// ------------------------------------------------------------
+async function updateMemberProfile(classId, userId, memberFieldsJson) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_class_members')
+    .update({
+      member_fields_json: memberFieldsJson,
+      updated_at        : now
+    })
+    .eq('class_id', classId)
+    .eq('user_id', userId);
+
+  if (error) { console.error('updateMemberProfile:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
