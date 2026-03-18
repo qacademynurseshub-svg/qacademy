@@ -698,13 +698,13 @@
       el.classList.toggle('show', !!(show && message));
     }
 
-    function workerBase(){
-      const raw = String(window.PAYMENTS_API_BASE || '').trim();
-      if (!raw) {
-        throw new Error('Missing PAYMENTS_API_BASE in /js/config.js');
-      }
-      return raw.replace(/\/+$/, '');
-    }
+function workerBase(){
+  const raw = String(PAYMENTS_API_BASE || '').trim();
+  if (!raw) {
+    throw new Error('Missing PAYMENTS_API_BASE in /js/config.js');
+  }
+  return raw.replace(/\/+$/, '');
+}
 
     function getPremiumPrograms(programs, products){
       const programMap = new Map(
