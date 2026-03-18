@@ -387,10 +387,11 @@
       <button class="filter-toggle" id="expiringToggle" onclick="toggleExpiring()">
         ⚠️ Expiring Soon
       </button>
-      <div class="filter-actions">
-        <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
-        <button class="btn btn-primary" onclick="openGrantModal()">+ Grant Subscription</button>
-      </div>
+   <div class="filter-actions">
+  <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+  <button class="btn btn-ghost" id="syncBtn" onclick="syncStatus()">🔄 Sync Status</button>
+  <button class="btn btn-primary" onclick="openGrantModal()">+ Grant Subscription</button>
+</div>
     </div>
 
     <!-- Table -->
@@ -1138,6 +1139,40 @@
   }
 
   init();
+  // ─── Sync Status ──────────────────────────────────
+// One-direction only: ACTIVE → EXPIRED where expires_utc is in the past
+// Run manually by admin when visiting the page
+async function syncStatus() {
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = true;
+  btn.textContent = 'Syncing…';
+
+  const now = new Date().toISOString();
+
+  const { data, error } = await db
+    .from('subscriptions')
+    .update({ status: 'EXPIRED' })
+    .eq('status', 'ACTIVE')
+    .lt('expires_utc', now)
+    .select('subscription_id');
+
+  if (error) {
+    alert('Sync failed: ' + error.message);
+    btn.disabled = false;
+    btn.textContent = '🔄 Sync Status';
+    return;
+  }
+
+  const count = data?.length || 0;
+  btn.textContent = count > 0 ? `✅ ${count} updated` : '✅ Up to date';
+
+  await loadData();
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = '🔄 Sync Status';
+  }, 3000);
+}
 </script>
 </body>
 </html>
