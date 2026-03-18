@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teacher Access — QAcademy</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+
+    /* ── Page shell ──────────────────────────────────────── */
+    .ar-wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      background: var(--bg, #f8fafc);
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .ar-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .ar-logo {
+      width: 52px; height: 52px;
+      margin: 0 auto 12px;
+    }
+    .ar-title {
+      font-size: 24px; font-weight: 800;
+      color: var(--primary); margin: 0 0 6px;
+    }
+    .ar-sub {
+      font-size: 14px; color: var(--text-muted); margin: 0;
+    }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .ar-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      width: 100%; max-width: 520px;
+      box-shadow: 0 4px 24px rgba(30,58,95,0.08);
+      overflow: hidden;
+    }
+    .ar-card-head {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .ar-card-head h2 {
+      font-size: 16px; font-weight: 800;
+      color: var(--primary); margin: 0 0 4px;
+    }
+    .ar-card-head p {
+      font-size: 13px; color: var(--text-muted); margin: 0;
+    }
+    .ar-card-body { padding: 24px; }
+
+    /* ── Status pill ─────────────────────────────────────── */
+    .ar-pill {
+      display: inline-flex; align-items: center;
+      padding: 4px 12px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .ar-pill-pending  { background: rgba(181,71,8,0.08); color: #b54708; border: 1px solid rgba(181,71,8,0.22); }
+    .ar-pill-approved { background: rgba(45,125,114,0.10); color: var(--accent); border: 1px solid rgba(45,125,114,0.22); }
+    .ar-pill-disabled { background: rgba(100,116,139,0.10); color: var(--text-muted); border: 1px solid var(--border); }
+    .ar-pill-none     { background: #f3f4f6; color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* ── State boxes ─────────────────────────────────────── */
+    .ar-state { display: none; }
+    .ar-state.show { display: block; }
+
+    .ar-big-title {
+      font-size: 18px; font-weight: 800;
+      color: var(--primary); margin: 0 0 6px;
+    }
+    .ar-desc {
+      font-size: 14px; color: var(--text-muted);
+      line-height: 1.6; margin: 0 0 18px;
+    }
+
+    /* ── Form ────────────────────────────────────────────── */
+    .ar-form { margin-top: 16px; }
+    .ar-field { margin-bottom: 14px; }
+    .ar-field label {
+      display: block; font-size: 13px; font-weight: 700;
+      color: var(--text); margin-bottom: 6px;
+    }
+    .ar-field input,
+    .ar-field textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px; outline: none;
+      background: #fff; color: var(--text);
+      font-family: inherit;
+    }
+    .ar-field input:focus,
+    .ar-field textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,125,114,0.10);
+    }
+    .ar-field textarea { min-height: 90px; resize: vertical; }
+    .ar-field-hint {
+      font-size: 12px; color: var(--text-muted);
+      margin-top: 5px; line-height: 1.45;
+    }
+    .ar-form-actions {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 10px 20px; border: none;
+      border-radius: 10px; background: var(--accent);
+      color: #fff; font-size: 13px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.90; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-ghost {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 10px 16px;
+      border: 1px solid var(--border); border-radius: 10px;
+      background: #fff; color: var(--text);
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-ghost:hover { background: var(--primary-light); }
+
+    /* ── Info box (pending/disabled) ─────────────────────── */
+    .ar-info-box {
+      background: var(--primary-light);
+      border: 1px solid rgba(45,125,114,0.18);
+      border-radius: 12px; padding: 14px;
+      font-size: 13px; color: var(--text);
+      line-height: 1.6; margin-bottom: 18px;
+    }
+    .ar-info-box.warn {
+      background: rgba(181,71,8,0.06);
+      border-color: rgba(181,71,8,0.18);
+    }
+    .ar-info-box.danger {
+      background: rgba(220,38,38,0.06);
+      border-color: rgba(220,38,38,0.18);
+    }
+
+    /* ── Divider ─────────────────────────────────────────── */
+    .ar-divider {
+      height: 1px; background: var(--border); margin: 18px 0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    .ar-footer {
+      margin-top: 20px;
+      display: flex; gap: 12px;
+      justify-content: center; flex-wrap: wrap;
+    }
+    .ar-footer-link {
+      font-size: 13px; color: var(--text-muted);
+      cursor: pointer; background: none; border: none;
+      text-decoration: underline;
+    }
+    .ar-footer-link:hover { color: var(--danger); }
+
+    /* ── Spinner ─────────────────────────────────────────── */
+    .ar-spinner {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 2px solid rgba(30,58,95,0.12);
+      border-top-color: var(--primary);
+      animation: spin 0.8s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      min-width: 240px; max-width: 360px; display: none;
+    }
+    .toast.show { display: block; }
+    .toast-title { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+    .toast-msg   { font-size: 12px; color: var(--text-muted); }
+
+  </style>
+</head>
+<body>
+
+<div class="ar-wrap">
+
+  <!-- Header -->
+  <div class="ar-header">
+    <img src="/images/QAcademy_Logo.png" alt="QAcademy" class="ar-logo" />
+    <h1 class="ar-title">Teacher Access</h1>
+    <p class="ar-sub" id="arSub">Checking your session…</p>
+  </div>
+
+  <!-- Loading state -->
+  <div id="arLoading">
+    <div class="ar-spinner"></div>
+  </div>
+
+  <!-- Card — shown after session check -->
+  <div class="ar-card" id="arCard" style="display:none;">
+    <div class="ar-card-head">
+      <div>
+        <h2 id="cardTitle">Teacher Access</h2>
+        <p id="cardDesc">Checking your teacher status…</p>
+      </div>
+      <span class="ar-pill ar-pill-none" id="statusPill">Checking…</span>
+    </div>
+    <div class="ar-card-body">
+
+      <!-- ── State: Approved ── -->
+      <div class="ar-state" id="stateApproved">
+        <div class="ar-big-title">You're approved ✓</div>
+        <div class="ar-desc">
+          Your teacher access is active. Open your Teacher Dashboard to
+          manage classes, build quizzes, and view results.
+        </div>
+        <a href="/myteacher/teacher/dashboard.html" class="btn-primary">
+          Open Teacher Dashboard →
+        </a>
+      </div>
+
+      <!-- ── State: Pending ── -->
+      <div class="ar-state" id="statePending">
+        <div class="ar-big-title">Request pending</div>
+        <div class="ar-desc">
+          Your teacher access request is waiting for admin approval.
+          You can resubmit to bump your request if needed.
+        </div>
+        <div class="ar-info-box warn">
+          You can still use My Classes as a student while waiting for approval.
+        </div>
+        <button class="btn-primary" id="btnResubmit">Resubmit request</button>
+        <div id="resubmitFormWrap" style="display:none;">
+          <div class="ar-divider"></div>
+          <div class="ar-form">
+            <div class="ar-field">
+              <label for="resubOrg">Organisation (optional)</label>
+              <input type="text" id="resubOrg" placeholder="e.g. School / Hospital / Training centre" />
+            </div>
+            <div class="ar-field">
+              <label for="resubPhone">Phone number (optional)</label>
+              <input type="tel" id="resubPhone" placeholder="Optional" />
+            </div>
+            <div class="ar-field">
+              <label for="resubNote">Short note (optional)</label>
+              <textarea id="resubNote" placeholder="e.g. Following up on my previous request."></textarea>
+            </div>
+            <div class="ar-form-actions">
+              <button class="btn-primary" id="btnSubmitResub" type="button">Submit resubmission</button>
+              <button class="btn-ghost"   id="btnCancelResub" type="button">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── State: Disabled ── -->
+      <div class="ar-state" id="stateDisabled">
+        <div class="ar-big-title">Access disabled</div>
+        <div class="ar-desc">
+          Your teacher access has been disabled by an admin.
+          Please contact support if you think this is an error.
+        </div>
+        <div class="ar-info-box danger">
+          You can still use the Licensure Portal and My Classes as a student.
+        </div>
+        <a href="/router.html" class="btn-ghost">← Back to home</a>
+      </div>
+
+      <!-- ── State: No request yet ── -->
+      <div class="ar-state" id="stateNoRequest">
+        <div class="ar-big-title">Request teacher access</div>
+        <div class="ar-desc">
+          Teachers must request access. Admin will review and approve your
+          request before you can create classes and quizzes.
+        </div>
+        <button class="btn-primary" id="btnShowForm">Request access</button>
+
+        <div id="requestFormWrap" style="display:none;">
+          <div class="ar-divider"></div>
+          <div class="ar-form">
+            <div class="ar-field">
+              <label for="reqOrg">Organisation (optional)</label>
+              <input type="text" id="reqOrg" placeholder="e.g. School / Hospital / Training centre" />
+            </div>
+            <div class="ar-field">
+              <label for="reqPhone">Phone number (optional)</label>
+              <input type="tel" id="reqPhone" placeholder="Optional" />
+            </div>
+            <div class="ar-field">
+              <label for="reqNote">Short note (optional)</label>
+              <textarea id="reqNote" placeholder="e.g. I'm a tutor and want to run assignments for my class."></textarea>
+              <div class="ar-field-hint">
+                Admin will review this before approving. Keep it brief.
+              </div>
+            </div>
+            <div class="ar-form-actions">
+              <button class="btn-primary" id="btnSubmitReq" type="button">Submit request</button>
+              <button class="btn-ghost"   id="btnCancelReq" type="button">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.ar-card-body -->
+  </div><!-- /.ar-card -->
+
+  <!-- Footer -->
+  <div class="ar-footer">
+    <a href="/myteacher/student/my-classes.html" style="font-size:13px; color:var(--text-muted);">
+      Go to My Classes
+    </a>
+    <span style="color:var(--border)">|</span>
+    <a href="/router.html" style="font-size:13px; color:var(--text-muted);">
+      Back to home
+    </a>
+    <span style="color:var(--border)">|</span>
+    <button class="ar-footer-link" id="btnSignOut">Sign out</button>
+  </div>
+
+</div><!-- /.ar-wrap -->
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toastTitle"></div>
+  <div class="toast-msg"   id="toastMsg"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script>
+
+  let PROFILE = null;
+
+  // ── Helpers ──────────────────────────────────────────────
+  function byId(id) { return document.getElementById(id); }
+
+  function showState(stateId) {
+    ['stateApproved','statePending','stateDisabled','stateNoRequest'].forEach(id => {
+      byId(id).classList.toggle('show', id === stateId);
+    });
+  }
+
+  function setPill(text, cls) {
+    const el = byId('statusPill');
+    el.textContent = text;
+    el.className = 'ar-pill ' + (cls || 'ar-pill-none');
+  }
+
+  let toastTimer = null;
+  function showToast(title, msg) {
+    byId('toastTitle').textContent = title;
+    byId('toastMsg').textContent   = msg;
+    const el = byId('toast');
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3400);
+  }
+
+  // ── Boot ─────────────────────────────────────────────────
+  async function boot() {
+    // 1. Session check
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { window.location.href = '/login.html'; return; }
+
+    // 2. Load profile
+    const { data: profile } = await db
+      .from('users')
+      .select('user_id, role, forename, name, email, active')
+      .eq('auth_id', session.user.id)
+      .maybeSingle();
+
+    if (!profile || !profile.active) {
+      await db.auth.signOut();
+      window.location.href = '/login.html';
+      return;
+    }
+
+    PROFILE = profile;
+    const displayName = profile.forename || profile.name || profile.email || 'there';
+    byId('arSub').textContent = `Signed in as ${displayName}`;
+
+    // 3. Check teacher_profiles
+    const { data: teacherProfile } = await db
+      .from('teacher_profiles')
+      .select('*')
+      .eq('teacher_id', profile.user_id)
+      .maybeSingle();
+
+    // Hide loader, show card
+    byId('arLoading').style.display = 'none';
+    byId('arCard').style.display    = 'block';
+
+    // 4. Determine state
+    if (teacherProfile && teacherProfile.active === true) {
+      // Approved and active — should have been routed to dashboard
+      // but handle gracefully if they land here directly
+      byId('cardTitle').textContent = 'Access approved';
+      byId('cardDesc').textContent  = 'Your teacher access is active.';
+      setPill('Approved', 'ar-pill-approved');
+      showState('stateApproved');
+
+    } else if (teacherProfile && teacherProfile.request_status === 'DISABLED') {
+      byId('cardTitle').textContent = 'Access disabled';
+      byId('cardDesc').textContent  = 'Your teacher access has been disabled.';
+      setPill('Disabled', 'ar-pill-disabled');
+      showState('stateDisabled');
+
+    } else if (teacherProfile && teacherProfile.request_status === 'PENDING') {
+      byId('cardTitle').textContent = 'Request pending';
+      byId('cardDesc').textContent  = 'Waiting for admin approval.';
+      setPill('Pending', 'ar-pill-pending');
+      showState('statePending');
+      bindPendingEvents();
+
+    } else {
+      // No profile or rejected — show request form
+      byId('cardTitle').textContent = 'Request teacher access';
+      byId('cardDesc').textContent  = 'Submit a request to get started.';
+      setPill('Not requested', 'ar-pill-none');
+      showState('stateNoRequest');
+      bindRequestFormEvents();
+    }
+  }
+
+  // ── Submit new request ────────────────────────────────────
+  async function submitRequest(org, phone, note, isResubmit) {
+    const btn = byId(isResubmit ? 'btnSubmitResub' : 'btnSubmitReq');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    const now = new Date().toISOString();
+
+    // Check if profile already exists
+    const { data: existing } = await db
+      .from('teacher_profiles')
+      .select('teacher_id, request_count')
+      .eq('teacher_id', PROFILE.user_id)
+      .maybeSingle();
+
+    let error;
+
+    if (existing) {
+      // Update existing profile — increment count
+      const { error: updateError } = await db
+        .from('teacher_profiles')
+        .update({
+          organisation    : org  || existing.organisation,
+          phone_number    : phone|| existing.phone_number,
+          request_note    : note || existing.request_note,
+          request_status  : 'PENDING',
+          request_count   : (existing.request_count || 0) + 1,
+          last_request_at : now,
+          updated_at      : now
+        })
+        .eq('teacher_id', PROFILE.user_id);
+      error = updateError;
+    } else {
+      // Insert new profile
+      const { error: insertError } = await db
+        .from('teacher_profiles')
+        .insert({
+          teacher_id      : PROFILE.user_id,
+          display_name    : PROFILE.forename || PROFILE.name || '',
+          email           : PROFILE.email || '',
+          phone_number    : phone || '',
+          organisation    : org   || '',
+          request_note    : note  || '',
+          request_status  : 'PENDING',
+          request_count   : 1,
+          active          : false,
+          plan_type       : 'FREE',
+          requested_at    : now,
+          last_request_at : now,
+          created_at      : now,
+          updated_at      : now
+        });
+      error = insertError;
+    }
+
+    if (error) {
+      showToast('Error', error.message || 'Submission failed. Please try again.');
+      btn.disabled = false;
+      btn.textContent = isResubmit ? 'Submit resubmission' : 'Submit request';
+      return;
+    }
+
+    showToast(
+      isResubmit ? 'Resubmitted' : 'Request submitted',
+      'Admin will review and approve your request.'
+    );
+
+    // Transition to pending state
+    byId('cardTitle').textContent = 'Request pending';
+    byId('cardDesc').textContent  = 'Waiting for admin approval.';
+    setPill('Pending', 'ar-pill-pending');
+    showState('statePending');
+    bindPendingEvents();
+  }
+
+  // ── Bind request form events ──────────────────────────────
+  function bindRequestFormEvents() {
+    byId('btnShowForm').addEventListener('click', () => {
+      byId('requestFormWrap').style.display = 'block';
+      byId('btnShowForm').style.display     = 'none';
+      byId('reqOrg').focus();
+    });
+
+    byId('btnCancelReq').addEventListener('click', () => {
+      byId('requestFormWrap').style.display = 'none';
+      byId('btnShowForm').style.display     = 'inline-flex';
+    });
+
+    byId('btnSubmitReq').addEventListener('click', () => {
+      const org   = byId('reqOrg').value.trim();
+      const phone = byId('reqPhone').value.trim();
+      const note  = byId('reqNote').value.trim();
+      submitRequest(org, phone, note, false);
+    });
+  }
+
+  // ── Bind pending / resubmit events ───────────────────────
+  function bindPendingEvents() {
+    byId('btnResubmit').addEventListener('click', () => {
+      byId('resubmitFormWrap').style.display = 'block';
+      byId('btnResubmit').style.display      = 'none';
+      byId('resubOrg').focus();
+    });
+
+    byId('btnCancelResub').addEventListener('click', () => {
+      byId('resubmitFormWrap').style.display = 'none';
+      byId('btnResubmit').style.display      = 'inline-flex';
+    });
+
+    byId('btnSubmitResub').addEventListener('click', () => {
+      const org   = byId('resubOrg').value.trim();
+      const phone = byId('resubPhone').value.trim();
+      const note  = byId('resubNote').value.trim();
+      submitRequest(org, phone, note, true);
+    });
+  }
+
+  // ── Sign out ──────────────────────────────────────────────
+  byId('btnSignOut').addEventListener('click', async () => {
+    await db.auth.signOut();
+    window.location.href = '/login.html';
+  });
+
+  // ── Run ──────────────────────────────────────────────────
+  boot();
+
+</script>
+</body>
+</html>
