@@ -1469,8 +1469,6 @@
 
     COURSE_ACCESS = await getStudentCourseAccess(PROFILE.user_id);
     COURSES = await getCourses();
-
-    populateCourseDropdown(COURSE_ACCESS, COURSES);
     populateCourseSelect();
     renderRecentSetups();
 
