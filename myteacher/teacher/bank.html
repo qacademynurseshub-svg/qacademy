@@ -221,12 +221,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: calc(100vh - 260px);
-  overflow-y: auto;
 }
-.q-list::-webkit-scrollbar { width: 5px; }
-.q-list::-webkit-scrollbar-track { background: transparent; }
-.q-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
 
 .q-card {
   border: 1px solid var(--border);
@@ -426,6 +421,7 @@ body {
   padding: 14px 16px 12px;
   border-bottom: 1px solid var(--border-soft);
   flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
 }
 .editor-header h2 {
   font-size: 15px;
@@ -438,6 +434,20 @@ body {
   color: var(--text-faint);
   font-family: ui-monospace, Consolas, monospace;
 }
+
+/* New question — green tint */
+.editor-header.mode-new {
+  background: var(--ok-light);
+  border-bottom-color: var(--ok-border);
+}
+.editor-header.mode-new h2 { color: var(--ok); }
+
+/* Edit question — amber tint */
+.editor-header.mode-edit {
+  background: var(--warn-light);
+  border-bottom-color: rgba(180,83,9,0.25);
+}
+.editor-header.mode-edit h2 { color: var(--warn); }
 
 .editor-body {
   flex: 1;
@@ -1029,12 +1039,14 @@ async function boot() {
   applyPickerLayout();
 
   // Wire filter events
+  // Keyword: client-side debounced — fast live feedback over loaded results
   $('fKeyword').addEventListener('input', () => {
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(applyFilters, 220);
   });
+  // All other filters: re-query the server with updated filter state
   ['fStatus','fDifficulty','fSubject','fMaintopic','fSubtopic'].forEach(id => {
-    $(id).addEventListener('change', applyFilters);
+    $(id).addEventListener('change', loadItems);
   });
 
   // Load filter options then items
@@ -1332,6 +1344,11 @@ async function openEditor(bankItemId, event) {
   $('btnSave').disabled = false;
   updateEditorArchiveButtons(item.status);
   setEditorStatus('Ready.');
+
+  // Amber header — editing existing
+  const hdr = $('editorPanel').querySelector('.editor-header');
+  hdr.classList.remove('mode-new');
+  hdr.classList.add('mode-edit');
 }
 
 // ── Open editor — new item ─────────────────────────────────
@@ -1357,6 +1374,11 @@ function openNewEditor() {
   $('btnArchive').style.display  = 'none';
   $('btnRestore').style.display  = 'none';
   setEditorStatus('Ready to create.');
+
+  // Green header — creating
+  const hdr = $('editorPanel').querySelector('.editor-header');
+  hdr.classList.remove('mode-edit');
+  hdr.classList.add('mode-new');
 }
 
 function showEditorForm() {
@@ -1372,6 +1394,10 @@ function cancelEditor() {
   }
   currentItemId = null;
   currentItem   = null;
+
+  // Reset header colour
+  const hdr = $('editorPanel').querySelector('.editor-header');
+  hdr.classList.remove('mode-new', 'mode-edit');
 
   $('editorPlaceholder').style.display = 'flex';
   $('editorBody').style.display        = 'none';
