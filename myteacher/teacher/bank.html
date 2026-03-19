@@ -708,7 +708,9 @@ body {
       <h1>📚 Question Bank</h1>
       <p>Create and manage your questions. All question types shown in full.</p>
     </div>
-    <div style="display:flex;gap:8px;" id="pageHeaderActions">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="pageHeaderActions">
+      <button class="btn btn-ghost" id="btnBulkCsv" onclick="goToImport()">⬆ Bulk add (CSV)</button>
+      <button class="btn btn-ghost" id="btnAddToQuiz" onclick="enterPickerMode()">📎 Add questions to a quiz</button>
       <button class="btn btn-primary" id="btnCreate" onclick="openNewEditor()">+ New Question</button>
     </div>
   </div>
@@ -926,7 +928,15 @@ body {
 <!-- Picker dock -->
 <div class="picker-dock" id="pickerDock">
   <div class="picker-dock-inner">
-    <div class="picker-count" id="pickerCount">0 selected</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex:1;min-width:0;">
+      <div class="picker-count" id="pickerCount">0 selected</div>
+      <!-- Quiz selector — only shown when no teacher_quiz_id in URL (self-entered picker mode) -->
+      <div id="pickerQuizWrap" style="display:none;flex:1;max-width:320px;">
+        <select id="pickerQuizSelect" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff;" onchange="onPickerQuizSelect()">
+          <option value="">— Select a draft quiz —</option>
+        </select>
+      </div>
+    </div>
     <div class="picker-dock-actions">
       <button class="btn btn-ghost" onclick="clearSelection()">Clear</button>
       <button class="btn btn-ghost" onclick="selectAllVisible()">Select all visible</button>
@@ -1061,8 +1071,10 @@ function applyPickerLayout() {
   // Show banner
   $('pickerBanner').classList.add('show');
 
-  // Hide create button and editor panel
-  $('btnCreate').style.display = 'none';
+  // Hide normal-mode header buttons and editor panel
+  $('btnCreate').style.display   = 'none';
+  $('btnBulkCsv').style.display  = 'none';
+  $('btnAddToQuiz').style.display = 'none';
   $('editorPanel').style.display = 'none';
 
   // Single-column layout
@@ -1072,10 +1084,17 @@ function applyPickerLayout() {
   $('pickerDock').classList.add('show');
 
   // Show select-all / clear in list header
-  $('btnSelectAll').style.display   = 'inline-flex';
+  $('btnSelectAll').style.display      = 'inline-flex';
   $('btnClearSelection').style.display = 'inline-flex';
 
-  // If we have a quiz ID, fetch its name for the banner
+  // If no TARGET_QUIZ_ID (teacher entered picker mode from bank itself),
+  // show the quiz selector dropdown and populate it with DRAFT quizzes
+  if (!TARGET_QUIZ_ID) {
+    $('pickerQuizWrap').style.display = 'flex';
+    loadDraftQuizzesForPicker();
+  }
+
+  // If we have a quiz ID (called from quiz manager), fetch its name for the banner
   if (TARGET_QUIZ_ID) {
     db.from('teacher_quizzes')
       .select('title')
@@ -1796,6 +1815,65 @@ async function pickerAddToDraft() {
   }, 1800);
 }
 
+// ── Enter picker mode from bank header button ──────────────
+// Reloads the page with ?mode=picker — same URL pattern the
+// quiz manager will use when it calls the bank externally.
+// No teacher_quiz_id here — teacher picks the quiz from the dock.
+function enterPickerMode() {
+  const u = new URL(location.href);
+  u.searchParams.set('mode', 'picker');
+  u.searchParams.delete('teacher_quiz_id');
+  u.searchParams.delete('return_to');
+  location.href = u.toString();
+}
+
+// ── Navigate to CSV import page ────────────────────────────
+// Passes current page as return_to so the Back button on
+// import.html brings the teacher straight back here.
+function goToImport() {
+  const returnTo = encodeURIComponent(location.href);
+  location.href = `/myteacher/teacher/import.html?return_to=${returnTo}`;
+}
+
+// ── Load draft quizzes for picker dock selector ────────────
+// Called when teacher enters picker mode directly from the bank
+// (no teacher_quiz_id in URL). Populates the dropdown with
+// all DRAFT quizzes belonging to this teacher.
+async function loadDraftQuizzesForPicker() {
+  const sel = $('pickerQuizSelect');
+  sel.innerHTML = '<option value="">Loading quizzes…</option>';
+
+  const { data, error } = await db
+    .from('teacher_quizzes')
+    .select('teacher_quiz_id, title')
+    .eq('teacher_id', TEACHER_ID)
+    .eq('status', 'DRAFT')
+    .order('updated_at', { ascending: false });
+
+  if (error || !data || !data.length) {
+    sel.innerHTML = '<option value="">No draft quizzes found</option>';
+    return;
+  }
+
+  sel.innerHTML = '<option value="">— Select a draft quiz —</option>' +
+    data.map(q => `<option value="${esc(q.teacher_quiz_id)}">${esc(q.title)}</option>`).join('');
+}
+
+// ── Quiz selector change in picker dock ───────────────────
+// When teacher picks a quiz from the dropdown, set TARGET_QUIZ_ID
+// and update the banner + Add to Draft button state.
+function onPickerQuizSelect() {
+  TARGET_QUIZ_ID = $('pickerQuizSelect').value;
+  if (TARGET_QUIZ_ID) {
+    const title = $('pickerQuizSelect').options[$('pickerQuizSelect').selectedIndex].text;
+    $('pickerBannerQuizName').textContent = `Adding to: "${title}"`;
+  } else {
+    $('pickerBannerQuizName').textContent = 'Select questions to add to your quiz draft.';
+  }
+  updatePickerUI();
+}
+
+// ── Picker cancel — exit picker mode ──────────────────────
 function pickerCancel() {
   if (RETURN_TO) {
     location.href = decodeURIComponent(RETURN_TO);
