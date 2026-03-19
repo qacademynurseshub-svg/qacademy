@@ -1100,7 +1100,7 @@
       if (isInProgress) {
         actionHtml = `<a class="btn btn-primary btn-sm" href="/myteacher/student/quiz-runner.html?quiz_id=${esc(quiz.teacher_quiz_id)}&class_id=${esc(classId)}&attempt_id=${esc(a.attempt_id)}">Resume</a>`;
       } else if (isSubmitted || isTimedOut) {
-        actionHtml = `<a class="btn btn-sm" href="/myteacher/student/my-results.html?attempt_id=${esc(a.attempt_id)}" style="opacity:0.5; pointer-events:none;" title="Coming in Slice 8">Results</a>`;
+        actionHtml = `<a class="btn btn-sm" href="/myteacher/student/my-results.html?attempt_id=${esc(a.attempt_id)}">Results</a>`;
       }
 
       html += `

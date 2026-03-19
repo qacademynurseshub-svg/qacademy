@@ -1316,12 +1316,10 @@
         <a class="nav-btn primary" href="/myteacher/student/my-classes.html">← Back to My Classes</a>`;
 
     if (resultsAvailable) {
-      html += `<a class="nav-btn" href="/myteacher/student/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}" style="opacity:0.6; pointer-events:none;">📊 View Results</a>
-        <span class="link-note">Results page coming in Slice 8</span>`;
+      html += `<a class="nav-btn" href="/myteacher/student/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}">📊 View Results</a>`;
     }
     if (reviewAvailable) {
-      html += `<a class="nav-btn" href="/myteacher/student/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}&tab=review" style="opacity:0.6; pointer-events:none;">📝 Review Questions</a>
-        <span class="link-note">Review page coming in Slice 8</span>`;
+      html += `<a class="nav-btn" href="/myteacher/student/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}&tab=review">📝 Review Questions</a>`;
     }
 
     html += '</div>';

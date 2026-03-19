@@ -1857,3 +1857,371 @@ function _getSataOptionLetters(snap) {
   });
   return letters;
 }
+
+
+// ============================================================
+// Slice 8: Student Results & Review
+// ============================================================
+
+// ------------------------------------------------------------
+// GET ATTEMPT RESULTS (Student)
+// Returns the attempt with score data, gated by release policy.
+// Computes: gate_met, display_score, grade_label, pass_status,
+//           results/review availability, and metadata.
+// Used by: myteacher/student/my-results.html — Results tab
+// ------------------------------------------------------------
+async function getAttemptResults(attemptId, userId) {
+  // 1. Fetch attempt
+  const { data: attempt, error: aErr } = await db
+    .from('teacher_quiz_attempts')
+    .select('*')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  if (aErr || !attempt) return { success: false, message: 'Attempt not found.' };
+  if (attempt.user_id !== userId) return { success: false, message: 'Not your attempt.' };
+  if (attempt.status === 'IN_PROGRESS') return { success: false, message: 'Attempt is still in progress.' };
+
+  // 2. Fetch quiz
+  const quiz = await getTeacherQuiz(attempt.teacher_quiz_id);
+  if (!quiz) return { success: false, message: 'Quiz not found.' };
+
+  // 3. Fetch class membership for "My Details"
+  const { data: member } = await db
+    .from('teacher_class_members')
+    .select('display_name, email, member_fields_json')
+    .eq('user_id', userId)
+    .eq('class_id', attempt.class_id)
+    .maybeSingle();
+
+  const { data: cls } = await db
+    .from('teacher_classes')
+    .select('title, custom_fields_json')
+    .eq('class_id', attempt.class_id)
+    .maybeSingle();
+
+  // 4. Compute results gate
+  const now = new Date();
+  const policy = quiz.results_release_policy || 'MANUAL';
+  let gateMet = false;
+  let gateReason = '';
+  let availableAt = null;
+
+  if (policy === 'IMMEDIATE') {
+    gateMet = true;
+  } else if (policy === 'AFTER_CLOSE') {
+    if (!quiz.close_at) {
+      gateReason = 'MISSING_CLOSE_AT';
+    } else if (new Date(quiz.close_at) > now) {
+      gateReason = 'QUIZ_NOT_CLOSED';
+      availableAt = quiz.close_at;
+    } else {
+      gateMet = true;
+      availableAt = quiz.close_at;
+    }
+  } else {
+    // MANUAL
+    if (quiz.results_released) {
+      gateMet = true;
+      availableAt = quiz.results_released_at;
+    } else {
+      gateReason = 'RESULTS_NOT_RELEASED';
+    }
+  }
+
+  // 5. Compute display score (respecting policy)
+  const showResults = quiz.show_results !== false;
+  const scorePolicy = attempt.score_display_policy || quiz.score_display_policy || 'RAW_AND_PCT';
+  let displayScore = null;
+  let gradeLabel = null;
+  let passStatus = null;
+
+  if (gateMet && showResults && attempt.score_pct != null) {
+    displayScore = {};
+    if (scorePolicy === 'RAW_AND_PCT' || scorePolicy === 'RAW_ONLY') {
+      displayScore.score_marks = attempt.score_raw;
+      displayScore.total_marks = attempt.score_total;
+    }
+    if (scorePolicy === 'RAW_AND_PCT' || scorePolicy === 'PCT_ONLY') {
+      displayScore.percent = attempt.score_pct;
+    }
+    // HIDE: displayScore stays null
+    if (scorePolicy === 'HIDE') displayScore = null;
+
+    // Grade label
+    gradeLabel = _gradeLabelFromBands(
+      attempt.grade_bands_json || quiz.grade_bands_json,
+      attempt.score_pct
+    );
+
+    // Pass/fail
+    const threshold = quiz.pass_threshold_pct ?? 50;
+    passStatus = attempt.score_pct >= threshold ? 'PASS' : 'FAIL';
+  }
+
+  // Even if score hidden, grade may still show
+  if (gateMet && showResults && scorePolicy === 'HIDE' && attempt.score_pct != null) {
+    gradeLabel = _gradeLabelFromBands(
+      attempt.grade_bands_json || quiz.grade_bands_json,
+      attempt.score_pct
+    );
+  }
+
+  // 6. Review availability
+  const canReviewNow = gateMet && quiz.show_review;
+
+  // 7. Build "My Details"
+  let classFields = [];
+  let classValues = {};
+  try {
+    const cf = typeof cls?.custom_fields_json === 'object' ? cls.custom_fields_json : JSON.parse(cls?.custom_fields_json || '[]');
+    classFields = Array.isArray(cf) ? cf : (Array.isArray(cf.fields) ? cf.fields : []);
+  } catch(_) {}
+  try {
+    const mf = typeof member?.member_fields_json === 'object' ? member.member_fields_json : JSON.parse(member?.member_fields_json || '{}');
+    classValues = (mf && typeof mf === 'object' && !Array.isArray(mf)) ? mf : (mf?.fields || {});
+  } catch(_) {}
+
+  let candidateFields = {};
+  try {
+    const cf = typeof attempt.candidate_fields_json === 'object' ? attempt.candidate_fields_json : JSON.parse(attempt.candidate_fields_json || '{}');
+    candidateFields = cf.fields || cf || {};
+  } catch(_) {}
+
+  // Quiz custom fields schema
+  let quizFieldsSchema = [];
+  try {
+    const qf = typeof quiz.custom_fields_json === 'object' ? quiz.custom_fields_json : JSON.parse(quiz.custom_fields_json || '{}');
+    quizFieldsSchema = Array.isArray(qf.fields) ? qf.fields : [];
+  } catch(_) {}
+
+  return {
+    success: true,
+    quiz_meta: {
+      title: quiz.title,
+      subject: quiz.subject,
+      preset: quiz.preset,
+      duration_minutes: quiz.duration_minutes,
+      max_attempts: quiz.max_attempts,
+      show_review: quiz.show_review,
+      show_results: quiz.show_results,
+      results_release_policy: policy,
+      score_display_policy: scorePolicy,
+      pass_threshold_pct: quiz.pass_threshold_pct,
+      close_at: quiz.close_at
+    },
+    attempt_meta: {
+      attempt_id: attempt.attempt_id,
+      attempt_no: attempt.attempt_no,
+      status: attempt.status,
+      started_at: attempt.started_at,
+      submitted_at: attempt.submitted_at,
+      time_taken_s: attempt.time_taken_s,
+      mode: attempt.mode
+    },
+    gate_met: gateMet,
+    gate_reason: gateReason,
+    available_at: availableAt,
+    show_results: showResults,
+    can_review_now: canReviewNow,
+    display_score: displayScore,
+    grade_label: gradeLabel,
+    pass_status: passStatus,
+    my_details: {
+      class_profile: {
+        class_title: cls?.title || '',
+        display_name: member?.display_name || '',
+        email: member?.email || '',
+        fields: classFields,
+        values: classValues
+      },
+      attempt_submitted: {
+        fields: quizFieldsSchema,
+        values: candidateFields
+      }
+    }
+  };
+}
+
+
+// ------------------------------------------------------------
+// GET ATTEMPT REVIEW (Student)
+// Returns all questions with student's answers, correct answers,
+// option feedback, and rationale — for read-only review.
+// Gated: only returns if show_review + gate met.
+// Used by: myteacher/student/my-results.html — Review tab
+// ------------------------------------------------------------
+async function getAttemptReview(attemptId, userId) {
+  // 1. Fetch attempt
+  const { data: attempt, error: aErr } = await db
+    .from('teacher_quiz_attempts')
+    .select('*')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  if (aErr || !attempt) return { success: false, message: 'Attempt not found.' };
+  if (attempt.user_id !== userId) return { success: false, message: 'Not your attempt.' };
+  if (attempt.status === 'IN_PROGRESS') return { success: false, message: 'Attempt still in progress.' };
+
+  // 2. Fetch quiz
+  const quiz = await getTeacherQuiz(attempt.teacher_quiz_id);
+  if (!quiz) return { success: false, message: 'Quiz not found.' };
+
+  // 3. Check review gate
+  if (!quiz.show_review) {
+    return { success: false, code: 'REVIEW_DISABLED', message: 'Review is not enabled for this quiz.' };
+  }
+
+  // Check release gate
+  const now = new Date();
+  const policy = quiz.results_release_policy || 'MANUAL';
+  let gateMet = false;
+  if (policy === 'IMMEDIATE') gateMet = true;
+  else if (policy === 'AFTER_CLOSE') gateMet = quiz.close_at && new Date(quiz.close_at) <= now;
+  else gateMet = !!quiz.results_released;
+
+  if (!gateMet) {
+    return { success: false, code: 'RESULTS_NOT_RELEASED', message: 'Results have not been released yet. Review will be available when results are released.' };
+  }
+
+  // 4. Fetch snapshot items
+  const { data: snapItems, error: sErr } = await db
+    .from('teacher_quiz_items')
+    .select('*')
+    .eq('teacher_quiz_id', attempt.teacher_quiz_id)
+    .order('position', { ascending: true });
+
+  if (sErr) return { success: false, message: 'Could not load quiz items.' };
+
+  const snapMap = new Map((snapItems || []).map(s => [s.quiz_item_id, s]));
+
+  // 5. Build review questions
+  const attemptItems = attempt.items_json || [];
+  const answers = attempt.answers_json || {};
+
+  const questions = attemptItems.map(item => {
+    const snap = snapMap.get(item.quiz_item_id);
+    if (!snap) return null;
+
+    const qType = snap.snap_question_type || 'MCQ';
+    const isSATA = qType === 'SATA';
+    const correctOrig = snap.snap_correct || '';
+
+    // Build options array in display order
+    const displayLetters = Object.keys(item.opt_map || {}).sort();
+    const options = [];
+
+    if (qType === 'TF') {
+      options.push({ key: 'A', text: 'True', feedback: snap.snap_fb_a || '' });
+      options.push({ key: 'B', text: 'False', feedback: snap.snap_fb_b || '' });
+    } else {
+      displayLetters.forEach(dl => {
+        const orig = item.opt_map[dl];
+        const text = snap['snap_option_' + orig.toLowerCase()] || '';
+        if (!text) return;
+        options.push({
+          key: dl,
+          orig_key: orig,
+          text: text,
+          feedback: snap['snap_fb_' + orig.toLowerCase()] || ''
+        });
+      });
+    }
+
+    // Determine student's answer
+    const studentAnswer = answers[item.quiz_item_id];
+
+    // Determine correct display key(s) by reversing opt_map
+    const reverseMap = {};
+    Object.entries(item.opt_map || {}).forEach(([display, orig]) => { reverseMap[orig] = display; });
+
+    let correctDisplayKeys = [];
+    if (isSATA) {
+      correctDisplayKeys = correctOrig.split(',').map(s => s.trim()).filter(Boolean).map(orig => reverseMap[orig] || orig);
+    } else {
+      correctDisplayKeys = [reverseMap[correctOrig] || correctOrig];
+    }
+
+    // Determine student display keys
+    let studentDisplayKeys = [];
+    if (isSATA) {
+      if (Array.isArray(studentAnswer)) studentDisplayKeys = studentAnswer;
+      else if (typeof studentAnswer === 'string' && studentAnswer) studentDisplayKeys = studentAnswer.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      if (studentAnswer) studentDisplayKeys = [studentAnswer];
+    }
+
+    // Is correct?
+    let isCorrect = false;
+    if (isSATA) {
+      // Reverse student answers to original
+      const studentOrigSet = new Set(studentDisplayKeys.map(dl => item.opt_map[dl] || dl));
+      const correctSet = new Set(correctOrig.split(',').map(s => s.trim()).filter(Boolean));
+      isCorrect = studentOrigSet.size === correctSet.size && [...studentOrigSet].every(l => correctSet.has(l));
+    } else {
+      const studentOrig = item.opt_map[studentAnswer] || studentAnswer;
+      isCorrect = studentOrig === correctOrig;
+    }
+
+    return {
+      quiz_item_id: item.quiz_item_id,
+      position: item.position,
+      marks: item.marks || 1,
+      question_type: qType,
+      stem: snap.snap_stem,
+      subject: snap.snap_subject,
+      maintopic: snap.snap_maintopic,
+      subtopic: snap.snap_subtopic,
+      difficulty: snap.snap_difficulty,
+      rationale: snap.snap_rationale,
+      rationale_img: snap.snap_rationale_img,
+      options: options,
+      student_answer: studentDisplayKeys,
+      correct_answer: correctDisplayKeys,
+      is_correct: isCorrect
+    };
+  }).filter(Boolean);
+
+  // Score summary (if visible)
+  const scorePolicy = attempt.score_display_policy || quiz.score_display_policy || 'RAW_AND_PCT';
+  let displayScore = null;
+  if (quiz.show_results !== false && attempt.score_pct != null && scorePolicy !== 'HIDE') {
+    displayScore = {};
+    if (scorePolicy === 'RAW_AND_PCT' || scorePolicy === 'RAW_ONLY') {
+      displayScore.score_marks = attempt.score_raw;
+      displayScore.total_marks = attempt.score_total;
+    }
+    if (scorePolicy === 'RAW_AND_PCT' || scorePolicy === 'PCT_ONLY') {
+      displayScore.percent = attempt.score_pct;
+    }
+  }
+
+  return {
+    success: true,
+    review_allowed: true,
+    display_score: displayScore,
+    grade_label: _gradeLabelFromBands(attempt.grade_bands_json || quiz.grade_bands_json, attempt.score_pct),
+    pass_status: attempt.score_pct != null ? (attempt.score_pct >= (quiz.pass_threshold_pct ?? 50) ? 'PASS' : 'FAIL') : null,
+    questions: questions
+  };
+}
+
+
+// ── Helper: grade label from bands ──────────────────────────
+function _gradeLabelFromBands(bandsJson, pct) {
+  if (pct == null) return null;
+  let bands = [];
+  try {
+    const parsed = typeof bandsJson === 'object' ? bandsJson : JSON.parse(bandsJson || '{}');
+    bands = Array.isArray(parsed.bands) ? parsed.bands : [];
+  } catch(_) { return null; }
+
+  if (!bands.length) return null;
+
+  // Sort descending by min_pct so we match highest first
+  const sorted = [...bands].sort((a, b) => (b.min_pct || 0) - (a.min_pct || 0));
+  for (const band of sorted) {
+    if (pct >= (band.min_pct || 0)) return band.label || null;
+  }
+  return sorted[sorted.length - 1]?.label || null;
+}
