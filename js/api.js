@@ -401,6 +401,40 @@ async function updateUserProfile(userId, fields) {
   return { success: true };
 }
 
+// Upload a profile image to Supabase Storage (profile-images bucket)
+// prefix: 'student', 'teacher', 'org' — prevents collisions
+// Returns: public URL string, or null on error
+async function uploadProfileImage(userId, file, prefix = 'user') {
+  if (!file) return null;
+
+  const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+  if (file.size > MAX_SIZE) {
+    console.error('uploadProfileImage: file too large', file.size);
+    return null;
+  }
+
+  const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowed.includes(file.type)) {
+    console.error('uploadProfileImage: invalid type', file.type);
+    return null;
+  }
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const fileName = `${prefix}_${userId}.${ext}`;
+
+  const { data, error } = await db.storage
+    .from('profile-images')
+    .upload(fileName, file, { upsert: true, contentType: file.type });
+
+  if (error) {
+    console.error('uploadProfileImage:', error);
+    return null;
+  }
+
+  const { data: urlData } = db.storage.from('profile-images').getPublicUrl(fileName);
+  return urlData.publicUrl;
+}
+
 
 // ------------------------------------------------------------
 // ANNOUNCEMENTS

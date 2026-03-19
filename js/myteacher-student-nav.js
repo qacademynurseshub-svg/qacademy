@@ -29,6 +29,7 @@
           <a href="/myteacher/student/dashboard.html"  class="mt-nav-link">Dashboard</a>
           <a href="/myteacher/student/my-classes.html" class="mt-nav-link">My Classes</a>
           <a href="/myteacher/student/my-results.html" class="mt-nav-link">My Results</a>
+          <a href="/myteacher/student/profile.html"  class="mt-nav-link">Profile</a>
         </div>
 
         <!-- Right side -->
@@ -57,6 +58,7 @@
         <a href="/myteacher/student/dashboard.html"  class="mt-drawer-link">🏠 Dashboard</a>
         <a href="/myteacher/student/my-classes.html" class="mt-drawer-link">👥 My Classes</a>
         <a href="/myteacher/student/my-results.html" class="mt-drawer-link">📊 My Results</a>
+        <a href="/myteacher/student/profile.html"  class="mt-drawer-link">👤 Profile</a>
         <div class="mt-drawer-divider"></div>
         <a href="/router.html" class="mt-drawer-link">⇄ Switch to Licensure</a>
         <div class="mt-drawer-divider"></div>

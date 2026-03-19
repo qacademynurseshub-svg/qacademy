@@ -3176,6 +3176,30 @@ async function getDraftQuizzes(teacherId) {
 }
 
 
+// ── Teacher profile ─────────────────────────────────────────
+
+async function getTeacherFullProfile(teacherId) {
+  const { data, error } = await db
+    .from('teacher_profiles')
+    .select('*')
+    .eq('teacher_id', teacherId)
+    .maybeSingle();
+
+  if (error) { console.error('getTeacherFullProfile:', error); return null; }
+  return data;
+}
+
+async function updateTeacherProfile(teacherId, fields) {
+  const { error } = await db
+    .from('teacher_profiles')
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq('teacher_id', teacherId);
+
+  if (error) { console.error('updateTeacherProfile:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+
 // ── Helper: grade label from bands ──────────────────────────
 function _gradeLabelFromBands(bandsJson, pct) {
   if (pct == null) return null;

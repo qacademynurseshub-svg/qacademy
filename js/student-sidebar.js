@@ -40,6 +40,7 @@
           👤 My Account <span class="sidebar-dropdown-arrow">▾</span>
         </div>
         <div class="sidebar-dropdown-menu" id="sidebarAccountMenu">
+          <a href="/student/profile.html">👤 My Profile</a>
           <a href="/student/upgrade.html">💳 Upgrade / Extend</a>
         </div>
       </div>

@@ -94,12 +94,16 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 - **Slice 11: Library Picker** — Standalone full-screen page, course browser with filters, add to quiz draft, wired to quiz manager Library tab, edit-to-copy flow (LIB items save to personal bank with source tracking, original library untouched)
 - **Integrity Hardening** — 12 fixes across 3 tiers (see Quiz Lifecycle Rules below)
 
+### Profile Pages ✅
+- **Student NMC Profile** (`student/profile.html`) — Personal details (name, phone, avatar), academic details (level, cohort), subscription status. Inline edit with save.
+- **Teacher Profile** (`myteacher/teacher/profile.html`) — QAcademy account (name, phone, avatar, plan, status) + Organisation (name, tagline, region, logo). Inline edit with save.
+- **Student Teacher Assess Profile** (`myteacher/student/profile.html`) — Account info (read-only) + per-class custom fields with completeness tracking. Editable custom fields with save.
+
 ### Next Up ⏭️
 1. Admin pages — payments, user management (shells scaffolded, need wiring)
-2. Teacher/Student sidebar navigation
-3. Notifications — quiz published, results released
-4. Profile/Settings pages
-5. RLS policies — tighten all tables before go-live
+2. Notifications — quiz published, results released
+3. Settings pages
+4. RLS policies — tighten all tables before go-live
 
 ### Intentionally Deferred
 - Sequential runner mode
@@ -132,6 +136,7 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 | student/learning-history.html | ✅ Done | Filters, paginated, Resume/Review/Retake |
 | student/quiz-builder.html | ✅ Done | 5 steps, topic + concept modes |
 | student/upgrade.html | ✅ Done | Upgrade payment flow for logged-in students |
+| student/profile.html | ✅ Done | Personal details, academic details, subscription, avatar upload |
 | student/downloads.html | ⏳ Later | Offline packs / PDF downloads |
 | student/messages.html | ⏳ Later | Thread-based messaging |
 
@@ -145,6 +150,7 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 | myteacher/teacher/import.html | ✅ Done | CSV import with validation, duplicate detection, AI help prompt |
 | myteacher/teacher/library.html | ✅ Done | Full-screen library browser, course filters, add to quiz draft |
 | myteacher/teacher/results.html | ✅ Done | Marksheet, item analysis, drawers, CSV export, print |
+| myteacher/teacher/profile.html | ✅ Done | QAcademy account + Organisation profile, avatar & logo upload, inline edit |
 
 ### Teacher Assess — Student Pages
 | Page | Status | Notes |
@@ -153,6 +159,7 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 | myteacher/student/my-classes.html | ✅ Done | Join by code, class detail, quizzes tab with attempts modal |
 | myteacher/student/quiz-runner.html | ✅ Done | Full exam engine: intake, timer, grid, MCQ/TF/SATA, auto-save, submit, 12 UX enhancements |
 | myteacher/student/my-results.html | ✅ Done | Results tab + Review tab, gated by release policy |
+| myteacher/student/profile.html | ✅ Done | Account info, per-class custom fields, completeness tracking |
 
 ### Public Pages
 | Page | Status | Notes |
@@ -220,7 +227,7 @@ Every key is a system key referenced by platform code. Never rename or delete un
 - `getCourses()`, `getAllCourses()`, `getCourseById()`
 - `getUsers()`, `getUserById()`
 - `assignSubscription()`, `deactivateUser()`, `activateUser()`
-- `sendPasswordReset()`, `updateUserProfile()`
+- `sendPasswordReset()`, `updateUserProfile()`, `uploadProfileImage()`
 - `getAnnouncements()`, `getDismissedAnnouncements()`
 - `getStudentCourseAccess()`, `filterAnnouncementsForStudent()`
 
@@ -244,6 +251,7 @@ Every key is a system key referenced by platform code. Never rename or delete un
 - **Bank:** `createBankItem()`, `updateBankItem()`, `getBankItems()`, `getBankFilterOptions()`, `getDraftPreview()`
 - **Library:** `getLibraryCourses()`, `getLibraryItems()`, `resolveLibraryRefs()`, `copyLibItemToBank()`, `getDraftQuizzes()`, `addLibItemsToDraft()`
 - **Dashboard:** `getTeacherDashboardStats()`, `getStudentDashboardStats()`
+- **Profile:** `getTeacherFullProfile()`, `updateTeacherProfile()`
 
 ---
 

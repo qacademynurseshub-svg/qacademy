@@ -33,6 +33,7 @@
           <a href="/myteacher/teacher/quizzes.html"   class="mt-nav-link">Quizzes</a>
           <a href="/myteacher/teacher/library.html"   class="mt-nav-link">Library</a>
           <a href="/myteacher/teacher/results.html"   class="mt-nav-link">Results</a>
+          <a href="/myteacher/teacher/profile.html"   class="mt-nav-link">Profile</a>
         </div>
 
         <!-- Right side -->
@@ -64,6 +65,7 @@
         <a href="/myteacher/teacher/quizzes.html"   class="mt-drawer-link">📝 Quizzes</a>
         <a href="/myteacher/teacher/library.html"   class="mt-drawer-link">🔍 Library</a>
         <a href="/myteacher/teacher/results.html"   class="mt-drawer-link">📊 Results</a>
+        <a href="/myteacher/teacher/profile.html"   class="mt-drawer-link">👤 Profile</a>
         <div class="mt-drawer-divider"></div>
         <button class="mt-drawer-link mt-drawer-signout" id="mtDrawerSignOut">↩ Sign out</button>
       </nav>
