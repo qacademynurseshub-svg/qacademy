@@ -940,7 +940,7 @@ body {
     <div class="picker-dock-actions">
       <button class="btn btn-ghost" onclick="clearSelection()">Clear</button>
       <button class="btn btn-ghost" onclick="selectAllVisible()">Select all visible</button>
-      <button class="btn btn-ghost" id="btnPickerCancel" onclick="pickerCancel()">Cancel</button>
+      <button class="btn btn-ghost" id="btnPickerCancel" onclick="pickerCancel()">← Back to Bank</button>
       <button class="btn btn-primary" id="btnAddToDraft" onclick="pickerAddToDraft()" disabled>
         Add to Draft →
       </button>
@@ -1876,9 +1876,15 @@ function onPickerQuizSelect() {
 // ── Picker cancel — exit picker mode ──────────────────────
 function pickerCancel() {
   if (RETURN_TO) {
+    // Called from quiz manager — return to it
     location.href = decodeURIComponent(RETURN_TO);
   } else {
-    history.back();
+    // Entered via bank button — go back to clean bank URL
+    const u = new URL(location.href);
+    u.searchParams.delete('mode');
+    u.searchParams.delete('teacher_quiz_id');
+    u.searchParams.delete('return_to');
+    location.href = u.toString();
   }
 }
 
