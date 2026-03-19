@@ -665,3 +665,628 @@ async function appendToDraftItems(teacherQuizId, bankItemIds) {
 
   return { success: true, added, skipped, total };
 }
+
+
+// ============================================================
+// Slice 6: Teacher Quizzes
+// ============================================================
+
+// ── ID generators ───────────────────────────────────────────
+
+function makeQuizId() {
+  return 'TQ_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+}
+
+function makeAccessCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function makeQuizItemId() {
+  return 'TQI_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+}
+
+function makeQuizClassId() {
+  return 'TQC_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+}
+
+
+// ── QUERY FUNCTIONS ─────────────────────────────────────────
+
+// ------------------------------------------------------------
+// GET TEACHER QUIZZES
+// Lists all quizzes for this teacher with optional filters.
+// Used by: myteacher/teacher/quizzes.html list view
+// ------------------------------------------------------------
+async function getTeacherQuizzes(teacherId, { statusFilter = '', keyword = '' } = {}) {
+  let query = db
+    .from('teacher_quizzes')
+    .select('*')
+    .eq('teacher_id', teacherId)
+    .order('updated_at', { ascending: false });
+
+  if (statusFilter && statusFilter !== 'ALL') {
+    query = query.eq('status', statusFilter);
+  }
+  if (keyword) {
+    query = query.ilike('title', `%${keyword}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) { console.error('getTeacherQuizzes:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET SINGLE TEACHER QUIZ
+// Returns the full quiz row or null.
+// Used by: quizzes.html editor — loaded when opening a tile
+// ------------------------------------------------------------
+async function getTeacherQuiz(quizId) {
+  const { data, error } = await db
+    .from('teacher_quizzes')
+    .select('*')
+    .eq('teacher_quiz_id', quizId)
+    .maybeSingle();
+
+  if (error) { console.error('getTeacherQuiz:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
+// GET DRAFT PREVIEW
+// Resolves the draft_items_json into full bank item rows.
+// Returns { items: [...bankItemRows], missing: [...ids] }
+// Used by: quizzes.html — "Load Details" button on draft list
+// ------------------------------------------------------------
+async function getDraftPreview(quizId) {
+  const quiz = await getTeacherQuiz(quizId);
+  if (!quiz) return { items: [], missing: [] };
+
+  let ids = [];
+  try {
+    const parsed = typeof quiz.draft_items_json === 'object'
+      ? quiz.draft_items_json
+      : JSON.parse(quiz.draft_items_json || '{}');
+    ids = Array.isArray(parsed.items) ? parsed.items : [];
+  } catch (_) { ids = []; }
+
+  if (!ids.length) return { items: [], missing: [] };
+
+  const { data, error } = await db
+    .from('teacher_bank_items')
+    .select('*')
+    .in('bank_item_id', ids);
+
+  if (error) { console.error('getDraftPreview:', error); return { items: [], missing: ids }; }
+
+  const found = new Map((data || []).map(r => [r.bank_item_id, r]));
+  const items = [];
+  const missing = [];
+  ids.forEach(id => {
+    if (found.has(id)) items.push(found.get(id));
+    else missing.push(id);
+  });
+
+  return { items, missing };
+}
+
+
+// ------------------------------------------------------------
+// GET QUIZ CLASSES
+// Returns ACTIVE links with joined class details.
+// Used by: quizzes.html Classes tab — pre-check linked classes
+// ------------------------------------------------------------
+async function getQuizClasses(quizId) {
+  const { data, error } = await db
+    .from('teacher_quiz_classes')
+    .select(`
+      tqc_id,
+      teacher_quiz_id,
+      class_id,
+      status,
+      teacher_classes (
+        class_id,
+        title,
+        status
+      )
+    `)
+    .eq('teacher_quiz_id', quizId)
+    .eq('status', 'ACTIVE');
+
+  if (error) { console.error('getQuizClasses:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET QUIZ PUBLISHED ITEM COUNT
+// Returns the number of snapshot rows in teacher_quiz_items.
+// Used by: quiz tiles — shows "Items: 12" on published quizzes
+// ------------------------------------------------------------
+async function getQuizPublishedItemCount(quizId) {
+  const { count, error } = await db
+    .from('teacher_quiz_items')
+    .select('quiz_item_id', { count: 'exact', head: true })
+    .eq('teacher_quiz_id', quizId);
+
+  if (error) { console.error('getQuizPublishedItemCount:', error); return 0; }
+  return count || 0;
+}
+
+
+// ── MUTATION FUNCTIONS ──────────────────────────────────────
+
+// ------------------------------------------------------------
+// CREATE TEACHER QUIZ
+// Inserts a new DRAFT quiz with generated ID and access code.
+// payload: { title, subject, preset, duration_minutes, ... }
+// Returns { success, data } or { success: false, message }
+// Used by: quizzes.html — "New Quiz" → Save
+// ------------------------------------------------------------
+async function createTeacherQuiz(teacherId, payload) {
+  const now    = new Date().toISOString();
+  const quizId = makeQuizId();
+  const code   = makeAccessCode();
+
+  const row = {
+    teacher_quiz_id       : quizId,
+    teacher_id            : teacherId,
+    title                 : payload.title,
+    subject               : payload.subject           || null,
+    preset                : payload.preset             || 'EXAM',
+    duration_minutes      : payload.duration_minutes   ?? 0,
+    shuffle_questions     : payload.shuffle_questions  ?? false,
+    shuffle_options       : payload.shuffle_options    ?? true,
+    max_attempts          : payload.max_attempts       ?? 1,
+    show_review           : payload.show_review        ?? false,
+    show_results          : payload.show_results       ?? true,
+    results_release_policy: payload.results_release_policy || 'MANUAL',
+    results_released      : false,
+    results_released_at   : null,
+    open_at               : payload.open_at            || null,
+    close_at              : payload.close_at           || null,
+    status                : 'DRAFT',
+    access_code           : code,
+    custom_fields_json    : payload.custom_fields_json || { fields: [] },
+    draft_items_json      : { items: [] },
+    grading_policy        : 'BANDS_PCT',
+    grade_bands_json      : payload.grade_bands_json   || { bands: [
+      { min_pct: 0,  label: 'Fail' },
+      { min_pct: 50, label: 'Pass' },
+      { min_pct: 65, label: 'Merit' },
+      { min_pct: 80, label: 'Distinction' }
+    ]},
+    pass_threshold_pct    : payload.pass_threshold_pct ?? 50,
+    score_display_policy  : payload.score_display_policy || 'RAW_AND_PCT',
+    created_at            : now,
+    updated_at            : now
+  };
+
+  const { data, error } = await db
+    .from('teacher_quizzes')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) { console.error('createTeacherQuiz:', error); return { success: false, message: error.message }; }
+  return { success: true, data };
+}
+
+
+// ------------------------------------------------------------
+// UPDATE TEACHER QUIZ
+// Patch update — only send changed fields.
+// Always stamps updated_at.
+// Returns { success } or { success: false, message }
+// Used by: quizzes.html — Save settings, draft save, etc.
+// ------------------------------------------------------------
+async function updateTeacherQuiz(quizId, patch) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_quizzes')
+    .update({ ...patch, updated_at: now })
+    .eq('teacher_quiz_id', quizId);
+
+  if (error) { console.error('updateTeacherQuiz:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// ARCHIVE TEACHER QUIZ
+// Sets status to ARCHIVED. Works on DRAFT or PUBLISHED.
+// One-way — no unarchive.
+// Used by: quizzes.html Publish tab
+// ------------------------------------------------------------
+async function archiveTeacherQuiz(quizId) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_quizzes')
+    .update({ status: 'ARCHIVED', updated_at: now })
+    .eq('teacher_quiz_id', quizId);
+
+  if (error) { console.error('archiveTeacherQuiz:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// REMOVE FROM DRAFT ITEMS
+// Removes a single bank_item_id from the draft_items_json.
+// Used by: quizzes.html — Remove button on draft list
+// ------------------------------------------------------------
+async function removeFromDraftItems(quizId, bankItemId) {
+  const { data: quiz, error: fetchErr } = await db
+    .from('teacher_quizzes')
+    .select('draft_items_json')
+    .eq('teacher_quiz_id', quizId)
+    .maybeSingle();
+
+  if (fetchErr || !quiz) return { success: false, message: fetchErr?.message || 'Quiz not found.' };
+
+  let items = [];
+  try {
+    const parsed = typeof quiz.draft_items_json === 'object'
+      ? quiz.draft_items_json
+      : JSON.parse(quiz.draft_items_json || '{}');
+    items = Array.isArray(parsed.items) ? parsed.items : [];
+  } catch (_) { items = []; }
+
+  const before = items.length;
+  items = items.filter(id => id !== bankItemId);
+
+  if (items.length === before) return { success: true, removed: 0, total: items.length };
+
+  const now = new Date().toISOString();
+  const { error } = await db
+    .from('teacher_quizzes')
+    .update({ draft_items_json: { items }, updated_at: now })
+    .eq('teacher_quiz_id', quizId);
+
+  if (error) { console.error('removeFromDraftItems:', error); return { success: false, message: error.message }; }
+  return { success: true, removed: 1, total: items.length };
+}
+
+
+// ------------------------------------------------------------
+// CLEAR DRAFT ITEMS
+// Empties the draft_items_json completely.
+// Used by: quizzes.html — Clear button on draft list
+// ------------------------------------------------------------
+async function clearDraftItems(quizId) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_quizzes')
+    .update({ draft_items_json: { items: [] }, updated_at: now })
+    .eq('teacher_quiz_id', quizId);
+
+  if (error) { console.error('clearDraftItems:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// SET QUIZ CLASSES (atomic replace)
+// Takes the desired set of class IDs for a quiz.
+// Adds missing links, soft-removes extras (status=REMOVED).
+// Re-activates previously removed links if re-selected.
+// Used by: quizzes.html Classes tab — Save Links
+// ------------------------------------------------------------
+async function setQuizClasses(quizId, teacherId, classIds) {
+  // 1. Fetch all current links (including REMOVED for re-activation)
+  const { data: existing, error: fetchErr } = await db
+    .from('teacher_quiz_classes')
+    .select('tqc_id, class_id, status')
+    .eq('teacher_quiz_id', quizId);
+
+  if (fetchErr) { console.error('setQuizClasses fetch:', fetchErr); return { success: false, message: fetchErr.message }; }
+
+  const existingMap = new Map((existing || []).map(r => [r.class_id, r]));
+  const desiredSet  = new Set(classIds);
+  const now         = new Date().toISOString();
+
+  const toInsert     = [];
+  const toActivate   = [];
+  const toDeactivate = [];
+
+  // 2. Find new and re-activate
+  desiredSet.forEach(classId => {
+    const row = existingMap.get(classId);
+    if (!row) {
+      toInsert.push({
+        tqc_id           : makeQuizClassId(),
+        teacher_quiz_id  : quizId,
+        class_id         : classId,
+        teacher_id       : teacherId,
+        status           : 'ACTIVE',
+        created_at       : now,
+        updated_at       : now
+      });
+    } else if (row.status !== 'ACTIVE') {
+      toActivate.push(row.tqc_id);
+    }
+  });
+
+  // 3. Find removed
+  (existing || []).forEach(row => {
+    if (row.status === 'ACTIVE' && !desiredSet.has(row.class_id)) {
+      toDeactivate.push(row.tqc_id);
+    }
+  });
+
+  // 4. Execute
+  if (toInsert.length) {
+    const { error } = await db.from('teacher_quiz_classes').insert(toInsert);
+    if (error) { console.error('setQuizClasses insert:', error); return { success: false, message: error.message }; }
+  }
+  if (toActivate.length) {
+    const { error } = await db.from('teacher_quiz_classes')
+      .update({ status: 'ACTIVE', updated_at: now })
+      .in('tqc_id', toActivate);
+    if (error) { console.error('setQuizClasses activate:', error); return { success: false, message: error.message }; }
+  }
+  if (toDeactivate.length) {
+    const { error } = await db.from('teacher_quiz_classes')
+      .update({ status: 'REMOVED', updated_at: now })
+      .in('tqc_id', toDeactivate);
+    if (error) { console.error('setQuizClasses deactivate:', error); return { success: false, message: error.message }; }
+  }
+
+  return { success: true, added: toInsert.length, reactivated: toActivate.length, removed: toDeactivate.length };
+}
+
+
+// ------------------------------------------------------------
+// PUBLISH TEACHER QUIZ
+// 1. Validates status is DRAFT and draft has items
+// 2. Fetches bank items for all draft IDs
+// 3. Deletes any old snapshot rows (safety re-publish)
+// 4. Creates snapshot rows in teacher_quiz_items
+// 5. Flips quiz status to PUBLISHED
+// Returns { success, snapshotted } or { success: false, message }
+// Used by: quizzes.html Publish tab
+// ------------------------------------------------------------
+async function publishTeacherQuiz(quizId, teacherId) {
+  // 1. Fetch quiz
+  const quiz = await getTeacherQuiz(quizId);
+  if (!quiz) return { success: false, message: 'Quiz not found.' };
+  if (quiz.status !== 'DRAFT') return { success: false, message: 'Only DRAFT quizzes can be published.' };
+  if (quiz.teacher_id !== teacherId) return { success: false, message: 'Not your quiz.' };
+
+  // 2. Parse draft items
+  let draftIds = [];
+  try {
+    const parsed = typeof quiz.draft_items_json === 'object'
+      ? quiz.draft_items_json
+      : JSON.parse(quiz.draft_items_json || '{}');
+    draftIds = Array.isArray(parsed.items) ? parsed.items : [];
+  } catch (_) { draftIds = []; }
+
+  if (!draftIds.length) return { success: false, message: 'Draft has no items.' };
+
+  // 3. Fetch bank items
+  const { data: bankItems, error: bankErr } = await db
+    .from('teacher_bank_items')
+    .select('*')
+    .in('bank_item_id', draftIds);
+
+  if (bankErr) return { success: false, message: 'Failed to fetch bank items: ' + bankErr.message };
+
+  const bankMap = new Map((bankItems || []).map(r => [r.bank_item_id, r]));
+
+  // 4. Validate all items found
+  const missingIds = draftIds.filter(id => !bankMap.has(id));
+  if (missingIds.length) {
+    return { success: false, message: 'Missing bank items: ' + missingIds.join(', ') };
+  }
+
+  // 5. Delete old snapshots (safety — shouldn't exist for DRAFT)
+  await db.from('teacher_quiz_items').delete().eq('teacher_quiz_id', quizId);
+
+  // 6. Build snapshot rows
+  const now = new Date().toISOString();
+  const snapshotRows = draftIds.map((bankId, idx) => {
+    const b = bankMap.get(bankId);
+    return {
+      quiz_item_id       : makeQuizItemId(),
+      teacher_quiz_id    : quizId,
+      position           : idx + 1,
+      bank_item_id       : bankId,
+      snap_stem          : b.stem,
+      snap_option_a      : b.option_a,
+      snap_fb_a          : b.fb_a,
+      snap_option_b      : b.option_b,
+      snap_fb_b          : b.fb_b,
+      snap_option_c      : b.option_c,
+      snap_fb_c          : b.fb_c,
+      snap_option_d      : b.option_d,
+      snap_fb_d          : b.fb_d,
+      snap_option_e      : b.option_e,
+      snap_fb_e          : b.fb_e,
+      snap_option_f      : b.option_f,
+      snap_fb_f          : b.fb_f,
+      snap_correct       : b.correct,
+      snap_rationale     : b.rationale,
+      snap_rationale_img : b.rationale_img,
+      snap_subject       : b.subject,
+      snap_maintopic     : b.maintopic,
+      snap_subtopic      : b.subtopic,
+      snap_difficulty    : b.difficulty,
+      snap_marks         : b.marks || 1,
+      snap_question_type : b.question_type || 'MCQ',
+      snap_shuffle_options: b.shuffle_options ?? true,
+      snapped_at         : now
+    };
+  });
+
+  // 7. Insert snapshots
+  const { error: snapErr } = await db.from('teacher_quiz_items').insert(snapshotRows);
+  if (snapErr) return { success: false, message: 'Snapshot insert failed: ' + snapErr.message };
+
+  // 8. Flip status to PUBLISHED
+  const { error: pubErr } = await db
+    .from('teacher_quizzes')
+    .update({ status: 'PUBLISHED', updated_at: now })
+    .eq('teacher_quiz_id', quizId);
+
+  if (pubErr) return { success: false, message: 'Status update failed: ' + pubErr.message };
+
+  return { success: true, snapshotted: snapshotRows.length };
+}
+
+
+// ------------------------------------------------------------
+// RELEASE QUIZ RESULTS
+// For MANUAL policy quizzes — makes results visible to students.
+// Sets results_released=true and timestamps it.
+// Used by: quizzes.html Publish tab — Release Results button
+// ------------------------------------------------------------
+async function releaseQuizResults(quizId) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_quizzes')
+    .update({
+      results_released   : true,
+      results_released_at: now,
+      updated_at         : now
+    })
+    .eq('teacher_quiz_id', quizId);
+
+  if (error) { console.error('releaseQuizResults:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// CLONE TEACHER QUIZ
+// Creates a new DRAFT from an existing quiz.
+// Copies all settings, grade bands, custom fields.
+// Title = "Original (Copy)"
+// New access code generated.
+// If source was PUBLISHED, extracts bank_item_ids from
+// snapshot rows into the clone's draft_items_json.
+// options: { copySchedule: false }
+// Returns { success, data } (the new quiz row)
+// Used by: quizzes.html — Clone button
+// ------------------------------------------------------------
+async function cloneTeacherQuiz(sourceQuizId, teacherId, { copySchedule = false } = {}) {
+  // 1. Fetch source
+  const source = await getTeacherQuiz(sourceQuizId);
+  if (!source) return { success: false, message: 'Source quiz not found.' };
+  if (source.teacher_id !== teacherId) return { success: false, message: 'Not your quiz.' };
+
+  // 2. Build draft items — from draft_items_json or snapshots
+  let draftItems = [];
+  if (source.status === 'PUBLISHED') {
+    // Extract from published snapshots
+    const { data: snaps, error: snapErr } = await db
+      .from('teacher_quiz_items')
+      .select('bank_item_id')
+      .eq('teacher_quiz_id', sourceQuizId)
+      .order('position', { ascending: true });
+
+    if (!snapErr && snaps) {
+      draftItems = snaps.map(s => s.bank_item_id).filter(Boolean);
+    }
+  } else {
+    // Copy from draft
+    try {
+      const parsed = typeof source.draft_items_json === 'object'
+        ? source.draft_items_json
+        : JSON.parse(source.draft_items_json || '{}');
+      draftItems = Array.isArray(parsed.items) ? parsed.items : [];
+    } catch (_) { draftItems = []; }
+  }
+
+  // 3. Create clone
+  const now    = new Date().toISOString();
+  const quizId = makeQuizId();
+  const code   = makeAccessCode();
+
+  const row = {
+    teacher_quiz_id       : quizId,
+    teacher_id            : teacherId,
+    title                 : (source.title || 'Untitled') + ' (Copy)',
+    subject               : source.subject,
+    preset                : source.preset,
+    duration_minutes      : source.duration_minutes,
+    shuffle_questions     : source.shuffle_questions,
+    shuffle_options       : source.shuffle_options,
+    max_attempts          : source.max_attempts,
+    show_review           : source.show_review,
+    show_results          : source.show_results,
+    results_release_policy: source.results_release_policy,
+    results_released      : false,
+    results_released_at   : null,
+    open_at               : copySchedule ? source.open_at  : null,
+    close_at              : copySchedule ? source.close_at : null,
+    status                : 'DRAFT',
+    access_code           : code,
+    custom_fields_json    : source.custom_fields_json,
+    draft_items_json      : { items: draftItems },
+    grading_policy        : source.grading_policy,
+    grade_bands_json      : source.grade_bands_json,
+    pass_threshold_pct    : source.pass_threshold_pct,
+    score_display_policy  : source.score_display_policy,
+    created_at            : now,
+    updated_at            : now
+  };
+
+  const { data, error } = await db
+    .from('teacher_quizzes')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) { console.error('cloneTeacherQuiz:', error); return { success: false, message: error.message }; }
+
+  // 4. Copy class links
+  const links = await getQuizClasses(sourceQuizId);
+  if (links.length) {
+    const linkRows = links.map(l => ({
+      tqc_id          : makeQuizClassId(),
+      teacher_quiz_id : quizId,
+      class_id        : l.class_id,
+      teacher_id      : teacherId,
+      status          : 'ACTIVE',
+      created_at      : now,
+      updated_at      : now
+    }));
+    await db.from('teacher_quiz_classes').insert(linkRows);
+  }
+
+  return { success: true, data };
+}
+
+
+// ------------------------------------------------------------
+// REGENERATE QUIZ ACCESS CODE
+// Generates a new 6-char access code. DRAFT only.
+// Returns { success, access_code }
+// Used by: quizzes.html Settings tab
+// ------------------------------------------------------------
+async function regenerateQuizAccessCode(quizId) {
+  const quiz = await getTeacherQuiz(quizId);
+  if (!quiz) return { success: false, message: 'Quiz not found.' };
+  if (quiz.status !== 'DRAFT') return { success: false, message: 'Can only regenerate code for DRAFT quizzes.' };
+
+  const newCode = makeAccessCode();
+  const now     = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_quizzes')
+    .update({ access_code: newCode, updated_at: now })
+    .eq('teacher_quiz_id', quizId);
+
+  if (error) { console.error('regenerateQuizAccessCode:', error); return { success: false, message: error.message }; }
+  return { success: true, access_code: newCode };
+}
