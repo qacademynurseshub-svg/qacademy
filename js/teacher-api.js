@@ -2089,11 +2089,18 @@ async function getAttemptResults(attemptId, userId) {
     candidateFields = cf.fields || cf || {};
   } catch(_) {}
 
-  // Quiz custom fields schema
+  // Quiz custom fields schema — ensure all fields have keys
   let quizFieldsSchema = [];
   try {
     const qf = typeof quiz.custom_fields_json === 'object' ? quiz.custom_fields_json : JSON.parse(quiz.custom_fields_json || '{}');
-    quizFieldsSchema = Array.isArray(qf.fields) ? qf.fields : [];
+    const raw = Array.isArray(qf.fields) ? qf.fields : [];
+    const usedK = {};
+    quizFieldsSchema = raw.map(f => {
+      if (f.key) { usedK[f.key] = true; return f; }
+      const key = normaliseFieldKey(f.label, usedK);
+      usedK[key] = true;
+      return { ...f, key };
+    });
   } catch(_) {}
 
   return {
@@ -2492,7 +2499,14 @@ async function getTeacherResultsMarksheet(quizId, classId, opts = {}) {
   let quizFields = [];
   try {
     const qf = typeof quiz.custom_fields_json === 'object' ? quiz.custom_fields_json : JSON.parse(quiz.custom_fields_json || '{}');
-    quizFields = Array.isArray(qf.fields) ? qf.fields : [];
+    const rawQF = Array.isArray(qf.fields) ? qf.fields : [];
+    const usedQK = {};
+    quizFields = rawQF.map(f => {
+      if (f.key) { usedQK[f.key] = true; return f; }
+      const key = normaliseFieldKey(f.label, usedQK);
+      usedQK[key] = true;
+      return { ...f, key };
+    });
   } catch(_) {}
 
   // Build rows

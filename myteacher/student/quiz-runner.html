@@ -715,6 +715,19 @@
       fields = Array.isArray(cf.fields) ? cf.fields : [];
     } catch(_) {}
 
+    // Ensure all fields have a key (backward compat for quizzes saved without keys)
+    const usedKeys = {};
+    fields.forEach(f => {
+      if (!f.key) {
+        let k = (f.label || 'field').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32);
+        if (!k) k = 'field';
+        const base = k; let suf = 1;
+        while (usedKeys[k]) { k = base + '_' + suf; suf++; }
+        f.key = k;
+      }
+      usedKeys[f.key] = true;
+    });
+
     if (fields.length) {
       let h = '<p style="font-size:13px; font-weight:700; margin-bottom:10px;">Please fill in the following details:</p>';
       fields.forEach(f => {

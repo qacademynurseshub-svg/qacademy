@@ -998,10 +998,17 @@ function fillFormFromQuiz(quiz) {
   } catch(_) { GRADE_BANDS = JSON.parse(JSON.stringify(DEFAULT_BANDS)); }
   renderGradeBands();
 
-  // Custom fields
+  // Custom fields — ensure all fields have a normalised key
   try {
     const cf = typeof quiz.custom_fields_json === 'object' ? quiz.custom_fields_json : JSON.parse(quiz.custom_fields_json || '{}');
-    CUSTOM_FIELDS = Array.isArray(cf.fields) ? cf.fields : [];
+    const raw = Array.isArray(cf.fields) ? cf.fields : [];
+    const usedKeys = {};
+    CUSTOM_FIELDS = raw.map(f => {
+      if (f.key) { usedKeys[f.key] = true; return f; }
+      const key = normaliseFieldKey(f.label, usedKeys);
+      usedKeys[key] = true;
+      return { ...f, key };
+    });
   } catch(_) { CUSTOM_FIELDS = []; }
   renderCustomFields();
 
@@ -1211,13 +1218,18 @@ function renderCustomFields() {
 
 function readCustomFields() {
   const fields = [];
+  const usedKeys = {};
   $('customFieldsWrap').querySelectorAll('.field-row').forEach(row => {
     const label = (row.querySelector('[data-fk="label"]')?.value || '').trim();
     const type = row.querySelector('[data-fk="type"]')?.value || 'text';
     const required = row.querySelector('[data-fk="required"]')?.checked || false;
     const optText = (row.querySelector('[data-fk="options"]')?.value || '').trim();
     const options = type === 'select' ? optText.split('\n').map(s => s.trim()).filter(Boolean) : [];
-    if (label) fields.push({ label, type, required, options });
+    if (label) {
+      const key = normaliseFieldKey(label, usedKeys);
+      usedKeys[key] = true;
+      fields.push({ key, label, type, required, options });
+    }
   });
   return fields;
 }
