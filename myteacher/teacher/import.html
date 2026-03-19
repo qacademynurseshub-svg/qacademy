@@ -115,6 +115,14 @@ tr.row-skipped td { opacity: .5; }
 .result-card h3 { font-size: 18px; margin-bottom: 8px; }
 .result-card p { font-size: 14px; color: var(--text-muted); }
 
+/* ── Modal ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 900; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal-box { background: var(--card-bg); border-radius: var(--radius); padding: 24px; width: 100%; box-shadow: var(--shadow-md); }
+.rules-table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 12px; }
+.rules-table th { background: var(--bg); padding: 6px 10px; text-align: left; font-weight: 600; border: 1px solid var(--border); }
+.rules-table td { padding: 6px 10px; border: 1px solid var(--border); }
+.rules-table code { background: var(--soft); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .container { padding: 16px; }
@@ -144,20 +152,8 @@ tr.row-skipped td { opacity: .5; }
     </div>
     <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
       <button class="btn sm" id="btnTemplate">⬇ Download Template</button>
-      <span class="hint" style="font-size:12px">Use this template to format your questions correctly</span>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Expected CSV Format</div>
-    <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
-      <b>Required columns:</b> <code>stem</code>, <code>option_a</code>, <code>option_b</code>, <code>correct</code><br>
-      <b>Optional columns:</b> <code>question_type</code> (MCQ/TF/SATA, default MCQ), <code>option_c</code> to <code>option_f</code>,
-      <code>fb_a</code> to <code>fb_f</code> (per-option feedback), <code>rationale</code>, <code>rationale_img</code>,
-      <code>subject</code>, <code>maintopic</code>, <code>subtopic</code>, <code>difficulty</code>, <code>marks</code> (default 1),
-      <code>shuffle_options</code> (true/false)<br>
-      <b>SATA:</b> comma-separate correct answers, e.g. <code>A,C,E</code><br>
-      <b>TF:</b> set <code>question_type</code> to <code>TF</code>, options A = True, B = False, <code>correct</code> = A or B
+      <button class="btn sm" id="btnInstructions">📋 View Instructions & Rules</button>
+      <span class="hint" style="font-size:12px">Use the template and follow the rules for a smooth import</span>
     </div>
   </div>
 </div>
@@ -202,6 +198,109 @@ tr.row-skipped td { opacity: .5; }
 </div>
 
 </div><!-- container -->
+
+<!-- ── INSTRUCTIONS MODAL ── -->
+<div class="modal-overlay" id="instructionsModal" style="display:none">
+  <div class="modal-box" style="max-width:720px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="font-size:17px;font-weight:700">CSV Import Instructions & Rules</h2>
+      <button class="btn sm" onclick="$('instructionsModal').style.display='none'">✕ Close</button>
+    </div>
+    <div style="max-height:70vh;overflow-y:auto;font-size:13px;line-height:1.8">
+
+      <h3 style="font-size:14px;margin:16px 0 8px;color:var(--primary)">File Requirements</h3>
+      <ul style="padding-left:20px;color:var(--text-muted)">
+        <li>File must be <b>.csv</b> format (comma-separated values)</li>
+        <li>Maximum file size: <b>5MB</b></li>
+        <li>Maximum <b>300</b> data rows (excluding header)</li>
+        <li>First row must be the <b>column headers</b></li>
+        <li>Use double quotes around fields that contain commas</li>
+      </ul>
+
+      <h3 style="font-size:14px;margin:16px 0 8px;color:var(--primary)">Required Columns</h3>
+      <table class="rules-table">
+        <tr><th>Column</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>stem</code></td><td>The question text (cannot be empty)</td><td>What is the normal heart rate for an adult?</td></tr>
+        <tr><td><code>option_a</code></td><td>First answer option (required)</td><td>60-100 bpm</td></tr>
+        <tr><td><code>option_b</code></td><td>Second answer option (required)</td><td>40-60 bpm</td></tr>
+        <tr><td><code>correct</code></td><td>Correct answer letter(s)</td><td>A (MCQ/TF) or A,C,E (SATA)</td></tr>
+      </table>
+
+      <h3 style="font-size:14px;margin:16px 0 8px;color:var(--primary)">Optional Columns</h3>
+      <table class="rules-table">
+        <tr><th>Column</th><th>Description</th><th>Default</th></tr>
+        <tr><td><code>question_type</code></td><td>MCQ, TF, or SATA</td><td>MCQ</td></tr>
+        <tr><td><code>option_c</code> to <code>option_f</code></td><td>Additional answer options (up to 6 total)</td><td>Empty</td></tr>
+        <tr><td><code>fb_a</code> to <code>fb_f</code></td><td>Per-option feedback shown after submission</td><td>Empty</td></tr>
+        <tr><td><code>rationale</code></td><td>Explanation shown in review mode</td><td>Empty</td></tr>
+        <tr><td><code>rationale_img</code></td><td>URL to an image for the rationale</td><td>Empty</td></tr>
+        <tr><td><code>subject</code></td><td>Subject category</td><td>Empty</td></tr>
+        <tr><td><code>maintopic</code></td><td>Main topic</td><td>Empty</td></tr>
+        <tr><td><code>subtopic</code></td><td>Sub-topic</td><td>Empty</td></tr>
+        <tr><td><code>difficulty</code></td><td>Difficulty level (e.g., Easy, Medium, Hard)</td><td>Empty</td></tr>
+        <tr><td><code>marks</code></td><td>Points for this question (positive number)</td><td>1</td></tr>
+        <tr><td><code>shuffle_options</code></td><td>Shuffle options when presented (true/false)</td><td>true</td></tr>
+      </table>
+
+      <h3 style="font-size:14px;margin:16px 0 8px;color:var(--primary)">Question Type Rules</h3>
+
+      <div style="background:var(--soft);border-radius:10px;padding:12px;margin-bottom:10px">
+        <b>MCQ (Multiple Choice — single answer)</b>
+        <ul style="padding-left:20px;margin-top:4px;color:var(--text-muted)">
+          <li><code>correct</code> must be a single letter: A, B, C, D, E, or F</li>
+          <li>The correct letter must have a corresponding option with text</li>
+          <li>Minimum 2 options (A and B), maximum 6</li>
+        </ul>
+      </div>
+
+      <div style="background:var(--soft);border-radius:10px;padding:12px;margin-bottom:10px">
+        <b>TF (True / False)</b>
+        <ul style="padding-left:20px;margin-top:4px;color:var(--text-muted)">
+          <li>Set <code>question_type</code> to <b>TF</b></li>
+          <li><code>option_a</code> = True, <code>option_b</code> = False</li>
+          <li><code>correct</code> must be <b>A</b> (True) or <b>B</b> (False)</li>
+          <li>Options C–F are ignored</li>
+        </ul>
+      </div>
+
+      <div style="background:var(--soft);border-radius:10px;padding:12px;margin-bottom:10px">
+        <b>SATA (Select All That Apply)</b>
+        <ul style="padding-left:20px;margin-top:4px;color:var(--text-muted)">
+          <li>Set <code>question_type</code> to <b>SATA</b></li>
+          <li><code>correct</code> must be comma-separated letters, e.g. <b>A,C,E</b></li>
+          <li>At least <b>2</b> correct answers required</li>
+          <li>Each correct letter must have a corresponding option with text</li>
+        </ul>
+      </div>
+
+      <h3 style="font-size:14px;margin:16px 0 8px;color:var(--primary)">Validation Rules</h3>
+      <table class="rules-table">
+        <tr><th>Rule</th><th>Result</th></tr>
+        <tr><td>Empty <code>stem</code></td><td style="color:var(--danger)">Row rejected</td></tr>
+        <tr><td>Empty <code>correct</code></td><td style="color:var(--danger)">Row rejected</td></tr>
+        <tr><td>Invalid <code>question_type</code> (not MCQ/TF/SATA)</td><td style="color:var(--danger)">Row rejected</td></tr>
+        <tr><td>Missing <code>option_a</code> or <code>option_b</code></td><td style="color:var(--danger)">Row rejected</td></tr>
+        <tr><td>Correct letter has no option text</td><td style="color:var(--danger)">Row rejected</td></tr>
+        <tr><td>SATA with fewer than 2 correct answers</td><td style="color:var(--danger)">Row rejected</td></tr>
+        <tr><td>TF correct answer not A or B</td><td style="color:var(--danger)">Row rejected</td></tr>
+        <tr><td>Negative or non-numeric <code>marks</code></td><td style="color:var(--danger)">Row rejected</td></tr>
+        <tr><td>Stem matches existing bank item</td><td style="color:var(--warn)">Row skipped (duplicate)</td></tr>
+        <tr><td>Stem matches earlier row in same file</td><td style="color:var(--warn)">Row skipped (duplicate)</td></tr>
+      </table>
+
+      <h3 style="font-size:14px;margin:16px 0 8px;color:var(--primary)">Import Behaviour</h3>
+      <ul style="padding-left:20px;color:var(--text-muted)">
+        <li>Only <b>valid</b> rows are imported — errors and duplicates are skipped</li>
+        <li>Imported items go to your <b>Question Bank</b> with source type "IMPORT"</li>
+        <li>You can then add them to any quiz draft from the bank</li>
+        <li>Column headers are <b>case-insensitive</b> and spaces are treated as underscores</li>
+        <li>If <code>question_type</code> is omitted, it defaults to <b>MCQ</b></li>
+        <li>If <code>marks</code> is omitted, it defaults to <b>1</b></li>
+      </ul>
+
+    </div>
+  </div>
+</div>
 
 <div class="toast-wrap" id="toastWrap"></div>
 
@@ -556,8 +655,10 @@ async function boot() {
     location.href = returnTo ? decodeURIComponent(returnTo) : '/myteacher/teacher/bank.html';
   });
 
-  // Template download
+  // Template download & instructions
   $('btnTemplate').addEventListener('click', downloadTemplate);
+  $('btnInstructions').addEventListener('click', () => $('instructionsModal').style.display = '');
+  $('instructionsModal').addEventListener('click', e => { if (e.target === $('instructionsModal')) $('instructionsModal').style.display = 'none'; });
 
   // Drop zone
   const zone = $('dropZone');
