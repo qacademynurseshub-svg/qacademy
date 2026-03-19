@@ -545,16 +545,25 @@ a { color: var(--brand); }
               </div>
             </div>
 
-            <!-- LIBRARY TOOL (placeholder) -->
+            <!-- LIBRARY TOOL -->
             <div class="tool-pane" id="toolLibrary">
               <div class="q-card">
-                <div class="q-hd"><b>QAcademy Library</b></div>
+                <div class="q-hd" style="display:flex;justify-content:space-between;align-items:center">
+                  <b>QAcademy Library</b>
+                  <a id="libraryPickerLink" class="btn sm" style="background:#6d28d9;color:#fff;border-color:#6d28d9;text-decoration:none" target="_blank">Open Library Picker</a>
+                </div>
                 <div class="q-bd">
-                  <div class="empty-state">
+                  <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
+                    Library items in this draft are <b>read-only</b>. Use the Library Picker to browse and add questions.
+                  </div>
+                  <div id="libItemsList"></div>
+                  <div id="libItemsEmpty" class="empty-state" style="padding:20px">
                     <div class="empty-state-icon">📚</div>
-                    <div class="empty-state-text">Library Picker — Coming Soon</div>
-                    <div class="empty-state-hint">The library picker will allow you to add questions from the QAcademy shared question bank.</div>
-                    <a href="#" id="libraryPickerLink" class="btn sm" style="margin-top:14px;display:none">Open Library Picker</a>
+                    <div class="empty-state-text">No library items in draft</div>
+                    <div class="empty-state-hint">Open the Library Picker to browse QAcademy courses and add questions to this quiz.</div>
+                  </div>
+                  <div style="margin-top:10px;text-align:right">
+                    <button class="btn sm" onclick="refreshLibItems()" title="Refresh after adding items in the Library Picker">Refresh</button>
                   </div>
                 </div>
               </div>
@@ -1020,6 +1029,7 @@ function fillFormFromQuiz(quiz) {
   DRAFT_SET = new Set(DRAFT_IDS);
   DRAFT_DIRTY = false;
   renderDraftList();
+  renderLibItems();
 }
 
 function readForm() {
@@ -1329,18 +1339,21 @@ function renderDraftList() {
   }
 
   box.innerHTML = filtered.map((id, idx) => {
+    const isLib = id.startsWith('LIB:');
     const cached = BANK_CACHE.get(id);
     const stem = cached ? cached.stem : '';
     const typeBadge = cached ? `<span class="badge badge-draft" style="font-size:10px">${esc(cached.question_type || 'MCQ')}</span>` : '';
+    const libBadge = isLib ? '<span class="badge" style="background:rgba(109,40,217,.1);color:#6d28d9;font-size:10px">LIB</span>' : '';
+    const isDraft = SELECTED_QUIZ?.status === 'DRAFT';
     return `
-    <div class="q-item">
+    <div class="q-item"${isLib ? ' style="border-left:3px solid #6d28d9"' : ''}>
       <div style="min-width:0;flex:1">
         <div class="q-item-stem">${stem ? esc(stem) : '<span class="hint">Click "Load Details"</span>'}</div>
-        <div class="q-item-meta">${typeBadge} <span class="kbd">${esc(id)}</span></div>
+        <div class="q-item-meta">${libBadge} ${typeBadge} <span class="kbd">${esc(id)}</span></div>
       </div>
       <div class="q-btns">
         <button class="btn sm" data-dprev="${esc(id)}">Preview</button>
-        <button class="btn sm danger" data-drm="${esc(id)}">Remove</button>
+        ${isDraft ? `<button class="btn sm danger" data-drm="${esc(id)}">Remove</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1355,7 +1368,8 @@ async function loadDraftDetails() {
   items.forEach(item => BANK_CACHE.set(item.bank_item_id, item));
 
   renderDraftList();
-  if (missing.length) showToast('Warning', `${missing.length} items not found in bank.`, 'error');
+  renderLibItems();
+  if (missing.length) showToast('Warning', `${missing.length} items not found.`, 'error');
   $('btnLoadDetails').disabled = false;
   $('btnLoadDetails').textContent = 'Load Details';
 }
@@ -1425,6 +1439,97 @@ function showSaveIndicator(state) {
   if (state === 'saving') { el.style.display = ''; el.className = 'save-indicator saving'; el.textContent = 'Saving…'; }
   else if (state === 'saved') { el.style.display = ''; el.className = 'save-indicator saved'; el.textContent = 'Saved'; setTimeout(() => el.style.display = 'none', 2000); }
   else { el.style.display = 'none'; }
+}
+
+
+// ================================================================
+// LIBRARY TAB
+// ================================================================
+function renderLibItems() {
+  const list = $('libItemsList');
+  const empty = $('libItemsEmpty');
+  const link = $('libraryPickerLink');
+
+  // Set picker link with quiz_id
+  if (SELECTED_ID) {
+    link.href = `library.html?quiz_id=${encodeURIComponent(SELECTED_ID)}`;
+  }
+
+  // Filter LIB refs from draft
+  const libRefs = DRAFT_IDS.filter(id => id.startsWith('LIB:'));
+
+  if (!libRefs.length) {
+    list.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  list.innerHTML = libRefs.map((ref, idx) => {
+    const parts = ref.split(':');
+    const courseId = parts[1] || '?';
+    const itemId = parts[2] || '?';
+    const cached = BANK_CACHE.get(ref);
+    const stem = cached ? cached.stem : '';
+    const typeBadge = cached ? `<span class="badge badge-draft" style="font-size:10px">${esc(cached.question_type || 'MCQ')}</span>` : '';
+    const isDraft = SELECTED_QUIZ?.status === 'DRAFT';
+
+    return `
+    <div class="q-item" style="border-left:3px solid #6d28d9">
+      <div style="min-width:0;flex:1">
+        <div class="q-item-stem">${stem ? esc(stem) : '<span class="hint">Click "Refresh" to load details</span>'}</div>
+        <div class="q-item-meta">
+          <span class="badge" style="background:rgba(109,40,217,.1);color:#6d28d9;font-size:10px">LIB</span>
+          ${typeBadge}
+          <span class="kbd" style="font-size:10px">${esc(courseId)}:${esc(itemId)}</span>
+        </div>
+      </div>
+      <div class="q-btns">
+        <button class="btn sm" data-dprev="${esc(ref)}">Preview</button>
+        ${isDraft ? `<button class="btn sm danger" data-drm="${esc(ref)}">Remove</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function refreshLibItems() {
+  if (!SELECTED_ID) return;
+
+  // Re-fetch the quiz to get updated draft_items_json
+  const quiz = await getTeacherQuiz(SELECTED_ID);
+  if (!quiz) return;
+
+  try {
+    const dj = typeof quiz.draft_items_json === 'object' ? quiz.draft_items_json : JSON.parse(quiz.draft_items_json || '{}');
+    DRAFT_IDS = Array.isArray(dj.items) ? [...dj.items] : [];
+  } catch(_) { DRAFT_IDS = []; }
+  DRAFT_SET = new Set(DRAFT_IDS);
+  SELECTED_QUIZ = quiz;
+
+  // Load details for LIB items
+  const libRefs = DRAFT_IDS.filter(id => id.startsWith('LIB:'));
+  if (libRefs.length) {
+    const libMap = await resolveLibraryRefs(libRefs);
+    libMap.forEach((item, ref) => {
+      BANK_CACHE.set(ref, {
+        bank_item_id: ref,
+        stem: item.stem,
+        question_type: item.question_type || 'MCQ',
+        option_a: item.option_a, option_b: item.option_b,
+        option_c: item.option_c, option_d: item.option_d,
+        option_e: item.option_e, option_f: item.option_f,
+        correct: item.correct, rationale: item.rationale,
+        subject: item.subject, maintopic: item.maintopic,
+        subtopic: item.subtopic, difficulty: item.difficulty,
+        marks: item.marks || 1, _isLibrary: true
+      });
+    });
+  }
+
+  renderDraftList();
+  renderLibItems();
+  showToast('OK', 'Refreshed from server.', 'ok');
 }
 
 

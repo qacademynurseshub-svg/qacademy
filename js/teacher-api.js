@@ -757,19 +757,69 @@ async function getDraftPreview(quizId) {
 
   if (!ids.length) return { items: [], missing: [] };
 
-  const { data, error } = await db
-    .from('teacher_bank_items')
-    .select('*')
-    .in('bank_item_id', ids);
+  // Split into bank refs and library refs
+  const bankIds = ids.filter(id => !id.startsWith('LIB:'));
+  const libRefs = ids.filter(id => id.startsWith('LIB:'));
 
-  if (error) { console.error('getDraftPreview:', error); return { items: [], missing: ids }; }
+  // Fetch bank items
+  let bankMap = new Map();
+  if (bankIds.length) {
+    const { data, error } = await db
+      .from('teacher_bank_items')
+      .select('*')
+      .in('bank_item_id', bankIds);
 
-  const found = new Map((data || []).map(r => [r.bank_item_id, r]));
+    if (!error && data) bankMap = new Map(data.map(r => [r.bank_item_id, r]));
+  }
+
+  // Resolve library refs
+  let libMap = new Map();
+  if (libRefs.length) {
+    libMap = await resolveLibraryRefs(libRefs);
+  }
+
+  // Merge in order, normalising LIB items to bank-like shape
   const items = [];
   const missing = [];
   ids.forEach(id => {
-    if (found.has(id)) items.push(found.get(id));
-    else missing.push(id);
+    if (id.startsWith('LIB:')) {
+      const libItem = libMap.get(id);
+      if (libItem) {
+        items.push({
+          bank_item_id  : id,               // use the LIB ref as the key
+          stem          : libItem.stem,
+          option_a      : libItem.option_a,
+          option_b      : libItem.option_b,
+          option_c      : libItem.option_c,
+          option_d      : libItem.option_d,
+          option_e      : libItem.option_e,
+          option_f      : libItem.option_f,
+          fb_a          : libItem.fb_a,
+          fb_b          : libItem.fb_b,
+          fb_c          : libItem.fb_c,
+          fb_d          : libItem.fb_d,
+          fb_e          : libItem.fb_e,
+          fb_f          : libItem.fb_f,
+          correct       : libItem.correct,
+          rationale     : libItem.rationale,
+          rationale_img : libItem.rationale_img,
+          subject       : libItem.subject,
+          maintopic     : libItem.maintopic,
+          subtopic      : libItem.subtopic,
+          difficulty    : libItem.difficulty,
+          marks         : libItem.marks || 1,
+          question_type : libItem.question_type || 'MCQ',
+          shuffle_options: libItem.shuffle_options ?? true,
+          _isLibrary    : true,             // flag for UI rendering
+          _libRef       : id
+        });
+      } else {
+        missing.push(id);
+      }
+    } else {
+      if (bankMap.has(id)) items.push(bankMap.get(id));
+      else missing.push(id);
+    }
   });
 
   return { items, missing };
@@ -1149,34 +1199,50 @@ async function publishTeacherQuiz(quizId, teacherId) {
     return { success: false, message: 'AFTER_CLOSE policy requires a Close At date.' };
   }
 
-  // 3. Fetch bank items
-  const { data: bankItems, error: bankErr } = await db
-    .from('teacher_bank_items')
-    .select('*')
-    .in('bank_item_id', draftIds);
+  // 3. Split draft IDs into bank refs and library refs
+  const bankIds = draftIds.filter(id => !id.startsWith('LIB:'));
+  const libRefs = draftIds.filter(id => id.startsWith('LIB:'));
 
-  if (bankErr) return { success: false, message: 'Failed to fetch bank items: ' + bankErr.message };
+  // 3a. Fetch bank items
+  let bankMap = new Map();
+  if (bankIds.length) {
+    const { data: bankItems, error: bankErr } = await db
+      .from('teacher_bank_items')
+      .select('*')
+      .in('bank_item_id', bankIds);
 
-  const bankMap = new Map((bankItems || []).map(r => [r.bank_item_id, r]));
+    if (bankErr) return { success: false, message: 'Failed to fetch bank items: ' + bankErr.message };
+    bankMap = new Map((bankItems || []).map(r => [r.bank_item_id, r]));
+  }
+
+  // 3b. Resolve library refs
+  let libMap = new Map();
+  if (libRefs.length) {
+    libMap = await resolveLibraryRefs(libRefs);
+  }
 
   // 4. Validate all items found
-  const missingIds = draftIds.filter(id => !bankMap.has(id));
+  const missingIds = draftIds.filter(id => {
+    if (id.startsWith('LIB:')) return !libMap.has(id);
+    return !bankMap.has(id);
+  });
   if (missingIds.length) {
-    return { success: false, message: 'Missing bank items: ' + missingIds.join(', ') };
+    return { success: false, message: 'Missing items: ' + missingIds.join(', ') };
   }
 
   // 5. Delete old snapshots (safety — shouldn't exist for DRAFT)
   await db.from('teacher_quiz_items').delete().eq('teacher_quiz_id', quizId);
 
-  // 6. Build snapshot rows
+  // 6. Build snapshot rows — unified from both bank and library sources
   const now = new Date().toISOString();
-  const snapshotRows = draftIds.map((bankId, idx) => {
-    const b = bankMap.get(bankId);
+  const snapshotRows = draftIds.map((refId, idx) => {
+    const isLib = refId.startsWith('LIB:');
+    const b = isLib ? libMap.get(refId) : bankMap.get(refId);
     return {
       quiz_item_id       : makeQuizItemId(),
       teacher_quiz_id    : quizId,
       position           : idx + 1,
-      bank_item_id       : bankId,
+      bank_item_id       : isLib ? refId : refId,   // store original ref for traceability
       snap_stem          : b.stem,
       snap_option_a      : b.option_a,
       snap_fb_a          : b.fb_a,
@@ -2862,6 +2928,183 @@ async function getClassQuizzesForTeacher(classId, teacherId) {
 
   if (qErr) return [];
   return quizzes || [];
+}
+
+
+// ============================================================
+// LIBRARY (QAcademy shared question bank)
+// ============================================================
+
+
+// ------------------------------------------------------------
+// GET LIBRARY COURSES
+// Returns all active courses from teacher_library_courses.
+// Used by: library.html — course selector
+// ------------------------------------------------------------
+async function getLibraryCourses() {
+  const { data, error } = await db
+    .from('teacher_library_courses')
+    .select('*')
+    .eq('status', 'active')
+    .order('sort_order', { ascending: true });
+
+  if (error) { console.error('getLibraryCourses:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET LIBRARY ITEMS
+// Fetches items from a dynamic table name (e.g. 'items_gp').
+// Optional filters: { search, maintopic, subtopic, difficulty, question_type }
+// Returns { items, count }
+// Used by: library.html — items table
+// ------------------------------------------------------------
+async function getLibraryItems(tableName, { search = '', maintopic = '', subtopic = '', difficulty = '', question_type = '', limit = 500, offset = 0 } = {}) {
+  if (!tableName) return { items: [], count: 0 };
+
+  let query = db
+    .from(tableName)
+    .select('*', { count: 'exact' });
+
+  if (maintopic) query = query.eq('maintopic', maintopic);
+  if (subtopic)  query = query.eq('subtopic', subtopic);
+  if (difficulty) query = query.eq('difficulty', difficulty);
+  if (question_type) query = query.eq('question_type', question_type);
+  if (search) query = query.ilike('stem', `%${search}%`);
+
+  query = query.range(offset, offset + limit - 1);
+
+  const { data, error, count } = await query;
+  if (error) { console.error('getLibraryItems:', error); return { items: [], count: 0 }; }
+  return { items: data || [], count: count || 0 };
+}
+
+
+// ------------------------------------------------------------
+// GET LIBRARY FILTER OPTIONS
+// Fetches distinct values for maintopic, subtopic, difficulty
+// from a library items table. Used for filter dropdowns.
+// ------------------------------------------------------------
+async function getLibraryFilterOptions(tableName) {
+  if (!tableName) return { maintopics: [], subtopics: [], difficulties: [] };
+
+  // Fetch all items but only the filter columns
+  const { data, error } = await db
+    .from(tableName)
+    .select('maintopic, subtopic, difficulty');
+
+  if (error) { console.error('getLibraryFilterOptions:', error); return { maintopics: [], subtopics: [], difficulties: [] }; }
+
+  const mt = new Set(), st = new Set(), df = new Set();
+  (data || []).forEach(r => {
+    if (r.maintopic) mt.add(r.maintopic);
+    if (r.subtopic)  st.add(r.subtopic);
+    if (r.difficulty) df.add(r.difficulty);
+  });
+
+  return {
+    maintopics:   [...mt].sort(),
+    subtopics:    [...st].sort(),
+    difficulties: [...df].sort()
+  };
+}
+
+
+// ------------------------------------------------------------
+// GET LIBRARY ITEM BY ID
+// Fetches a single item from a specific library table.
+// Used by: preview, publish resolver
+// ------------------------------------------------------------
+async function getLibraryItem(tableName, itemId) {
+  if (!tableName || !itemId) return null;
+
+  const { data, error } = await db
+    .from(tableName)
+    .select('*')
+    .eq('item_id', itemId)
+    .maybeSingle();
+
+  if (error) { console.error('getLibraryItem:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
+// RESOLVE LIBRARY REFS FOR PUBLISH
+// Takes an array of LIB refs (e.g. "LIB:GP:GP_001") and
+// fetches the actual items from their respective library tables.
+// Returns a Map of ref → item data.
+// Used by: publishTeacherQuiz
+// ------------------------------------------------------------
+async function resolveLibraryRefs(libRefs) {
+  const result = new Map();
+  if (!libRefs || !libRefs.length) return result;
+
+  // Group refs by course_id
+  const groups = {};
+  libRefs.forEach(ref => {
+    const parts = ref.split(':');
+    if (parts.length !== 3 || parts[0] !== 'LIB') return;
+    const courseId = parts[1];
+    const itemId   = parts[2];
+    if (!groups[courseId]) groups[courseId] = [];
+    groups[courseId].push({ ref, itemId });
+  });
+
+  // Fetch courses to get table names
+  const courseIds = Object.keys(groups);
+  if (!courseIds.length) return result;
+
+  const { data: courses, error } = await db
+    .from('teacher_library_courses')
+    .select('course_id, items_table')
+    .in('course_id', courseIds);
+
+  if (error || !courses) { console.error('resolveLibraryRefs courses:', error); return result; }
+
+  const courseMap = new Map(courses.map(c => [c.course_id, c.items_table]));
+
+  // Fetch items from each table
+  for (const courseId of courseIds) {
+    const tableName = courseMap.get(courseId);
+    if (!tableName) continue;
+
+    const itemIds = groups[courseId].map(g => g.itemId);
+
+    const { data: items, error: itemErr } = await db
+      .from(tableName)
+      .select('*')
+      .in('item_id', itemIds);
+
+    if (itemErr) { console.error(`resolveLibraryRefs ${tableName}:`, itemErr); continue; }
+
+    const itemMap = new Map((items || []).map(i => [i.item_id, i]));
+    groups[courseId].forEach(g => {
+      const item = itemMap.get(g.itemId);
+      if (item) result.set(g.ref, item);
+    });
+  }
+
+  return result;
+}
+
+
+// ------------------------------------------------------------
+// GET DRAFT QUIZZES (for library picker target selector)
+// Returns all DRAFT quizzes for a teacher.
+// Used by: library.html — target quiz dropdown
+// ------------------------------------------------------------
+async function getDraftQuizzes(teacherId) {
+  const { data, error } = await db
+    .from('teacher_quizzes')
+    .select('teacher_quiz_id, title, subject, preset, draft_items_json')
+    .eq('teacher_id', teacherId)
+    .eq('status', 'DRAFT')
+    .order('updated_at', { ascending: false });
+
+  if (error) { console.error('getDraftQuizzes:', error); return []; }
+  return data || [];
 }
 
 

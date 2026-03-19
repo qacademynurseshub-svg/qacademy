@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Library Picker — QAcademy My Teacher</title>
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+/* ── Variables ───────────────────────────────────────────── */
+:root {
+  --brand: #0b7a75;
+  --brand-light: rgba(11,122,117,.08);
+  --muted: #859998;
+  --ink: #1f2a28;
+  --bg: #f6f8f7;
+  --card: #ffffff;
+  --line: rgba(0,0,0,.10);
+  --soft: rgba(0,0,0,.04);
+  --warn: #b45309;
+  --warn-light: rgba(180,83,9,.08);
+  --danger: #b91c1c;
+  --danger-light: rgba(185,28,28,.08);
+  --ok: #067647;
+  --ok-light: rgba(6,118,71,.08);
+  --lib-accent: #6d28d9;
+  --lib-light: rgba(109,40,217,.08);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+a { color: var(--brand); }
+
+/* ── Layout ──────────────────────────────────────────────── */
+.page-wrap { display: flex; flex-direction: column; min-height: 100vh; }
+.main-content { flex: 1; padding: 16px 20px 40px; max-width: 1600px; margin: 0 auto; width: 100%; }
+
+.top-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.top-bar .page-title { font-size: 20px; font-weight: 900; flex: 1; min-width: 200px; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); font-size: 13px; font-weight: 700; cursor: pointer; transition: all .14s ease; font-family: inherit; }
+.btn:hover { border-color: var(--brand); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+.btn.primary:hover { background: #096662; }
+.btn.sm { padding: 5px 10px; font-size: 12px; border-radius: 8px; }
+.btn.lib-add { background: var(--lib-accent); color: #fff; border-color: var(--lib-accent); }
+.btn.lib-add:hover { background: #5b21b6; }
+
+/* ── Two-column layout ───────────────────────────────────── */
+.picker-layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; min-height: calc(100vh - 200px); }
+@media (max-width: 900px) { .picker-layout { grid-template-columns: 1fr; } }
+
+/* ── Left panel ──────────────────────────────────────────── */
+.left-panel { display: flex; flex-direction: column; gap: 12px; }
+.panel-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.panel-card h3 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
+.panel-card select, .panel-card input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; font-family: inherit; margin-bottom: 8px; background: var(--card); }
+.panel-card select:last-child, .panel-card input:last-child { margin-bottom: 0; }
+
+.course-card { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; margin-bottom: 6px; transition: all .12s ease; }
+.course-card:hover { border-color: var(--lib-accent); background: var(--lib-light); }
+.course-card.active { border-color: var(--lib-accent); background: var(--lib-light); box-shadow: inset 3px 0 0 var(--lib-accent); }
+.course-card .c-title { font-size: 13px; font-weight: 700; }
+.course-card .c-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ── Target quiz bar ─────────────────────────────────────── */
+.target-bar { display: flex; gap: 10px; align-items: center; padding: 10px 16px; background: var(--lib-light); border: 1px solid rgba(109,40,217,.18); border-radius: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.target-bar label { font-size: 12px; font-weight: 700; color: var(--lib-accent); white-space: nowrap; }
+.target-bar select { flex: 1; min-width: 200px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; font-family: inherit; }
+.target-bar .badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: var(--lib-accent); color: #fff; }
+
+/* ── Items table ─────────────────────────────────────────── */
+.right-panel { display: flex; flex-direction: column; }
+.items-header { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.items-header input { flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; font-family: inherit; }
+.items-count { font-size: 12px; color: var(--muted); font-weight: 700; }
+
+.items-table-wrap { flex: 1; overflow: auto; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+table.items-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.items-table th { position: sticky; top: 0; background: var(--soft); text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--line); z-index: 2; }
+table.items-table td { padding: 10px 12px; border-bottom: 1px solid var(--soft); vertical-align: top; }
+table.items-table tr:hover td { background: var(--lib-light); }
+table.items-table tr.selected td { background: rgba(109,40,217,.12); }
+table.items-table .stem-cell { max-width: 450px; line-height: 1.4; }
+table.items-table .stem-cell .stem-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.cb-cell { width: 36px; text-align: center; }
+.cb-cell input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--lib-accent); cursor: pointer; }
+
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+.badge-mcq { background: #dbeafe; color: #1e40af; }
+.badge-tf { background: #fef3c7; color: #92400e; }
+.badge-sata { background: #ede9fe; color: #6d28d9; }
+.badge-easy { background: var(--ok-light); color: var(--ok); }
+.badge-medium { background: var(--warn-light); color: var(--warn); }
+.badge-hard { background: var(--danger-light); color: var(--danger); }
+
+/* ── Selection dock ──────────────────────────────────────── */
+.selection-dock { display: flex; gap: 12px; align-items: center; padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; flex-wrap: wrap; }
+.selection-dock.has-items { border-color: var(--lib-accent); background: var(--lib-light); }
+.selection-count { font-size: 13px; font-weight: 700; flex: 1; }
+.selection-count strong { color: var(--lib-accent); }
+
+/* ── Preview drawer ──────────────────────────────────────── */
+.preview-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1000; }
+.preview-overlay.open { display: flex; justify-content: flex-end; }
+.preview-drawer { width: 520px; max-width: 90vw; background: var(--card); height: 100%; overflow-y: auto; padding: 24px; box-shadow: -4px 0 24px rgba(0,0,0,.12); }
+.preview-drawer h2 { font-size: 16px; margin: 0 0 16px; }
+.preview-drawer .close-btn { float: right; background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px; color: var(--muted); }
+.preview-drawer .close-btn:hover { color: var(--ink); }
+.preview-stem { font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+.preview-option { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+.preview-option.correct { border-color: var(--ok); background: var(--ok-light); }
+.preview-option .opt-label { font-weight: 700; margin-right: 8px; }
+.preview-option .fb { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.preview-rationale { margin-top: 14px; padding: 12px; background: var(--soft); border-radius: 8px; font-size: 13px; line-height: 1.5; }
+.preview-meta { margin-top: 12px; font-size: 12px; color: var(--muted); }
+.preview-meta span { display: inline-block; margin-right: 14px; }
+
+/* ── Empty state ─────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+.empty-state-icon { font-size: 36px; margin-bottom: 8px; }
+.empty-state-text { font-size: 15px; font-weight: 700; }
+.empty-state-hint { font-size: 13px; margin-top: 6px; }
+
+/* ── Toast ───────────────────────────────────────────────── */
+.toast-wrap { position: fixed; top: 16px; right: 16px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 10px 16px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); font-size: 13px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,.10); animation: slideIn .2s ease; }
+.toast.ok { border-color: var(--ok); color: var(--ok); }
+.toast.error { border-color: var(--danger); color: var(--danger); }
+@keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ── Pagination ──────────────────────────────────────────── */
+.pagination { display: flex; gap: 6px; align-items: center; margin-top: 10px; justify-content: center; }
+.pagination button { padding: 5px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.pagination button:hover { border-color: var(--brand); }
+.pagination button:disabled { opacity: .4; cursor: not-allowed; }
+.pagination .page-info { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <!-- ── NAV (same as other teacher pages) ──────────────── -->
+  <div id="mtNavHost"></div>
+
+  <div class="main-content">
+    <!-- ── Top bar ──────────────────────────────────────── -->
+    <div class="top-bar">
+      <div>
+        <div class="page-title">QAcademy Library</div>
+        <div style="font-size:12px;color:var(--muted)" id="pageSubtitle">Browse and add questions to your quiz drafts</div>
+      </div>
+      <a href="quizzes.html" class="btn sm">&larr; Back to Quizzes</a>
+    </div>
+
+    <!-- ── Target quiz selector ─────────────────────────── -->
+    <div class="target-bar">
+      <label>Target Quiz:</label>
+      <select id="targetQuiz">
+        <option value="">— Select a draft quiz —</option>
+      </select>
+      <span class="badge" id="draftCountBadge" style="display:none">0 items in draft</span>
+    </div>
+
+    <!-- ── Two-column picker ────────────────────────────── -->
+    <div class="picker-layout">
+
+      <!-- LEFT: Course selector + Filters -->
+      <div class="left-panel">
+        <div class="panel-card">
+          <h3>Courses</h3>
+          <div id="courseList">
+            <div class="empty-state" style="padding:20px"><div class="empty-state-hint">Loading courses…</div></div>
+          </div>
+        </div>
+
+        <div class="panel-card" id="filterPanel" style="display:none">
+          <h3>Filters</h3>
+          <input type="text" id="filterSearch" placeholder="Search stems…" />
+          <select id="filterTopic"><option value="">All topics</option></select>
+          <select id="filterSubtopic"><option value="">All subtopics</option></select>
+          <select id="filterDifficulty"><option value="">All difficulties</option></select>
+          <select id="filterType">
+            <option value="">All types</option>
+            <option value="MCQ">MCQ</option>
+            <option value="TF">True/False</option>
+            <option value="SATA">SATA</option>
+          </select>
+          <button class="btn sm" onclick="clearFilters()" style="width:100%;margin-top:4px">Clear Filters</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Items table -->
+      <div class="right-panel">
+        <div class="items-header">
+          <span class="items-count" id="itemsCount">Select a course to browse items</span>
+          <button class="btn sm" id="btnSelectAll" style="display:none" onclick="toggleSelectAll()">Select All</button>
+          <button class="btn sm" id="btnDeselectAll" style="display:none" onclick="deselectAll()">Deselect All</button>
+        </div>
+
+        <div class="items-table-wrap" id="itemsTableWrap">
+          <div class="empty-state" id="itemsEmpty">
+            <div class="empty-state-icon">📚</div>
+            <div class="empty-state-text">Select a course to begin</div>
+            <div class="empty-state-hint">Choose a course from the left panel to browse its question library.</div>
+          </div>
+          <table class="items-table" id="itemsTable" style="display:none">
+            <thead>
+              <tr>
+                <th class="cb-cell"><input type="checkbox" id="headerCheckbox" title="Select all on page" /></th>
+                <th style="width:50px">#</th>
+                <th>Stem</th>
+                <th style="width:60px">Type</th>
+                <th style="width:80px">Topic</th>
+                <th style="width:70px">Diff</th>
+                <th style="width:50px">Marks</th>
+                <th style="width:70px"></th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination" id="pagination" style="display:none">
+          <button id="btnPrevPage" onclick="goPage(-1)">&larr; Prev</button>
+          <span class="page-info" id="pageInfo">Page 1</span>
+          <button id="btnNextPage" onclick="goPage(1)">Next &rarr;</button>
+        </div>
+
+        <!-- Selection dock -->
+        <div class="selection-dock" id="selectionDock">
+          <div class="selection-count">
+            <span id="selectedCount">0</span> items selected
+            <span id="selectedInDraft" style="display:none;margin-left:8px;color:var(--muted)">(+<span id="alreadyInDraftCount">0</span> already in draft)</span>
+          </div>
+          <button class="btn sm" onclick="previewSelected()" id="btnPreviewSel" style="display:none">Preview</button>
+          <button class="btn sm lib-add" onclick="addSelectedToDraft()" id="btnAddToDraft" disabled>
+            Add to Draft
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Preview drawer ─────────────────────────────────── -->
+  <div class="preview-overlay" id="previewOverlay">
+    <div class="preview-drawer" id="previewDrawer">
+      <button class="close-btn" onclick="closePreview()">&times;</button>
+      <h2 id="previewTitle">Question Preview</h2>
+      <div id="previewBody"></div>
+    </div>
+  </div>
+
+  <!-- ── Toast container ────────────────────────────────── -->
+  <div class="toast-wrap" id="toastWrap"></div>
+</div>
+
+<!-- ── Scripts ─────────────────────────────────────────── -->
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/teacher-api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+
+// ── State ──────────────────────────────────────────────────
+let PROFILE, TEACHER_ID;
+let COURSES = [];
+let SELECTED_COURSE = null;         // { course_id, items_table, title, ... }
+let ITEMS = [];                     // current page items
+let TOTAL_ITEMS = 0;
+let FILTER_OPTIONS = { maintopics: [], subtopics: [], difficulties: [] };
+let SELECTED_IDS = new Set();       // LIB refs selected for adding
+let DRAFT_QUIZZES = [];
+let TARGET_QUIZ = null;             // selected draft quiz row
+let DRAFT_SET = new Set();          // items already in target draft
+let PAGE = 0;
+const PAGE_SIZE = 50;
+let SEARCH_TIMER = null;
+
+
+// ── Boot ───────────────────────────────────────────────────
+async function boot() {
+  PROFILE = await guardPage('TEACHER');
+  if (!PROFILE) return;
+  TEACHER_ID = PROFILE.user_id;
+  if (window.mtSetUser) mtSetUser(PROFILE);
+
+  // Load courses and draft quizzes in parallel
+  const [courses, drafts] = await Promise.all([
+    getLibraryCourses(),
+    getDraftQuizzes(TEACHER_ID)
+  ]);
+
+  COURSES = courses;
+  DRAFT_QUIZZES = drafts;
+
+  renderCourseList();
+  populateDraftSelector();
+
+  // Check URL for target quiz
+  const params = new URLSearchParams(location.search);
+  const urlQuizId = params.get('quiz_id');
+  if (urlQuizId) {
+    $('targetQuiz').value = urlQuizId;
+    onTargetQuizChange();
+  }
+}
+
+
+// ── Course list ────────────────────────────────────────────
+function renderCourseList() {
+  const box = $('courseList');
+  if (!COURSES.length) {
+    box.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-state-hint">No courses available.</div></div>';
+    return;
+  }
+
+  box.innerHTML = COURSES.map(c => `
+    <div class="course-card${SELECTED_COURSE && SELECTED_COURSE.course_id === c.course_id ? ' active' : ''}"
+         data-cid="${esc(c.course_id)}">
+      <div class="c-title">${esc(c.title)}</div>
+      <div class="c-meta">${esc(c.course_id)} · ${esc(c.items_table)}</div>
+    </div>
+  `).join('');
+
+  box.querySelectorAll('.course-card').forEach(card => {
+    card.addEventListener('click', () => selectCourse(card.dataset.cid));
+  });
+}
+
+
+// ── Select a course ────────────────────────────────────────
+async function selectCourse(courseId) {
+  const course = COURSES.find(c => c.course_id === courseId);
+  if (!course) return;
+
+  SELECTED_COURSE = course;
+  SELECTED_IDS.clear();
+  PAGE = 0;
+
+  renderCourseList();  // re-render to update active state
+  $('filterPanel').style.display = '';
+  $('itemsEmpty').style.display = 'none';
+  $('itemsTable').style.display = '';
+  $('btnSelectAll').style.display = '';
+  $('btnDeselectAll').style.display = '';
+
+  // Load filters and items in parallel
+  const [filterOpts] = await Promise.all([
+    getLibraryFilterOptions(course.items_table),
+    loadItems()
+  ]);
+
+  FILTER_OPTIONS = filterOpts;
+  populateFilterDropdowns();
+}
+
+
+// ── Load items with current filters ────────────────────────
+async function loadItems() {
+  if (!SELECTED_COURSE) return;
+
+  const filters = {
+    search: ($('filterSearch').value || '').trim(),
+    maintopic: $('filterTopic').value,
+    subtopic: $('filterSubtopic').value,
+    difficulty: $('filterDifficulty').value,
+    question_type: $('filterType').value,
+    limit: PAGE_SIZE,
+    offset: PAGE * PAGE_SIZE
+  };
+
+  const { items, count } = await getLibraryItems(SELECTED_COURSE.items_table, filters);
+  ITEMS = items;
+  TOTAL_ITEMS = count;
+
+  renderItemsTable();
+  renderPagination();
+  updateSelectionDock();
+}
+
+
+// ── Render items table ─────────────────────────────────────
+function renderItemsTable() {
+  const tbody = $('itemsBody');
+  $('itemsCount').textContent = `${TOTAL_ITEMS} items in ${SELECTED_COURSE.title}`;
+
+  if (!ITEMS.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">No items match your filters.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = ITEMS.map((item, idx) => {
+    const ref = `LIB:${SELECTED_COURSE.course_id}:${item.item_id}`;
+    const isSelected = SELECTED_IDS.has(ref);
+    const inDraft = DRAFT_SET.has(ref);
+    const rowNum = PAGE * PAGE_SIZE + idx + 1;
+    const typeCls = (item.question_type || 'MCQ').toLowerCase();
+    const diffCls = (item.difficulty || '').toLowerCase();
+
+    return `
+    <tr class="${isSelected ? 'selected' : ''}" data-ref="${esc(ref)}">
+      <td class="cb-cell">
+        ${inDraft
+          ? '<span style="font-size:11px;color:var(--muted)" title="Already in draft">✓</span>'
+          : `<input type="checkbox" ${isSelected ? 'checked' : ''} data-ref="${esc(ref)}" />`
+        }
+      </td>
+      <td style="color:var(--muted);font-size:12px">${rowNum}</td>
+      <td class="stem-cell">
+        <div class="stem-text">${esc(item.stem || '')}</div>
+      </td>
+      <td><span class="badge badge-${typeCls}">${esc(item.question_type || 'MCQ')}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${esc(item.maintopic || '—')}</td>
+      <td>${item.difficulty ? `<span class="badge badge-${diffCls}">${esc(item.difficulty)}</span>` : '—'}</td>
+      <td style="text-align:center">${item.marks || 1}</td>
+      <td><button class="btn sm" onclick="previewItem('${esc(item.item_id)}')">Preview</button></td>
+    </tr>`;
+  }).join('');
+
+  // Bind checkboxes
+  tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const ref = cb.dataset.ref;
+      if (cb.checked) SELECTED_IDS.add(ref);
+      else SELECTED_IDS.delete(ref);
+      cb.closest('tr').classList.toggle('selected', cb.checked);
+      updateSelectionDock();
+    });
+  });
+
+  // Update header checkbox
+  updateHeaderCheckbox();
+}
+
+
+// ── Pagination ─────────────────────────────────────────────
+function renderPagination() {
+  const totalPages = Math.ceil(TOTAL_ITEMS / PAGE_SIZE);
+  const pag = $('pagination');
+  if (totalPages <= 1) { pag.style.display = 'none'; return; }
+
+  pag.style.display = 'flex';
+  $('pageInfo').textContent = `Page ${PAGE + 1} of ${totalPages}`;
+  $('btnPrevPage').disabled = PAGE === 0;
+  $('btnNextPage').disabled = PAGE >= totalPages - 1;
+}
+
+function goPage(dir) {
+  PAGE += dir;
+  loadItems();
+}
+
+
+// ── Filter dropdowns ───────────────────────────────────────
+function populateFilterDropdowns() {
+  fillSelect('filterTopic', FILTER_OPTIONS.maintopics, 'All topics');
+  fillSelect('filterSubtopic', FILTER_OPTIONS.subtopics, 'All subtopics');
+  fillSelect('filterDifficulty', FILTER_OPTIONS.difficulties, 'All difficulties');
+}
+
+function fillSelect(id, values, allLabel) {
+  const sel = $(id);
+  const current = sel.value;
+  sel.innerHTML = `<option value="">${allLabel}</option>` +
+    values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  if (current && values.includes(current)) sel.value = current;
+}
+
+function clearFilters() {
+  $('filterSearch').value = '';
+  $('filterTopic').value = '';
+  $('filterSubtopic').value = '';
+  $('filterDifficulty').value = '';
+  $('filterType').value = '';
+  PAGE = 0;
+  loadItems();
+}
+
+
+// ── Target quiz selector ───────────────────────────────────
+function populateDraftSelector() {
+  const sel = $('targetQuiz');
+  sel.innerHTML = '<option value="">— Select a draft quiz —</option>' +
+    DRAFT_QUIZZES.map(q => {
+      const count = draftItemCount(q);
+      return `<option value="${esc(q.teacher_quiz_id)}">${esc(q.title)} (${count} items)</option>`;
+    }).join('');
+}
+
+function draftItemCount(quiz) {
+  try {
+    const p = typeof quiz.draft_items_json === 'object' ? quiz.draft_items_json : JSON.parse(quiz.draft_items_json || '{}');
+    return Array.isArray(p.items) ? p.items.length : 0;
+  } catch(_) { return 0; }
+}
+
+function getDraftItems(quiz) {
+  try {
+    const p = typeof quiz.draft_items_json === 'object' ? quiz.draft_items_json : JSON.parse(quiz.draft_items_json || '{}');
+    return Array.isArray(p.items) ? p.items : [];
+  } catch(_) { return []; }
+}
+
+function onTargetQuizChange() {
+  const qid = $('targetQuiz').value;
+  const badge = $('draftCountBadge');
+
+  if (!qid) {
+    TARGET_QUIZ = null;
+    DRAFT_SET.clear();
+    badge.style.display = 'none';
+    renderItemsTable();
+    updateSelectionDock();
+    return;
+  }
+
+  TARGET_QUIZ = DRAFT_QUIZZES.find(q => q.teacher_quiz_id === qid) || null;
+  if (TARGET_QUIZ) {
+    const items = getDraftItems(TARGET_QUIZ);
+    DRAFT_SET = new Set(items);
+    badge.textContent = `${items.length} items in draft`;
+    badge.style.display = '';
+  }
+
+  // Deselect any that are already in draft
+  SELECTED_IDS.forEach(ref => { if (DRAFT_SET.has(ref)) SELECTED_IDS.delete(ref); });
+
+  renderItemsTable();
+  updateSelectionDock();
+}
+
+
+// ── Select all / deselect ──────────────────────────────────
+function toggleSelectAll() {
+  const pageRefs = ITEMS.map(item => `LIB:${SELECTED_COURSE.course_id}:${item.item_id}`);
+  const allOnPageSelected = pageRefs.every(ref => SELECTED_IDS.has(ref) || DRAFT_SET.has(ref));
+
+  pageRefs.forEach(ref => {
+    if (DRAFT_SET.has(ref)) return;
+    if (allOnPageSelected) SELECTED_IDS.delete(ref);
+    else SELECTED_IDS.add(ref);
+  });
+
+  renderItemsTable();
+  updateSelectionDock();
+}
+
+function deselectAll() {
+  SELECTED_IDS.clear();
+  renderItemsTable();
+  updateSelectionDock();
+}
+
+function updateHeaderCheckbox() {
+  const hdr = $('headerCheckbox');
+  if (!ITEMS.length) { hdr.checked = false; return; }
+  const pageRefs = ITEMS.map(item => `LIB:${SELECTED_COURSE.course_id}:${item.item_id}`).filter(ref => !DRAFT_SET.has(ref));
+  hdr.checked = pageRefs.length > 0 && pageRefs.every(ref => SELECTED_IDS.has(ref));
+}
+
+
+// ── Selection dock ─────────────────────────────────────────
+function updateSelectionDock() {
+  const dock = $('selectionDock');
+  const count = SELECTED_IDS.size;
+  $('selectedCount').textContent = count;
+  $('btnAddToDraft').disabled = !count || !TARGET_QUIZ;
+  $('btnPreviewSel').style.display = count ? '' : 'none';
+  dock.classList.toggle('has-items', count > 0);
+
+  // Show how many are already in draft
+  if (TARGET_QUIZ && DRAFT_SET.size) {
+    $('alreadyInDraftCount').textContent = DRAFT_SET.size;
+    $('selectedInDraft').style.display = '';
+  } else {
+    $('selectedInDraft').style.display = 'none';
+  }
+}
+
+
+// ── Add selected to draft ──────────────────────────────────
+async function addSelectedToDraft() {
+  if (!TARGET_QUIZ || !SELECTED_IDS.size) return;
+
+  const refs = [...SELECTED_IDS];
+  const btn = $('btnAddToDraft');
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+
+  const result = await appendToDraftItems(TARGET_QUIZ.teacher_quiz_id, refs);
+
+  if (result.success) {
+    showToast(`Added ${result.added} item${result.added !== 1 ? 's' : ''} to draft (${result.skipped} skipped). Total: ${result.total}`, 'ok');
+
+    // Update local state
+    refs.forEach(ref => DRAFT_SET.add(ref));
+    SELECTED_IDS.clear();
+
+    // Update the draft quiz count in dropdown
+    TARGET_QUIZ.draft_items_json = { items: [...DRAFT_SET] };
+    $('draftCountBadge').textContent = `${result.total} items in draft`;
+
+    renderItemsTable();
+    updateSelectionDock();
+  } else {
+    showToast(result.message || 'Failed to add items.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Add to Draft';
+}
+
+
+// ── Preview ────────────────────────────────────────────────
+function previewItem(itemId) {
+  if (!SELECTED_COURSE) return;
+  const item = ITEMS.find(i => i.item_id === itemId);
+  if (!item) return;
+
+  $('previewTitle').textContent = `${item.item_id} — ${item.question_type || 'MCQ'}`;
+
+  const opts = ['A','B','C','D','E','F'];
+  const correctSet = new Set((item.correct || '').split(',').map(s => s.trim().toUpperCase()));
+
+  let html = `<div class="preview-stem">${esc(item.stem || '')}</div>`;
+
+  opts.forEach(letter => {
+    const val = item['option_' + letter.toLowerCase()];
+    if (!val) return;
+    const fb = item['fb_' + letter.toLowerCase()];
+    const isCorrect = correctSet.has(letter);
+    html += `
+      <div class="preview-option${isCorrect ? ' correct' : ''}">
+        <span class="opt-label">${letter}.</span> ${esc(val)}
+        ${isCorrect ? ' <span style="color:var(--ok);font-weight:700">✓</span>' : ''}
+        ${fb ? `<div class="fb">${esc(fb)}</div>` : ''}
+      </div>`;
+  });
+
+  if (item.rationale) {
+    html += `<div class="preview-rationale"><b>Rationale:</b> ${esc(item.rationale)}</div>`;
+  }
+
+  html += `<div class="preview-meta">
+    <span><b>Subject:</b> ${esc(item.subject || '—')}</span>
+    <span><b>Topic:</b> ${esc(item.maintopic || '—')}</span>
+    <span><b>Subtopic:</b> ${esc(item.subtopic || '—')}</span>
+    <span><b>Difficulty:</b> ${esc(item.difficulty || '—')}</span>
+    <span><b>Marks:</b> ${item.marks || 1}</span>
+  </div>`;
+
+  $('previewBody').innerHTML = html;
+  $('previewOverlay').classList.add('open');
+}
+
+function previewSelected() {
+  // Preview first selected item
+  if (!SELECTED_IDS.size) return;
+  const firstRef = [...SELECTED_IDS][0];
+  const parts = firstRef.split(':');
+  if (parts.length === 3) previewItem(parts[2]);
+}
+
+function closePreview() {
+  $('previewOverlay').classList.remove('open');
+}
+
+
+// ── Events ─────────────────────────────────────────────────
+function bindEvents() {
+  // Target quiz change
+  $('targetQuiz').addEventListener('change', onTargetQuizChange);
+
+  // Filters
+  $('filterSearch').addEventListener('input', () => {
+    clearTimeout(SEARCH_TIMER);
+    SEARCH_TIMER = setTimeout(() => { PAGE = 0; loadItems(); }, 350);
+  });
+  $('filterTopic').addEventListener('change', () => { PAGE = 0; loadItems(); });
+  $('filterSubtopic').addEventListener('change', () => { PAGE = 0; loadItems(); });
+  $('filterDifficulty').addEventListener('change', () => { PAGE = 0; loadItems(); });
+  $('filterType').addEventListener('change', () => { PAGE = 0; loadItems(); });
+
+  // Header checkbox
+  $('headerCheckbox').addEventListener('change', () => toggleSelectAll());
+
+  // Preview overlay close on backdrop click
+  $('previewOverlay').addEventListener('click', e => {
+    if (e.target === $('previewOverlay')) closePreview();
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closePreview();
+  });
+}
+
+
+// ── Utilities ──────────────────────────────────────────────
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+function showToast(msg, type) {
+  const wrap = $('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || '');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+
+// ── Init ───────────────────────────────────────────────────
+boot().then(() => bindEvents());
+</script>
+</body>
+</html>
