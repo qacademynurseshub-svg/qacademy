@@ -363,7 +363,69 @@ CREATE POLICY "dev_allow_all" ON items_gp FOR ALL USING (true) WITH CHECK (true)
 
 ---
 
-### 3.4 RLS
+### 3.4 Teacher Assess Tables
+
+Full schema is documented in `myteacher new schema.md`. Key tables:
+
+#### teacher_classes
+```sql
+-- Manages teacher-created classes with join codes
+-- Key columns: class_id, teacher_id, title, join_code, custom_fields_json, status
+```
+
+#### teacher_class_members
+```sql
+-- Students joined to classes
+-- Key columns: user_id, class_id, display_name, custom_fields_json, status
+```
+
+#### teacher_bank_items
+```sql
+-- Teacher's personal question bank
+-- Key columns: bank_item_id, teacher_id, question_type (MCQ/TF/SATA), stem, option_a-f, fb_a-f, correct, rationale
+-- Source tracking: source_type (TEACHER/IMPORT/QUIZ_INLINE/LIBRARY), source_course_id, source_item_id
+```
+
+#### teacher_quizzes
+```sql
+-- Quiz definitions with full lifecycle management
+-- Key columns: teacher_quiz_id, teacher_id, title, subject, preset, duration_minutes, max_attempts
+-- Settings: shuffle_questions, shuffle_options, show_review, show_results, results_release_policy
+-- Grading: grading_policy, grade_bands_json, pass_threshold_pct, score_display_policy
+-- Schedule: open_at, close_at, access_code
+-- State: status (DRAFT/PUBLISHED/ARCHIVED), sata_scoring_policy (ALL_OR_NOTHING/PARTIAL_CREDIT/PER_OPTION)
+-- Draft: draft_items_json (array of TBANK_ and LIB:COURSE:ITEM refs), custom_fields_json
+```
+
+#### teacher_quiz_items
+```sql
+-- Snapshot of questions frozen at publish time
+-- Key columns: quiz_item_id, teacher_quiz_id, position, snap_stem, snap_option_a-f, snap_correct, snap_marks, snap_question_type
+```
+
+#### teacher_quiz_classes
+```sql
+-- Links quizzes to classes
+-- Key columns: teacher_quiz_id, class_id
+```
+
+#### teacher_quiz_attempts
+```sql
+-- Student attempts with full scoring data
+-- Key columns: attempt_id, user_id, teacher_quiz_id, class_id, attempt_no, status (IN_PROGRESS/SUBMITTED)
+-- Scoring: score_raw, score_total, score_pct, time_taken_s, score_json
+-- Grading snapshot: grading_policy, grade_bands_json, score_display_policy
+-- Data: items_json, answers_json, flags_json, candidate_fields_json
+```
+
+#### teacher_library_courses
+```sql
+-- QAcademy shared library course catalog
+-- Key columns: course_id, title, program_scope, items_table, status
+-- items_table points to the actual items table (e.g., items_gp, items_rn_med)
+```
+
+### 3.5 RLS
 All tables use `dev_allow_all` during build:
 ```sql
 ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;
@@ -431,9 +493,36 @@ Hamburger button and overlay are injected by `js/admin-sidebar.js` and `js/stude
 ### Grant Subscription — Admin Panel
 The Grant Subscription button in `admin/subscriptions.html` side panel appears for ALL subscription statuses. It pre-fills the student via `openGrantForUser(userId, name, email)` — no manual search needed.
 
+### Teacher Assess — Quiz Lifecycle
+```
+DRAFT ──publish──▶ PUBLISHED ──archive──▶ ARCHIVED
+  │                                          ▲
+  └────────────archive───────────────────────┘
+```
+- No unpublish. No unarchive. Clone creates a new DRAFT from any state.
+- Questions are snapshotted into `teacher_quiz_items` at publish time — immutable after that.
+- `sata_scoring_policy`, `duration_minutes`, `draft_items_json` are locked after publish (integrity fields).
+- `title`, `subject`, `max_attempts`, `open_at`, `close_at` are editable on PUBLISHED quizzes.
+- `results_release_policy`, `show_results`, `show_review`, `pass_threshold_pct`, `grade_bands_json` are editable on both PUBLISHED and ARCHIVED.
+- `pass_threshold_pct`, `sata_scoring_policy`, and release settings are snapshotted onto each attempt at submit time.
+
+### Teacher Assess — Library Architecture
+- QAcademy library tables (`items_gp`, `items_rn_med`, etc.) are **read-only** for teachers.
+- Teachers browse and add library items to quiz drafts as `LIB:COURSE_ID:ITEM_ID` refs.
+- At publish, LIB refs are resolved from the library tables and snapshotted like bank items.
+- If a teacher edits a LIB item, it's automatically copied to their personal bank (`source_type: 'LIBRARY'`, `source_course_id`, `source_item_id` set for traceability). The LIB ref in the draft is swapped with the new `TBANK_` ref. The original library item is never modified.
+
+### Teacher Assess — CSV Import
+- Standalone page at `myteacher/teacher/import.html`
+- Validates per-row: stem, correct, options, question type, marks
+- Duplicate detection against existing bank items and within the file
+- Only valid rows are imported; errors and duplicates are skipped
+- Imported items get `source_type: 'IMPORT'`
+- Includes AI help section with ready-made prompt for formatting questions using any AI tool
+
 ---
 
-## 7. CSV Import — Question Bank
+## 7. CSV Import — Question Bank (Admin)
 
 The question bank page (`admin/question-bank.html`) has a built-in CSV importer.
 
@@ -464,6 +553,10 @@ Key rules:
 - [ ] Remove test accounts
 - [ ] Rotate Supabase anon key if ever committed publicly
 - [ ] Review and clean up question bank content before go-live
+- [ ] Build and wire admin pages (payments, user management)
+- [ ] Add teacher/student sidebar navigation
+- [ ] Seed QAcademy library tables with production question content
+- [ ] Test full quiz lifecycle end-to-end (create → publish → take → results → review)
 
 ---
 

@@ -80,23 +80,26 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 - `student/upgrade.html` — upgrade page for existing logged-in students
 - `payment-confirmation.html` — post-payment redirect handler, calls verify
 
-### Teacher Assess — MyTeacher ✅ (Slices 1–8)
+### Teacher Assess — MyTeacher ✅ (Slices 1–11)
 - **Slice 1–2: Foundation** — Teacher profiles, access request/approval, admin approval page
 - **Slice 3: Classes Manager** — Full CRUD, join codes, custom fields, member management
-- **Slice 4: Student My Classes** — Join by code, class detail, quizzes tab placeholder
+- **Slice 4: Student My Classes** — Join by code, class detail, quizzes tab with attempts modal
 - **Slice 5: Question Bank** — Full CRUD, MCQ/TF/SATA support, image upload, CSV import, filters
-- **Slice 6: Quiz Manager** — 4-tab editor (Settings, Classes, Questions, Publish), presets, grade bands, quiz custom fields, inline create, bank browser, library placeholder, publish with snapshots, clone, archive
+- **Slice 5b: CSV Import** — Standalone import page with validation, duplicate detection, AI help section with ready-made prompt
+- **Slice 6: Quiz Manager** — 4-tab editor (Settings, Classes, Questions, Publish), presets, grade bands, quiz custom fields, inline create, bank browser, library picker, publish with snapshots, clone, archive, SATA scoring policy, mutable settings post-publish
 - **Slice 7: Quiz Runner** — Intake form, timer, question grid, MCQ/TF/SATA rendering, auto-save, pre-submit modal, completion screen with context-aware messaging, keyboard nav, desktop sidebar grid, progress indicators
 - **Slice 8: Student Results & Review** — Results tab (score card, grade, pass/fail gate, metadata, print), Review tab (questions with correct/wrong, feedback, rationale, filters, sidebar question map)
+- **Slice 9: Teacher Results Dashboard** — Marksheet tab (sortable, searchable, paginated), Item Analysis tab (per-question stats, distractor analysis), drawers (attempts list, view attempt, view item), CSV export, print
+- **Slice 10: Dashboard Wiring** — Teacher dashboard (live stats, recent activity), Student dashboard (live stats, first-visit join overlay)
+- **Slice 11: Library Picker** — Standalone full-screen page, course browser with filters, add to quiz draft, wired to quiz manager Library tab, edit-to-copy flow (LIB items save to personal bank with source tracking, original library untouched)
 - **Integrity Hardening** — 12 fixes across 3 tiers (see Quiz Lifecycle Rules below)
 
 ### Next Up ⏭️
-1. Teacher Assess: CSV import for quiz questions, Library Picker
-2. `admin/payments.html` — view and manage all payment records
-3. Messaging: `student/messages.html` + admin side
-4. Telegram integration
-5. Downloads / offline packs (`student/downloads.html`)
-6. RLS policies — tighten all tables before go-live
+1. Admin pages — payments, user management (shells scaffolded, need wiring)
+2. Teacher/Student sidebar navigation
+3. Notifications — quiz published, results released
+4. Profile/Settings pages
+5. RLS policies — tighten all tables before go-live
 
 ### Intentionally Deferred
 - Sequential runner mode
@@ -135,17 +138,20 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 ### Teacher Assess — Teacher Pages
 | Page | Status | Notes |
 |---|---|---|
-| myteacher/teacher/dashboard.html | ✅ Done | Teacher home, class/quiz summary |
+| myteacher/teacher/dashboard.html | ✅ Done | Live stats (classes, quizzes, students, attempts), recent activity feed |
 | myteacher/teacher/classes.html | ✅ Done | Full CRUD, join codes, custom fields, members |
 | myteacher/teacher/bank.html | ✅ Done | MCQ/TF/SATA, image upload, CSV import, filters |
-| myteacher/teacher/quizzes.html | ✅ Done | 4-tab editor, presets, publish with snapshots, clone, archive, release results |
+| myteacher/teacher/quizzes.html | ✅ Done | 4-tab editor, presets, publish with snapshots, clone, archive, release results, SATA scoring policy, mutable settings, library picker |
+| myteacher/teacher/import.html | ✅ Done | CSV import with validation, duplicate detection, AI help prompt |
+| myteacher/teacher/library.html | ✅ Done | Full-screen library browser, course filters, add to quiz draft |
+| myteacher/teacher/results.html | ✅ Done | Marksheet, item analysis, drawers, CSV export, print |
 
 ### Teacher Assess — Student Pages
 | Page | Status | Notes |
 |---|---|---|
-| myteacher/student/dashboard.html | ✅ Done | Student home for Teacher Assess |
+| myteacher/student/dashboard.html | ✅ Done | Live stats, first-visit join class overlay |
 | myteacher/student/my-classes.html | ✅ Done | Join by code, class detail, quizzes tab with attempts modal |
-| myteacher/student/quiz-runner.html | ✅ Done | Full exam engine: intake, timer, grid, MCQ/TF/SATA, auto-save, submit |
+| myteacher/student/quiz-runner.html | ✅ Done | Full exam engine: intake, timer, grid, MCQ/TF/SATA, auto-save, submit, 12 UX enhancements |
 | myteacher/student/my-results.html | ✅ Done | Results tab + Review tab, gated by release policy |
 
 ### Public Pages
@@ -228,15 +234,16 @@ Every key is a system key referenced by platform code. Never rename or delete un
 - `getAttemptForReview()`, `getStudentAttempts()`, `getAttemptById()`
 
 ### Teacher Assess (teacher-api.js)
-- `createTeacherQuiz()`, `getTeacherQuiz()`, `getTeacherQuizzes()`, `updateTeacherQuiz()`
-- `publishTeacherQuiz()`, `archiveTeacherQuiz()`, `cloneTeacherQuiz()`, `releaseQuizResults()`
-- `setQuizClasses()`, `getQuizClasses()`, `removeFromDraftItems()`
-- `startQuizAttempt()`, `saveAttemptProgress()`, `submitQuizAttempt()`
-- `getAttempt()`, `getAttemptResults()`, `getAttemptReview()`
-- `getQuizzesForClass()`, `getPublishedQuizWithItems()`
-- `createTeacherClass()`, `updateTeacherClass()`, `archiveTeacherClass()`
-- `getTeacherClasses()`, `joinClassByCode()`
-- `createBankItem()`, `updateBankItem()`, `getBankItems()`, `getBankFilterOptions()`
+- **Quiz CRUD:** `createTeacherQuiz()`, `getTeacherQuiz()`, `getTeacherQuizzes()`, `updateTeacherQuiz()`
+- **Quiz Lifecycle:** `publishTeacherQuiz()`, `archiveTeacherQuiz()`, `cloneTeacherQuiz()`, `releaseQuizResults()`
+- **Quiz Relations:** `setQuizClasses()`, `getQuizClasses()`, `removeFromDraftItems()`
+- **Student Quiz:** `startQuizAttempt()`, `saveAttemptProgress()`, `submitQuizAttempt()`
+- **Attempts:** `getAttempt()`, `getAttemptResults()`, `getAttemptReview()`, `getQuizzesForClass()`, `getPublishedQuizWithItems()`
+- **Teacher Results:** `getTeacherQuizResults()`, `getTeacherItemAnalysis()`, `getAttemptDetail()`
+- **Classes:** `createTeacherClass()`, `updateTeacherClass()`, `archiveTeacherClass()`, `getTeacherClasses()`, `joinClassByCode()`
+- **Bank:** `createBankItem()`, `updateBankItem()`, `getBankItems()`, `getBankFilterOptions()`, `getDraftPreview()`
+- **Library:** `getLibraryCourses()`, `getLibraryItems()`, `resolveLibraryRefs()`, `copyLibItemToBank()`, `getDraftQuizzes()`, `addLibItemsToDraft()`
+- **Dashboard:** `getTeacherDashboardStats()`, `getStudentDashboardStats()`
 
 ---
 
@@ -286,8 +293,11 @@ These values are captured from the live quiz onto each attempt's `score_json` at
 - Change settings → use `admin/config.html`
 - Manage teacher classes → use `myteacher/teacher/classes.html`
 - Manage question bank → use `myteacher/teacher/bank.html`
+- Bulk import questions → use `myteacher/teacher/import.html` (or "Bulk add CSV" button in bank)
+- Browse QAcademy library → use `myteacher/teacher/library.html`
 - Create/publish quizzes → use `myteacher/teacher/quizzes.html`
 - Release quiz results → Publish tab on quiz editor, or "Release Results" button
+- View quiz analytics → use `myteacher/teacher/results.html`
 
 ---
 
