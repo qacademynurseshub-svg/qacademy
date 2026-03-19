@@ -1878,7 +1878,9 @@ function showPreview(bankItemId) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span class="badge badge-draft">${esc(item.question_type || 'MCQ')}</span>
         <div class="q-btns">
-          <button class="btn sm" onclick="loadItemIntoEditor(BANK_CACHE.get('${esc(item.bank_item_id)}'), 'EDIT'); setActiveTool('create');">Edit</button>
+          ${item._isLibrary || (item.bank_item_id && item.bank_item_id.startsWith('LIB:'))
+            ? '<span class="badge" style="background:rgba(109,40,217,.1);color:#6d28d9">Read-only (Library)</span>'
+            : `<button class="btn sm" onclick="loadItemIntoEditor(BANK_CACHE.get('${esc(item.bank_item_id)}'), 'EDIT'); setActiveTool('create');">Edit</button>`}
           <button class="btn sm primary" onclick="addToDraft('${esc(item.bank_item_id)}')" ${DRAFT_SET.has(item.bank_item_id) ? 'disabled' : ''}>Add to Draft</button>
         </div>
       </div>
