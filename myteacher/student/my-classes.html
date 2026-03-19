@@ -209,7 +209,7 @@
     .tab-pane { display: none; }
     .tab-pane.show { display: block; }
 
-    /* ── Quiz list shell ─────────────────────────────────── */
+    /* ── Quiz list ─────────────────────────────────────────── */
     .quiz-shell {
       text-align: center; padding: 32px 16px;
       background: var(--bg); border-radius: 12px;
@@ -217,6 +217,33 @@
       color: var(--text-muted); font-size: 13px;
     }
     .quiz-shell .icon { font-size: 28px; margin-bottom: 8px; }
+
+    .quiz-cards { display: flex; flex-direction: column; gap: 10px; }
+    .quiz-card {
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 14px; padding: 14px 16px;
+      background: #fff; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .quiz-card:hover {
+      border-color: var(--accent, #2d7d72);
+      box-shadow: 0 2px 8px rgba(45,125,114,0.10);
+    }
+    .quiz-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .quiz-card-title { font-size: 15px; font-weight: 800; color: var(--primary); margin: 0 0 4px; }
+    .quiz-card-sub { font-size: 12px; color: var(--text-muted); margin: 0; }
+    .quiz-card-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .quiz-card-actions { margin-top: 12px; display: flex; gap: 8px; align-items: center; }
+
+    .quiz-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .quiz-badge.open { background: rgba(45,125,114,0.08); color: var(--accent); }
+    .quiz-badge.upcoming { background: rgba(37,99,235,0.08); color: #2563eb; }
+    .quiz-badge.closed { background: rgba(220,38,38,0.06); color: #dc2626; }
+    .quiz-badge.submitted { background: rgba(45,125,114,0.08); color: var(--accent); }
+    .quiz-badge.in-progress { background: rgba(234,179,8,0.10); color: #a16207; }
+    .quiz-badge.exhausted { background: rgba(107,114,128,0.08); color: #6b7280; }
 
     /* ── Profile form ────────────────────────────────────── */
     .profile-hint {
@@ -386,10 +413,11 @@
 
             <!-- Quizzes tab -->
             <div class="tab-pane show" id="paneQuizzes">
-              <div class="quiz-shell">
-                <div class="icon">📝</div>
-                <p>Quizzes assigned to this class will appear here.<br/>
-                <span style="font-size:12px;">Coming in a later update.</span></p>
+              <div id="quizListWrap">
+                <div class="quiz-shell">
+                  <div class="spinner" style="margin:0 auto 10px;"></div>
+                  <p>Loading quizzes…</p>
+                </div>
               </div>
             </div>
 
@@ -609,9 +637,128 @@
     // Profile tab
     renderProfileForm(fields, vals, membership);
 
+    // Load quizzes for this class
+    loadQuizzesForClass(cls.class_id);
+
     // Reset to quizzes tab
     setTab('quizzes');
     showState('stateDetail');
+  }
+
+
+  // ── Load quizzes for class ──────────────────────────────────
+  async function loadQuizzesForClass(classId) {
+    const wrap = byId('quizListWrap');
+    wrap.innerHTML = `
+      <div class="quiz-shell">
+        <div class="spinner" style="margin:0 auto 10px;"></div>
+        <p>Loading quizzes…</p>
+      </div>`;
+
+    const quizzes = await getQuizzesForClass(classId, PROFILE.user_id);
+    renderQuizList(quizzes, classId);
+  }
+
+  function renderQuizList(quizzes, classId) {
+    const wrap = byId('quizListWrap');
+
+    if (!quizzes || !quizzes.length) {
+      wrap.innerHTML = `
+        <div class="quiz-shell">
+          <div class="icon">📝</div>
+          <p>No quizzes assigned to this class yet.</p>
+        </div>`;
+      return;
+    }
+
+    const now = new Date();
+    let html = '<div class="quiz-cards">';
+
+    quizzes.forEach(q => {
+      // Determine availability status
+      const isOpen = (!q.open_at || new Date(q.open_at) <= now);
+      const isClosed = (q.close_at && new Date(q.close_at) < now);
+      let availBadge = '';
+      if (isClosed) {
+        availBadge = '<span class="quiz-badge closed">Closed</span>';
+      } else if (!isOpen) {
+        availBadge = '<span class="quiz-badge upcoming">Upcoming</span>';
+      } else {
+        availBadge = '<span class="quiz-badge open">Open</span>';
+      }
+
+      // Attempt status
+      const attempts = q.attempts || [];
+      const inProgress = attempts.find(a => a.status === 'IN_PROGRESS');
+      const submitted = attempts.filter(a => a.status === 'SUBMITTED' || a.status === 'TIMED_OUT');
+      const maxAttempts = q.max_attempts || 0;
+      const attemptsUsed = attempts.length;
+      const canStart = isOpen && !isClosed && (maxAttempts === 0 || attemptsUsed < maxAttempts) && !inProgress;
+      const canResume = isOpen && !isClosed && !!inProgress;
+      const exhausted = maxAttempts > 0 && attemptsUsed >= maxAttempts && !inProgress;
+
+      let attemptBadge = '';
+      if (inProgress) {
+        attemptBadge = '<span class="quiz-badge in-progress">In Progress</span>';
+      } else if (exhausted) {
+        attemptBadge = '<span class="quiz-badge exhausted">Completed</span>';
+      } else if (submitted.length) {
+        attemptBadge = `<span class="quiz-badge submitted">${submitted.length} submitted</span>`;
+      }
+
+      // Duration & items
+      const dur = q.duration_minutes ? q.duration_minutes + ' min' : 'Untimed';
+      const items = q.item_count || '—';
+      const maxAtt = maxAttempts === 0 ? 'Unlimited' : maxAttempts;
+
+      // Action button
+      let actionHtml = '';
+      if (canResume) {
+        actionHtml = `<a class="btn btn-primary btn-sm" href="/myteacher/student/quiz-runner.html?quiz_id=${esc(q.teacher_quiz_id)}&class_id=${esc(classId)}&attempt_id=${esc(inProgress.attempt_id)}">Resume Quiz</a>`;
+      } else if (canStart) {
+        actionHtml = `<a class="btn btn-primary btn-sm" href="/myteacher/student/quiz-runner.html?quiz_id=${esc(q.teacher_quiz_id)}&class_id=${esc(classId)}">Start Quiz</a>`;
+      } else if (isClosed && submitted.length === 0) {
+        actionHtml = '<span style="font-size:12px; color:var(--text-muted);">Quiz closed</span>';
+      } else if (exhausted) {
+        actionHtml = '<span style="font-size:12px; color:var(--text-muted);">All attempts used</span>';
+      } else if (!isOpen) {
+        const openDate = formatDate(q.open_at);
+        actionHtml = `<span style="font-size:12px; color:var(--text-muted);">Opens ${openDate}</span>`;
+      }
+
+      // Best score
+      let scoreHtml = '';
+      if (submitted.length) {
+        const best = submitted.reduce((a, b) => ((a.score_pct || 0) >= (b.score_pct || 0) ? a : b), submitted[0]);
+        if (best.score_pct != null) {
+          scoreHtml = `<span class="chip ok" style="font-size:11px;">Best: ${best.score_pct}%</span>`;
+        }
+      }
+
+      html += `
+        <div class="quiz-card">
+          <div class="quiz-card-top">
+            <div>
+              <div class="quiz-card-title">${esc(q.title)}</div>
+              <div class="quiz-card-sub">${esc(q.subject || '')}${q.subject ? ' · ' : ''}${esc(q.preset || 'EXAM')}</div>
+            </div>
+          </div>
+          <div class="quiz-card-meta">
+            ${availBadge}
+            ${attemptBadge}
+            <span class="chip neutral" style="font-size:11px;">⏱ ${dur}</span>
+            <span class="chip neutral" style="font-size:11px;">📝 ${items} items</span>
+            <span class="chip neutral" style="font-size:11px;">🔁 ${attemptsUsed}/${maxAtt}</span>
+            ${scoreHtml}
+          </div>
+          <div class="quiz-card-actions">
+            ${actionHtml}
+          </div>
+        </div>`;
+    });
+
+    html += '</div>';
+    wrap.innerHTML = html;
   }
 
   // ── Render profile form ───────────────────────────────────

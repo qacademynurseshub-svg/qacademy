@@ -322,6 +322,15 @@ a { color: var(--brand); }
             </select>
           </div>
           <div class="form-group">
+            <label>SATA Scoring Policy</label>
+            <select id="fSataScoring">
+              <option value="ALL_OR_NOTHING">All or Nothing</option>
+              <option value="PARTIAL_CREDIT">Partial Credit</option>
+              <option value="PER_OPTION">Per Option</option>
+              <option value="HIDE">Hide Score</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label>Open At</label>
             <input type="datetime-local" id="fOpenAt" />
           </div>
@@ -883,7 +892,7 @@ function updateEditorStrip() {
 // ================================================================
 function setReadOnlyState(readOnly) {
   // Settings fields
-  const fields = ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
+  const fields = ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
   fields.forEach(id => { if ($(id)) $(id).disabled = readOnly; });
   $('btnSaveQuiz').disabled = readOnly;
   $('btnRegenCode').disabled = readOnly;
@@ -920,6 +929,7 @@ function resetForm() {
   $('fMaxAttempts').value = '1';
   $('fResultsPolicy').value = 'MANUAL';
   $('fScoreDisplay').value = 'RAW_AND_PCT';
+  $('fSataScoring').value = 'ALL_OR_NOTHING';
   $('fOpenAt').value = '';
   $('fCloseAt').value = '';
   $('fShuffleQ').checked = false;
@@ -943,6 +953,7 @@ function fillFormFromQuiz(quiz) {
   $('fMaxAttempts').value = quiz.max_attempts ?? 1;
   $('fResultsPolicy').value = quiz.results_release_policy || 'MANUAL';
   $('fScoreDisplay').value = quiz.score_display_policy || 'RAW_AND_PCT';
+  $('fSataScoring').value = quiz.sata_scoring_policy || 'ALL_OR_NOTHING';
   $('fOpenAt').value = toLocalDatetime(quiz.open_at);
   $('fCloseAt').value = toLocalDatetime(quiz.close_at);
   $('fShuffleQ').checked = !!quiz.shuffle_questions;
@@ -994,6 +1005,7 @@ function readForm() {
     show_results          : $('fShowResults').checked,
     results_release_policy: $('fResultsPolicy').value,
     score_display_policy  : $('fScoreDisplay').value,
+    sata_scoring_policy   : $('fSataScoring').value,
     open_at               : $('fOpenAt').value ? new Date($('fOpenAt').value).toISOString() : null,
     close_at              : $('fCloseAt').value ? new Date($('fCloseAt').value).toISOString() : null,
     pass_threshold_pct    : parseInt($('fPassThreshold').value) || 50,

@@ -1290,3 +1290,570 @@ async function regenerateQuizAccessCode(quizId) {
   if (error) { console.error('regenerateQuizAccessCode:', error); return { success: false, message: error.message }; }
   return { success: true, access_code: newCode };
 }
+
+
+// ============================================================
+// Slice 7: Student Quiz Runner
+// ============================================================
+
+// ── ID generator ───────────────────────────────────────────
+
+function makeAttemptId() {
+  return 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+}
+
+
+// ------------------------------------------------------------
+// GET QUIZZES FOR CLASS (Student)
+// Returns all PUBLISHED quizzes linked to a given class.
+// Joins through teacher_quiz_classes → teacher_quizzes.
+// Also fetches the student's attempts so UI can show status.
+// Used by: myteacher/student/my-classes.html Quizzes tab
+// ------------------------------------------------------------
+async function getQuizzesForClass(classId, userId) {
+  // 1. Get quiz links for this class
+  const { data: links, error: linkErr } = await db
+    .from('teacher_quiz_classes')
+    .select('teacher_quiz_id')
+    .eq('class_id', classId)
+    .eq('status', 'ACTIVE');
+
+  if (linkErr) { console.error('getQuizzesForClass links:', linkErr); return []; }
+  if (!links || !links.length) return [];
+
+  const quizIds = links.map(l => l.teacher_quiz_id);
+
+  // 2. Fetch full quiz rows — only PUBLISHED
+  const { data: quizzes, error: qErr } = await db
+    .from('teacher_quizzes')
+    .select('*')
+    .in('teacher_quiz_id', quizIds)
+    .eq('status', 'PUBLISHED')
+    .order('updated_at', { ascending: false });
+
+  if (qErr) { console.error('getQuizzesForClass quizzes:', qErr); return []; }
+  if (!quizzes || !quizzes.length) return [];
+
+  // 3. Fetch student's attempts for these quizzes
+  const { data: attempts, error: aErr } = await db
+    .from('teacher_quiz_attempts')
+    .select('attempt_id, teacher_quiz_id, attempt_no, status, score_pct, started_at, submitted_at')
+    .eq('user_id', userId)
+    .eq('class_id', classId)
+    .in('teacher_quiz_id', quizzes.map(q => q.teacher_quiz_id))
+    .neq('status', 'ABANDONED')
+    .order('started_at', { ascending: false });
+
+  if (aErr) console.error('getQuizzesForClass attempts:', aErr);
+
+  // 4. Attach attempts to quizzes
+  const attemptMap = {};
+  (attempts || []).forEach(a => {
+    if (!attemptMap[a.teacher_quiz_id]) attemptMap[a.teacher_quiz_id] = [];
+    attemptMap[a.teacher_quiz_id].push(a);
+  });
+
+  // 5. Get item counts for each quiz
+  const { data: itemCounts, error: icErr } = await db
+    .from('teacher_quiz_items')
+    .select('teacher_quiz_id')
+    .in('teacher_quiz_id', quizzes.map(q => q.teacher_quiz_id));
+
+  const countMap = {};
+  (itemCounts || []).forEach(r => {
+    countMap[r.teacher_quiz_id] = (countMap[r.teacher_quiz_id] || 0) + 1;
+  });
+
+  return quizzes.map(q => ({
+    ...q,
+    item_count: countMap[q.teacher_quiz_id] || 0,
+    attempts: attemptMap[q.teacher_quiz_id] || []
+  }));
+}
+
+
+// ------------------------------------------------------------
+// GET PUBLISHED QUIZ WITH ITEMS (Student)
+// Returns the quiz row + all snapshot items (ordered by position).
+// Does NOT return correct answers — those stay server-side
+// for grading only (but we're client-side, so we omit from
+// the items_json stored on the attempt instead).
+// Used by: quiz-runner.html — loading the quiz
+// ------------------------------------------------------------
+async function getPublishedQuizWithItems(quizId) {
+  // Fetch quiz
+  const { data: quiz, error: qErr } = await db
+    .from('teacher_quizzes')
+    .select('*')
+    .eq('teacher_quiz_id', quizId)
+    .eq('status', 'PUBLISHED')
+    .maybeSingle();
+
+  if (qErr) { console.error('getPublishedQuizWithItems quiz:', qErr); return null; }
+  if (!quiz) return null;
+
+  // Fetch snapshot items
+  const { data: items, error: iErr } = await db
+    .from('teacher_quiz_items')
+    .select('*')
+    .eq('teacher_quiz_id', quizId)
+    .order('position', { ascending: true });
+
+  if (iErr) { console.error('getPublishedQuizWithItems items:', iErr); return null; }
+
+  return { quiz, items: items || [] };
+}
+
+
+// ------------------------------------------------------------
+// START QUIZ ATTEMPT (Student)
+// Creates a new attempt or resumes an existing IN_PROGRESS one.
+// Handles: max attempt enforcement, open/close window check,
+//          question shuffling with opt_map, due_at calculation.
+//
+// candidateFields: { key: value } from intake form
+// Returns { success, attempt, resumed } or { success: false, ... }
+// Used by: quiz-runner.html
+// ------------------------------------------------------------
+async function startQuizAttempt(userId, quizId, classId, candidateFields = {}) {
+  // 1. Fetch quiz
+  const quizData = await getPublishedQuizWithItems(quizId);
+  if (!quizData) return { success: false, message: 'Quiz not found or not published.' };
+  const { quiz, items } = quizData;
+
+  // 2. Verify class link
+  const { data: link, error: linkErr } = await db
+    .from('teacher_quiz_classes')
+    .select('tqc_id')
+    .eq('teacher_quiz_id', quizId)
+    .eq('class_id', classId)
+    .eq('status', 'ACTIVE')
+    .maybeSingle();
+
+  if (linkErr || !link) return { success: false, message: 'This quiz is not linked to your class.' };
+
+  // 3. Verify class membership
+  const membership = await getExistingMembership(userId, classId);
+  if (!membership || membership.status !== 'ACTIVE') {
+    return { success: false, message: 'You are not an active member of this class.' };
+  }
+
+  // 4. Check open/close window
+  const now = new Date();
+  if (quiz.open_at && new Date(quiz.open_at) > now) {
+    return { success: false, code: 'NOT_OPEN', message: 'This quiz is not open yet.', open_at: quiz.open_at };
+  }
+  if (quiz.close_at && new Date(quiz.close_at) < now) {
+    return { success: false, code: 'CLOSED', message: 'This quiz has closed.' };
+  }
+
+  // 5. Check for existing IN_PROGRESS attempt — resume if found
+  const { data: existing, error: exErr } = await db
+    .from('teacher_quiz_attempts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('teacher_quiz_id', quizId)
+    .eq('class_id', classId)
+    .eq('status', 'IN_PROGRESS')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!exErr && existing) {
+    // Check if timed out
+    if (existing.due_at && new Date(existing.due_at) < now) {
+      // Auto-submit as TIMED_OUT
+      await _autoTimeoutAttempt(existing);
+      // Fall through to create new attempt
+    } else {
+      // Resume — patch time and return
+      const timePatch = _calcTimePatch(existing, now);
+      if (timePatch.updated) {
+        await db.from('teacher_quiz_attempts')
+          .update({ time_taken_s: timePatch.time_taken_s, updated_at: now.toISOString() })
+          .eq('attempt_id', existing.attempt_id);
+        existing.time_taken_s = timePatch.time_taken_s;
+        existing.updated_at = now.toISOString();
+      }
+      return { success: true, attempt: existing, quiz, resumed: true };
+    }
+  }
+
+  // 6. Check max attempts
+  const { count, error: countErr } = await db
+    .from('teacher_quiz_attempts')
+    .select('attempt_id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('teacher_quiz_id', quizId)
+    .eq('class_id', classId)
+    .neq('status', 'ABANDONED');
+
+  if (countErr) return { success: false, message: 'Could not check attempt count.' };
+
+  const maxAttempts = quiz.max_attempts || 0; // 0 = unlimited
+  if (maxAttempts > 0 && (count || 0) >= maxAttempts) {
+    return { success: false, code: 'MAX_ATTEMPTS', message: `Maximum attempts reached (${maxAttempts}).` };
+  }
+
+  // 7. Build items_json with shuffle + opt_map
+  const attemptItems = _buildAttemptItems(items, quiz.shuffle_questions, quiz.shuffle_options);
+
+  // 8. Calculate due_at
+  let dueAt = null;
+  if (quiz.duration_minutes && quiz.duration_minutes > 0) {
+    dueAt = new Date(now.getTime() + quiz.duration_minutes * 60 * 1000);
+    // Cap to quiz close_at if earlier
+    if (quiz.close_at) {
+      const closeDate = new Date(quiz.close_at);
+      if (closeDate < dueAt) dueAt = closeDate;
+    }
+  }
+
+  // 9. Create attempt row
+  const attemptId = makeAttemptId();
+  const attemptNo = (count || 0) + 1;
+  const nowIso = now.toISOString();
+
+  const row = {
+    attempt_id          : attemptId,
+    user_id             : userId,
+    teacher_quiz_id     : quizId,
+    teacher_id          : quiz.teacher_id,
+    class_id            : classId,
+    attempt_no          : attemptNo,
+    mode                : quiz.preset || 'EXAM',
+    duration_minutes    : quiz.duration_minutes || 0,
+    status              : 'IN_PROGRESS',
+    started_at          : nowIso,
+    due_at              : dueAt ? dueAt.toISOString() : null,
+    submitted_at        : null,
+    updated_at          : nowIso,
+    items_json          : attemptItems,
+    answers_json        : {},
+    flags_json          : {},
+    candidate_fields_json: { fields: candidateFields },
+    score_raw           : null,
+    score_total         : null,
+    score_pct           : null,
+    time_taken_s        : 0,
+    score_json          : null,
+    grading_policy      : null,
+    grade_bands_json    : null,
+    score_display_policy: null
+  };
+
+  const { data, error: insErr } = await db
+    .from('teacher_quiz_attempts')
+    .insert(row)
+    .select()
+    .single();
+
+  if (insErr) { console.error('startQuizAttempt:', insErr); return { success: false, message: insErr.message }; }
+
+  return { success: true, attempt: data, quiz, resumed: false };
+}
+
+
+// ------------------------------------------------------------
+// SAVE ATTEMPT PROGRESS (auto-save)
+// Updates answers_json, flags_json, and time_taken_s.
+// Also checks for timeout — auto-submits if expired.
+// Returns { success, timed_out }
+// Used by: quiz-runner.html — debounced auto-save
+// ------------------------------------------------------------
+async function saveAttemptProgress(attemptId, answersJson, flagsJson, timeTakenS) {
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  // Fetch current attempt to check timeout
+  const { data: attempt, error: fetchErr } = await db
+    .from('teacher_quiz_attempts')
+    .select('status, due_at, duration_minutes')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  if (fetchErr || !attempt) return { success: false, message: 'Attempt not found.' };
+  if (attempt.status !== 'IN_PROGRESS') return { success: false, message: 'Attempt is not in progress.' };
+
+  // Check timeout
+  if (attempt.due_at && new Date(attempt.due_at) < now) {
+    // Save answers first, then auto-submit
+    await db.from('teacher_quiz_attempts')
+      .update({ answers_json: answersJson, flags_json: flagsJson, updated_at: nowIso })
+      .eq('attempt_id', attemptId);
+    return { success: true, timed_out: true };
+  }
+
+  // Cap time_taken_s
+  const maxSeconds = (attempt.duration_minutes || 0) * 60;
+  let cappedTime = timeTakenS || 0;
+  if (maxSeconds > 0 && cappedTime > maxSeconds) cappedTime = maxSeconds;
+
+  const { error } = await db
+    .from('teacher_quiz_attempts')
+    .update({
+      answers_json : answersJson,
+      flags_json   : flagsJson,
+      time_taken_s : cappedTime,
+      updated_at   : nowIso
+    })
+    .eq('attempt_id', attemptId);
+
+  if (error) { console.error('saveAttemptProgress:', error); return { success: false, message: error.message }; }
+  return { success: true, timed_out: false };
+}
+
+
+// ------------------------------------------------------------
+// SUBMIT QUIZ ATTEMPT (Student)
+// Grades the attempt, writes scores, flips status.
+// Snapshots grading settings from quiz onto attempt row.
+// Returns { success, attempt } with final scores.
+// Used by: quiz-runner.html — submit button + auto-timeout
+// ------------------------------------------------------------
+async function submitQuizAttempt(attemptId, answersJson, timeTakenS) {
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  // 1. Fetch full attempt
+  const { data: attempt, error: aErr } = await db
+    .from('teacher_quiz_attempts')
+    .select('*')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  if (aErr || !attempt) return { success: false, message: 'Attempt not found.' };
+  if (attempt.status !== 'IN_PROGRESS') return { success: false, message: 'Attempt already submitted.' };
+
+  // 2. Fetch quiz for grading settings + SATA scoring policy
+  const quiz = await getTeacherQuiz(attempt.teacher_quiz_id);
+  if (!quiz) return { success: false, message: 'Quiz not found.' };
+
+  // 3. Fetch snapshot items for grading
+  const { data: snapItems, error: sErr } = await db
+    .from('teacher_quiz_items')
+    .select('*')
+    .eq('teacher_quiz_id', attempt.teacher_quiz_id);
+
+  if (sErr) return { success: false, message: 'Could not fetch quiz items.' };
+
+  const snapMap = new Map((snapItems || []).map(s => [s.quiz_item_id, s]));
+
+  // 4. Grade
+  const finalAnswers = answersJson || attempt.answers_json || {};
+  const attemptItems = attempt.items_json || [];
+  const sataPolicy = quiz.sata_scoring_policy || 'ALL_OR_NOTHING';
+
+  let totalMarks = 0;
+  let scoreMarks = 0;
+
+  attemptItems.forEach(item => {
+    const snap = snapMap.get(item.quiz_item_id);
+    if (!snap) return;
+    const marks = snap.snap_marks || 1;
+    totalMarks += marks;
+
+    const qType = snap.snap_question_type || 'MCQ';
+    const studentAnswer = finalAnswers[item.quiz_item_id];
+
+    if (qType === 'SATA') {
+      // SATA: snap_correct is comma-separated e.g. "A,C,E"
+      const correctSet = new Set((snap.snap_correct || '').split(',').map(s => s.trim()).filter(Boolean));
+      const studentSet = new Set(
+        Array.isArray(studentAnswer) ? studentAnswer :
+        (typeof studentAnswer === 'string' ? studentAnswer.split(',').map(s => s.trim()).filter(Boolean) : [])
+      );
+
+      // Reverse shuffle via opt_map
+      const origStudentSet = new Set();
+      studentSet.forEach(displayLetter => {
+        const origLetter = item.opt_map ? item.opt_map[displayLetter] : displayLetter;
+        if (origLetter) origStudentSet.add(origLetter);
+      });
+
+      if (sataPolicy === 'ALL_OR_NOTHING') {
+        // Must match exactly
+        if (origStudentSet.size === correctSet.size &&
+            [...origStudentSet].every(l => correctSet.has(l))) {
+          scoreMarks += marks;
+        }
+      } else if (sataPolicy === 'PARTIAL_CREDIT') {
+        // +1 per correct pick, -1 per wrong pick, floor 0, scaled to marks
+        const totalOptions = _countSataOptions(snap);
+        let credit = 0;
+        origStudentSet.forEach(l => { credit += correctSet.has(l) ? 1 : -1; });
+        credit = Math.max(0, credit);
+        scoreMarks += Math.round((credit / correctSet.size) * marks * 100) / 100;
+      } else if (sataPolicy === 'PER_OPTION') {
+        // Each option scored independently
+        const allOptions = _getSataOptionLetters(snap);
+        let correct = 0;
+        allOptions.forEach(letter => {
+          const shouldBeSelected = correctSet.has(letter);
+          const wasSelected = origStudentSet.has(letter);
+          if (shouldBeSelected === wasSelected) correct++;
+        });
+        scoreMarks += Math.round((correct / allOptions.length) * marks * 100) / 100;
+      }
+    } else {
+      // MCQ or TF — single answer
+      const chosen = typeof studentAnswer === 'string' ? studentAnswer.trim() : '';
+      // Reverse shuffle via opt_map
+      const origChosen = item.opt_map ? (item.opt_map[chosen] || chosen) : chosen;
+      if (origChosen && origChosen === snap.snap_correct) {
+        scoreMarks += marks;
+      }
+    }
+  });
+
+  const pct = totalMarks > 0 ? Math.round((scoreMarks / totalMarks) * 10000) / 100 : 0;
+
+  // Determine if timed out
+  const timedOut = attempt.due_at && new Date(attempt.due_at) < now;
+
+  // Cap time
+  const maxSeconds = (attempt.duration_minutes || 0) * 60;
+  let finalTime = timeTakenS || attempt.time_taken_s || 0;
+  if (maxSeconds > 0 && finalTime > maxSeconds) finalTime = maxSeconds;
+
+  // 5. Update attempt
+  const patch = {
+    status              : timedOut ? 'TIMED_OUT' : 'SUBMITTED',
+    answers_json        : finalAnswers,
+    submitted_at        : nowIso,
+    updated_at          : nowIso,
+    time_taken_s        : finalTime,
+    score_raw           : scoreMarks,
+    score_total         : totalMarks,
+    score_pct           : pct,
+    score_json          : { total_marks: totalMarks, score_marks: scoreMarks, percent: pct },
+    grading_policy      : quiz.grading_policy,
+    grade_bands_json    : quiz.grade_bands_json,
+    score_display_policy: quiz.score_display_policy
+  };
+
+  const { data: updated, error: uErr } = await db
+    .from('teacher_quiz_attempts')
+    .update(patch)
+    .eq('attempt_id', attemptId)
+    .select()
+    .single();
+
+  if (uErr) { console.error('submitQuizAttempt:', uErr); return { success: false, message: uErr.message }; }
+
+  return { success: true, attempt: updated };
+}
+
+
+// ------------------------------------------------------------
+// GET ATTEMPT (for resume or completion screen)
+// Returns the full attempt row.
+// Used by: quiz-runner.html — resume or completion page
+// ------------------------------------------------------------
+async function getAttempt(attemptId) {
+  const { data, error } = await db
+    .from('teacher_quiz_attempts')
+    .select('*')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  if (error) { console.error('getAttempt:', error); return null; }
+  return data;
+}
+
+
+// ── Helper: auto-timeout an expired attempt ─────────────────
+async function _autoTimeoutAttempt(attempt) {
+  const now = new Date().toISOString();
+  const maxSeconds = (attempt.duration_minutes || 0) * 60;
+  let finalTime = attempt.time_taken_s || 0;
+  if (maxSeconds > 0 && finalTime > maxSeconds) finalTime = maxSeconds;
+
+  await db.from('teacher_quiz_attempts')
+    .update({
+      status      : 'TIMED_OUT',
+      submitted_at: now,
+      updated_at  : now,
+      time_taken_s: finalTime
+    })
+    .eq('attempt_id', attempt.attempt_id);
+}
+
+
+// ── Helper: calculate time patch on resume ──────────────────
+function _calcTimePatch(attempt, now) {
+  const lastUpdate = new Date(attempt.updated_at || attempt.started_at);
+  const deltaSec = Math.max(0, Math.floor((now.getTime() - lastUpdate.getTime()) / 1000));
+  let newTime = (attempt.time_taken_s || 0) + deltaSec;
+  const maxSeconds = (attempt.duration_minutes || 0) * 60;
+  if (maxSeconds > 0 && newTime > maxSeconds) newTime = maxSeconds;
+  return { time_taken_s: newTime, updated: deltaSec > 0 };
+}
+
+
+// ── Helper: build attempt items with shuffle + opt_map ──────
+function _buildAttemptItems(snapshotItems, shuffleQuestions, quizShuffleOptions) {
+  // Copy items
+  let items = snapshotItems.map(snap => {
+    const optMap = {};
+    const letters = ['A','B','C','D','E','F'];
+    const availableLetters = letters.filter(l => snap['snap_option_' + l.toLowerCase()] != null);
+
+    // Determine if we should shuffle this question's options
+    const shouldShuffle = quizShuffleOptions && snap.snap_shuffle_options !== false;
+
+    if (shouldShuffle && snap.snap_question_type !== 'TF') {
+      // Fisher-Yates shuffle
+      const shuffled = [...availableLetters];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      // optMap: display letter → original letter
+      shuffled.forEach((origLetter, idx) => {
+        optMap[availableLetters[idx]] = origLetter;
+      });
+    } else {
+      // No shuffle — identity map
+      availableLetters.forEach(l => { optMap[l] = l; });
+    }
+
+    return {
+      quiz_item_id: snap.quiz_item_id,
+      position    : snap.position,
+      marks       : snap.snap_marks || 1,
+      opt_map     : optMap,
+      question_type: snap.snap_question_type || 'MCQ'
+    };
+  });
+
+  // Shuffle question order if enabled
+  if (shuffleQuestions) {
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    // Re-assign position after shuffle
+    items.forEach((item, idx) => { item.position = idx + 1; });
+  }
+
+  return items;
+}
+
+
+// ── Helper: count SATA options ──────────────────────────────
+function _countSataOptions(snap) {
+  let count = 0;
+  ['a','b','c','d','e','f'].forEach(l => {
+    if (snap['snap_option_' + l] != null) count++;
+  });
+  return count;
+}
+
+function _getSataOptionLetters(snap) {
+  const letters = [];
+  ['A','B','C','D','E','F'].forEach(l => {
+    if (snap['snap_option_' + l.toLowerCase()] != null) letters.push(l);
+  });
+  return letters;
+}

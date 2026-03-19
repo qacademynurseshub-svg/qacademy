@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz — QAcademy</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+
+    /* ── Layout ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f6f8f7; color: #1f2a28; }
+    .page-wrap { display: flex; flex-direction: column; min-height: 100vh; }
+    .main-content { flex: 1; padding: 0 20px 40px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+    /* ── Top bar ─────────────────────────────────────────── */
+    .runner-topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: #fff; border-bottom: 1px solid rgba(0,0,0,.10);
+      padding: 10px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .runner-topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .runner-topbar-title { font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+    .runner-topbar-right { display: flex; align-items: center; gap: 10px; }
+
+    /* ── Timer ───────────────────────────────────────────── */
+    .timer-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 999px;
+      font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums;
+      background: rgba(0,0,0,.04); color: #6b7280;
+      border: 1px solid rgba(0,0,0,.08);
+      transition: background 0.3s, color 0.3s, border-color 0.3s;
+    }
+    .timer-chip.warning { background: rgba(234,179,8,0.12); color: #a16207; border-color: rgba(234,179,8,0.3); }
+    .timer-chip.danger  { background: rgba(220,38,38,0.10); color: #dc2626; border-color: rgba(220,38,38,0.3); }
+    .timer-chip.danger.blink { animation: timerBlink 1s ease-in-out infinite; }
+    @keyframes timerBlink { 50% { opacity: 0.5; } }
+    .timer-chip.hidden { display: none; }
+
+    /* ── Progress ────────────────────────────────────────── */
+    .progress-text { font-size: 12px; color: #6b7280; font-weight: 600; }
+
+    /* ── Question grid ──────────────────────────────────── */
+    .grid-toggle {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,.10);
+      background: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+      color: #6b7280;
+    }
+    .grid-toggle:hover { border-color: #2d7d72; color: #2d7d72; }
+
+    .question-grid-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.3); z-index: 200;
+    }
+    .question-grid-overlay.show { display: flex; align-items: flex-start; justify-content: center; padding-top: 80px; }
+    .question-grid-panel {
+      background: #fff; border-radius: 18px; padding: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-width: 440px; width: 90%;
+      max-height: 70vh; overflow-y: auto;
+    }
+    .question-grid-panel h3 { font-size: 15px; font-weight: 800; margin: 0 0 4px; }
+    .grid-legend { font-size: 11px; color: #6b7280; margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .grid-legend span { display: inline-flex; align-items: center; gap: 4px; }
+    .grid-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .grid-legend .dot.answered { background: #2d7d72; }
+    .grid-legend .dot.flagged { background: #f59e0b; }
+    .grid-legend .dot.current { background: #2563eb; }
+    .grid-legend .dot.unanswered { background: #e5e7eb; }
+
+    .grid-cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 6px; }
+    .grid-cell {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      border-radius: 10px; font-size: 13px; font-weight: 800;
+      cursor: pointer; border: 2px solid #e5e7eb; background: #fff;
+      transition: all 0.15s; position: relative;
+    }
+    .grid-cell:hover { border-color: #2d7d72; transform: scale(1.05); }
+    .grid-cell.answered { background: rgba(45,125,114,0.08); border-color: rgba(45,125,114,0.3); color: #2d7d72; }
+    .grid-cell.flagged::after {
+      content: '🚩'; position: absolute; top: -4px; right: -4px; font-size: 10px;
+    }
+    .grid-cell.current { border-color: #2563eb; background: rgba(37,99,235,0.08); color: #2563eb; }
+
+    .grid-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .grid-filter-btn {
+      padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,.10);
+      background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; color: #6b7280;
+    }
+    .grid-filter-btn.active { background: rgba(245,158,11,0.10); color: #a16207; border-color: rgba(245,158,11,0.3); }
+
+    /* ── Question display ───────────────────────────────── */
+    .question-card {
+      background: #fff; border: 1px solid rgba(0,0,0,.10);
+      border-radius: 18px; padding: 24px; margin-top: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.04);
+    }
+    .question-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .question-number { font-size: 13px; font-weight: 800; color: #6b7280; }
+    .question-marks { font-size: 12px; color: #6b7280; background: rgba(0,0,0,.04); padding: 3px 8px; border-radius: 6px; }
+    .question-type-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: rgba(37,99,235,0.08); color: #2563eb; }
+
+    .flag-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,.10);
+      background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; color: #6b7280;
+    }
+    .flag-btn.flagged { background: rgba(245,158,11,0.10); color: #a16207; border-color: rgba(245,158,11,0.3); }
+
+    .question-stem { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+
+    /* ── Options ─────────────────────────────────────────── */
+    .option-list { display: flex; flex-direction: column; gap: 8px; }
+    .option-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 16px; border: 2px solid rgba(0,0,0,.08);
+      border-radius: 14px; cursor: pointer; transition: all 0.15s;
+      background: #fff;
+    }
+    .option-item:hover { border-color: rgba(45,125,114,0.3); background: rgba(45,125,114,0.02); }
+    .option-item.selected { border-color: #2d7d72; background: rgba(45,125,114,0.06); }
+    .option-item.selected .option-letter { background: #2d7d72; color: #fff; border-color: #2d7d72; }
+
+    .option-letter {
+      flex-shrink: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; font-size: 13px; font-weight: 800;
+      border: 2px solid rgba(0,0,0,.12); background: #fff; color: #6b7280;
+      transition: all 0.15s;
+    }
+    .option-text { font-size: 14px; line-height: 1.5; padding-top: 4px; }
+
+    /* SATA checkbox style */
+    .option-item.sata .option-letter {
+      border-radius: 6px;
+    }
+    .option-item.sata.selected .option-letter::after {
+      content: '✓'; font-size: 16px;
+    }
+    .option-item.sata .option-letter span { display: inline; }
+    .option-item.sata.selected .option-letter span { display: none; }
+
+    /* ── Navigation ──────────────────────────────────────── */
+    .nav-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin-top: 20px; padding-top: 16px;
+      border-top: 1px solid rgba(0,0,0,.08);
+    }
+    .nav-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px; border: 1px solid rgba(0,0,0,.10);
+      border-radius: 12px; background: #fff; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .nav-btn:hover { border-color: #2d7d72; }
+    .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .nav-btn.primary { background: #2d7d72; color: #fff; border-color: #2d7d72; }
+    .nav-btn.primary:hover { background: #246b62; }
+    .nav-btn.danger { color: #dc2626; border-color: #dc2626; }
+    .nav-btn.danger:hover { background: rgba(220,38,38,0.06); }
+
+    /* ── Submit modal ────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); z-index: 300;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 20px; padding: 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-width: 440px; width: 90%;
+    }
+    .modal-box h2 { font-size: 18px; font-weight: 900; margin: 0 0 16px; }
+    .modal-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .modal-stat { text-align: center; padding: 12px; border-radius: 12px; background: rgba(0,0,0,.03); }
+    .modal-stat-value { font-size: 22px; font-weight: 900; }
+    .modal-stat-label { font-size: 11px; color: #6b7280; font-weight: 600; margin-top: 2px; }
+    .modal-stat.warn .modal-stat-value { color: #dc2626; }
+    .modal-actions { display: flex; flex-direction: column; gap: 8px; }
+    .modal-actions .nav-btn { width: 100%; justify-content: center; }
+
+    /* ── Screens ─────────────────────────────────────────── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Loading screen ──────────────────────────────────── */
+    .loading-screen { text-align: center; padding: 80px 20px; }
+    .loading-screen .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid rgba(0,0,0,.08); border-top-color: #2d7d72; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Intake screen ───────────────────────────────────── */
+    .intake-card {
+      background: #fff; border: 1px solid rgba(0,0,0,.10);
+      border-radius: 18px; padding: 28px; margin-top: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.04);
+      max-width: 600px; margin-left: auto; margin-right: auto;
+    }
+    .intake-card h2 { font-size: 20px; font-weight: 900; margin: 0 0 6px; }
+    .intake-card .sub { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+    .intake-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .intake-info-cell { padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.03); }
+    .intake-info-label { font-size: 10px; font-weight: 800; color: #6b7280; text-transform: uppercase; }
+    .intake-info-value { font-size: 14px; font-weight: 700; margin-top: 2px; }
+    .intake-fields { margin-bottom: 20px; }
+    .intake-field { margin-bottom: 14px; }
+    .intake-field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .intake-field input {
+      width: 100%; padding: 9px 12px; border: 1px solid rgba(0,0,0,.10);
+      border-radius: 10px; font-size: 14px; outline: none; font-family: inherit;
+    }
+    .intake-field input:focus { border-color: #2d7d72; box-shadow: 0 0 0 3px rgba(45,125,114,0.10); }
+    .intake-field input.error { border-color: #dc2626; }
+    .intake-field .field-error { font-size: 12px; color: #dc2626; margin-top: 3px; display: none; }
+    .intake-field .field-error.show { display: block; }
+    .req-star { color: #dc2626; margin-left: 2px; }
+
+    .intake-alert { padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; display: none; }
+    .intake-alert.show { display: block; }
+    .intake-alert.error { background: rgba(220,38,38,0.06); color: #991b1b; border: 1px solid rgba(220,38,38,0.2); }
+    .intake-alert.info { background: rgba(37,99,235,0.06); color: #2563eb; border: 1px solid rgba(37,99,235,0.2); }
+
+    /* ── Completion screen ───────────────────────────────── */
+    .completion-card {
+      background: #fff; border: 1px solid rgba(0,0,0,.10);
+      border-radius: 18px; padding: 36px 28px; margin-top: 40px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.04);
+      max-width: 560px; margin-left: auto; margin-right: auto;
+      text-align: center;
+    }
+    .completion-card .icon { font-size: 48px; margin-bottom: 12px; }
+    .completion-card h2 { font-size: 22px; font-weight: 900; margin: 0 0 8px; }
+    .completion-card .sub { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 24px; }
+    .completion-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; text-align: left; }
+    .completion-info-cell { padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,.03); }
+    .completion-info-label { font-size: 10px; font-weight: 800; color: #6b7280; text-transform: uppercase; }
+    .completion-info-value { font-size: 14px; font-weight: 700; margin-top: 2px; }
+    .completion-links { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .completion-links .nav-btn { min-width: 220px; justify-content: center; }
+    .link-note { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+      background: #fff; border: 1px solid rgba(0,0,0,.10);
+      border-radius: 12px; padding: 12px 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      min-width: 240px; max-width: 360px; display: none;
+    }
+    .toast.show { display: block; }
+    .toast.ok { border-color: rgba(45,125,114,0.3); }
+    .toast.error { border-color: rgba(220,38,38,0.3); }
+    .toast-title { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    .toast-msg   { font-size: 12px; color: #6b7280; }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .runner-topbar { padding: 8px 12px; }
+      .runner-topbar-title { max-width: 160px; font-size: 13px; }
+      .question-card { padding: 16px; }
+      .option-item { padding: 10px 12px; }
+      .intake-info { grid-template-columns: 1fr; }
+      .completion-info { grid-template-columns: 1fr; }
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+  <!-- Top bar (hidden until quiz loads) -->
+  <div class="runner-topbar" id="topbar" style="display:none;">
+    <div class="runner-topbar-left">
+      <span class="runner-topbar-title" id="quizTitle">—</span>
+      <span class="timer-chip hidden" id="timerChip">⏱ <span id="timerDisplay">00:00</span></span>
+    </div>
+    <div class="runner-topbar-right">
+      <span class="progress-text" id="progressText">0/0 answered</span>
+      <button class="grid-toggle" id="btnGrid" onclick="toggleGrid()">▦ Grid</button>
+    </div>
+  </div>
+
+  <main class="main-content">
+
+    <!-- Screen: Loading -->
+    <div class="screen active" id="screenLoading">
+      <div class="loading-screen">
+        <div class="spinner"></div>
+        <p style="font-size:14px; color:#6b7280;">Loading quiz…</p>
+      </div>
+    </div>
+
+    <!-- Screen: Error -->
+    <div class="screen" id="screenError">
+      <div class="intake-card" style="text-align:center;">
+        <div style="font-size:48px; margin-bottom:12px;">⚠️</div>
+        <h2>Cannot Load Quiz</h2>
+        <p id="errorMsg" style="color:#6b7280; margin-bottom:20px;"></p>
+        <a class="nav-btn" href="/myteacher/student/my-classes.html" style="display:inline-flex;">← Back to My Classes</a>
+      </div>
+    </div>
+
+    <!-- Screen: Intake (pre-quiz info + custom fields) -->
+    <div class="screen" id="screenIntake">
+      <div class="intake-card">
+        <h2 id="intakeTitle">—</h2>
+        <p class="sub" id="intakeSub">—</p>
+
+        <div class="intake-info" id="intakeInfo"></div>
+
+        <div class="intake-alert" id="intakeAlert"></div>
+
+        <div class="intake-fields" id="intakeFields" style="display:none;"></div>
+
+        <div style="display:flex; gap:10px;">
+          <button class="nav-btn primary" id="btnStartAttempt" onclick="handleStartAttempt()">Start Quiz</button>
+          <a class="nav-btn" href="/myteacher/student/my-classes.html">Cancel</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen: Quiz (question + nav) -->
+    <div class="screen" id="screenQuiz">
+      <div class="question-card" id="questionCard"></div>
+      <div class="nav-bar">
+        <button class="nav-btn" id="btnPrev" onclick="goQuestion(-1)">← Previous</button>
+        <button class="nav-btn" id="btnNext" onclick="goQuestion(1)">Next →</button>
+        <button class="nav-btn danger" id="btnSubmit" onclick="openSubmitModal()">Submit</button>
+      </div>
+    </div>
+
+    <!-- Screen: Completion -->
+    <div class="screen" id="screenCompletion">
+      <div class="completion-card" id="completionCard"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Question grid overlay -->
+<div class="question-grid-overlay" id="gridOverlay" onclick="closeGrid(event)">
+  <div class="question-grid-panel" onclick="event.stopPropagation()">
+    <h3>Question Navigator</h3>
+    <div class="grid-legend">
+      <span><span class="dot current"></span> Current</span>
+      <span><span class="dot answered"></span> Answered</span>
+      <span><span class="dot flagged"></span> Flagged</span>
+      <span><span class="dot unanswered"></span> Unanswered</span>
+    </div>
+    <div class="grid-cells" id="gridCells"></div>
+    <div class="grid-actions">
+      <button class="grid-filter-btn" id="btnFilterFlagged" onclick="toggleFlaggedFilter()">🚩 Show flagged only</button>
+    </div>
+  </div>
+</div>
+
+<!-- Submit modal -->
+<div class="modal-overlay" id="submitModal">
+  <div class="modal-box">
+    <h2>Submit Quiz?</h2>
+    <div class="modal-summary" id="submitSummary"></div>
+    <div class="modal-actions">
+      <button class="nav-btn primary" onclick="confirmSubmit()">Submit Quiz</button>
+      <button class="nav-btn" id="btnGoUnanswered" onclick="goFirstUnanswered()">Go to first unanswered</button>
+      <button class="nav-btn" onclick="closeSubmitModal()">Continue working</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toastTitle"></div>
+  <div class="toast-msg" id="toastMsg"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/teacher-api.js"></script>
+<script>
+
+  // ── State ─────────────────────────────────────────────────
+  let PROFILE     = null;
+  let QUIZ        = null;   // teacher_quizzes row
+  let ITEMS       = [];     // teacher_quiz_items snapshot rows
+  let ATTEMPT     = null;   // teacher_quiz_attempts row
+  let ANSWERS     = {};     // { quiz_item_id: answer }
+  let FLAGS       = {};     // { quiz_item_id: true }
+  let CURRENT_Q   = 0;      // 0-indexed into attempt items_json
+  let TIMER_ID    = null;
+  let SAVE_TIMER  = null;
+  let TIME_ELAPSED = 0;     // seconds since attempt start
+  let LAST_SAVE   = Date.now();
+  let IS_SUBMITTING = false;
+
+  const PARAMS    = new URLSearchParams(window.location.search);
+  const QUIZ_ID   = PARAMS.get('quiz_id');
+  const CLASS_ID  = PARAMS.get('class_id');
+  const ATTEMPT_ID= PARAMS.get('attempt_id');
+
+  // Helpers
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  let toastTimer = null;
+  function showToast(title, msg, type) {
+    $('toastTitle').textContent = title || '';
+    $('toastMsg').textContent = msg || '';
+    const el = $('toast');
+    el.className = 'toast show ' + (type || '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3600);
+  }
+
+  function showScreen(id) {
+    ['screenLoading','screenError','screenIntake','screenQuiz','screenCompletion'].forEach(s => {
+      $(s).classList.toggle('active', s === id);
+    });
+    $('topbar').style.display = (id === 'screenQuiz') ? 'flex' : 'none';
+  }
+
+  function showError(msg) {
+    $('errorMsg').textContent = msg;
+    showScreen('screenError');
+  }
+
+  function formatDuration(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+
+  // ── Boot ──────────────────────────────────────────────────
+  async function boot() {
+    PROFILE = await guardPage('STUDENT');
+    if (!PROFILE) return;
+
+    if (!QUIZ_ID || !CLASS_ID) {
+      showError('Missing quiz or class ID. Please go back and try again.');
+      return;
+    }
+
+    // Load quiz
+    const quizData = await getPublishedQuizWithItems(QUIZ_ID);
+    if (!quizData) {
+      showError('Quiz not found or is no longer published.');
+      return;
+    }
+
+    QUIZ = quizData.quiz;
+    ITEMS = quizData.items;
+
+    // If we have an attempt_id, try to resume
+    if (ATTEMPT_ID) {
+      const attempt = await getAttempt(ATTEMPT_ID);
+      if (attempt && attempt.status === 'IN_PROGRESS') {
+        // Check timeout
+        if (attempt.due_at && new Date(attempt.due_at) < new Date()) {
+          // Timed out while away — submit it
+          const result = await submitQuizAttempt(attempt.attempt_id, attempt.answers_json, attempt.time_taken_s);
+          if (result.success) {
+            ATTEMPT = result.attempt;
+            showCompletionScreen();
+            return;
+          }
+        }
+        ATTEMPT = attempt;
+        ANSWERS = attempt.answers_json || {};
+        FLAGS = attempt.flags_json || {};
+        TIME_ELAPSED = attempt.time_taken_s || 0;
+        enterQuizScreen();
+        return;
+      } else if (attempt && (attempt.status === 'SUBMITTED' || attempt.status === 'TIMED_OUT')) {
+        ATTEMPT = attempt;
+        showCompletionScreen();
+        return;
+      }
+    }
+
+    // Show intake screen
+    showIntakeScreen();
+  }
+
+
+  // ── Intake screen ─────────────────────────────────────────
+  function showIntakeScreen() {
+    $('intakeTitle').textContent = QUIZ.title || 'Quiz';
+    $('intakeSub').textContent = QUIZ.subject ? `${QUIZ.subject} · ${QUIZ.preset || 'EXAM'}` : (QUIZ.preset || 'EXAM');
+
+    const dur = QUIZ.duration_minutes ? QUIZ.duration_minutes + ' min' : 'Untimed';
+    const maxAtt = (QUIZ.max_attempts || 0) === 0 ? 'Unlimited' : QUIZ.max_attempts;
+    const itemCount = ITEMS.length;
+
+    let infoHtml = `
+      <div class="intake-info-cell">
+        <div class="intake-info-label">Duration</div>
+        <div class="intake-info-value">⏱ ${dur}</div>
+      </div>
+      <div class="intake-info-cell">
+        <div class="intake-info-label">Questions</div>
+        <div class="intake-info-value">📝 ${itemCount}</div>
+      </div>
+      <div class="intake-info-cell">
+        <div class="intake-info-label">Max Attempts</div>
+        <div class="intake-info-value">🔁 ${maxAtt}</div>
+      </div>
+      <div class="intake-info-cell">
+        <div class="intake-info-label">Review</div>
+        <div class="intake-info-value">${QUIZ.show_review ? '✅ Allowed' : '🚫 Not allowed'}</div>
+      </div>`;
+    $('intakeInfo').innerHTML = infoHtml;
+
+    // Custom fields (quiz-level intake)
+    let fields = [];
+    try {
+      const cf = typeof QUIZ.custom_fields_json === 'object' ? QUIZ.custom_fields_json : JSON.parse(QUIZ.custom_fields_json || '{}');
+      fields = Array.isArray(cf.fields) ? cf.fields : [];
+    } catch(_) { fields = []; }
+
+    if (fields.length) {
+      let fieldsHtml = '<p style="font-size:13px; font-weight:700; margin-bottom:10px;">Please fill in the following details:</p>';
+      fields.forEach(f => {
+        fieldsHtml += `
+          <div class="intake-field">
+            <label for="cf_${esc(f.key)}">
+              ${esc(f.label)}${f.required ? '<span class="req-star">*</span>' : ''}
+            </label>
+            <input type="text" id="cf_${esc(f.key)}" data-key="${esc(f.key)}" data-required="${f.required ? '1' : '0'}" placeholder="${esc(f.label)}" />
+            <div class="field-error" id="cferr_${esc(f.key)}">This field is required.</div>
+          </div>`;
+      });
+      $('intakeFields').innerHTML = fieldsHtml;
+      $('intakeFields').style.display = 'block';
+    }
+
+    showScreen('screenIntake');
+  }
+
+
+  // ── Start attempt ─────────────────────────────────────────
+  async function handleStartAttempt() {
+    // Collect custom fields
+    const fieldInputs = $('intakeFields').querySelectorAll('input[data-key]');
+    const candidateFields = {};
+    let missing = false;
+
+    fieldInputs.forEach(inp => {
+      const key = inp.dataset.key;
+      const val = inp.value.trim();
+      candidateFields[key] = val;
+      const errEl = $('cferr_' + key);
+      if (inp.dataset.required === '1' && !val) {
+        missing = true;
+        inp.classList.add('error');
+        if (errEl) errEl.classList.add('show');
+      } else {
+        inp.classList.remove('error');
+        if (errEl) errEl.classList.remove('show');
+      }
+    });
+
+    if (missing) {
+      const alert = $('intakeAlert');
+      alert.textContent = 'Please fill in all required fields.';
+      alert.className = 'intake-alert error show';
+      return;
+    }
+
+    const btn = $('btnStartAttempt');
+    btn.disabled = true;
+    btn.textContent = 'Starting…';
+
+    const result = await startQuizAttempt(PROFILE.user_id, QUIZ_ID, CLASS_ID, candidateFields);
+
+    btn.disabled = false;
+    btn.textContent = 'Start Quiz';
+
+    if (!result.success) {
+      const alert = $('intakeAlert');
+      alert.textContent = result.message || 'Could not start quiz.';
+      alert.className = 'intake-alert error show';
+      return;
+    }
+
+    ATTEMPT = result.attempt;
+    ANSWERS = result.attempt.answers_json || {};
+    FLAGS = result.attempt.flags_json || {};
+    TIME_ELAPSED = result.attempt.time_taken_s || 0;
+    QUIZ = result.quiz || QUIZ;
+
+    enterQuizScreen();
+  }
+
+
+  // ── Enter quiz screen ─────────────────────────────────────
+  function enterQuizScreen() {
+    $('quizTitle').textContent = QUIZ.title || 'Quiz';
+
+    // Start timer if timed
+    if (ATTEMPT.due_at) {
+      $('timerChip').classList.remove('hidden');
+      startTimer();
+    }
+
+    // Render first question
+    CURRENT_Q = 0;
+    renderQuestion();
+    updateProgress();
+    showScreen('screenQuiz');
+
+    // Auto-save every 15 seconds
+    SAVE_TIMER = setInterval(autoSave, 15000);
+
+    // Track time
+    setInterval(() => { TIME_ELAPSED++; }, 1000);
+
+    // Ctrl+S shortcut
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        autoSave();
+      }
+    });
+  }
+
+
+  // ── Timer ─────────────────────────────────────────────────
+  function startTimer() {
+    updateTimerDisplay();
+    TIMER_ID = setInterval(() => {
+      updateTimerDisplay();
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    if (!ATTEMPT.due_at) return;
+    const remaining = Math.max(0, Math.floor((new Date(ATTEMPT.due_at).getTime() - Date.now()) / 1000));
+    $('timerDisplay').textContent = formatDuration(remaining);
+
+    const chip = $('timerChip');
+    chip.classList.remove('warning', 'danger', 'blink');
+
+    if (remaining <= 0) {
+      // Time's up — auto-submit
+      clearInterval(TIMER_ID);
+      showToast('Time Up', 'Submitting automatically…', 'error');
+      confirmSubmit();
+      return;
+    } else if (remaining <= 120) {
+      chip.classList.add('danger', 'blink');
+    } else if (remaining <= 300) {
+      chip.classList.add('warning');
+    }
+  }
+
+
+  // ── Render question ───────────────────────────────────────
+  function renderQuestion() {
+    const attemptItems = ATTEMPT.items_json || [];
+    if (!attemptItems.length) return;
+
+    const item = attemptItems[CURRENT_Q];
+    if (!item) return;
+
+    // Find the snapshot for display text
+    const snap = ITEMS.find(s => s.quiz_item_id === item.quiz_item_id);
+    if (!snap) return;
+
+    const qType = item.question_type || snap.snap_question_type || 'MCQ';
+    const isSATA = qType === 'SATA';
+    const isTF = qType === 'TF';
+    const isFlagged = !!FLAGS[item.quiz_item_id];
+
+    // Build option letters from opt_map
+    const displayLetters = Object.keys(item.opt_map || {}).sort();
+    const currentAnswer = ANSWERS[item.quiz_item_id];
+
+    // For SATA, answer is array or comma-string
+    let selectedSet = new Set();
+    if (isSATA) {
+      if (Array.isArray(currentAnswer)) {
+        selectedSet = new Set(currentAnswer);
+      } else if (typeof currentAnswer === 'string' && currentAnswer) {
+        selectedSet = new Set(currentAnswer.split(',').map(s => s.trim()).filter(Boolean));
+      }
+    }
+
+    let html = `
+      <div class="question-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="question-number">Question ${CURRENT_Q + 1} of ${attemptItems.length}</span>
+          <span class="question-type-badge">${esc(qType)}</span>
+          <span class="question-marks">${item.marks || 1} mark${(item.marks || 1) !== 1 ? 's' : ''}</span>
+        </div>
+        <button class="flag-btn ${isFlagged ? 'flagged' : ''}" onclick="toggleFlag('${esc(item.quiz_item_id)}')">
+          🚩 ${isFlagged ? 'Flagged' : 'Flag'}
+        </button>
+      </div>
+      <div class="question-stem">${esc(snap.snap_stem)}</div>
+      <div class="option-list">`;
+
+    if (isTF) {
+      // True/False — always two options, no shuffle
+      ['True', 'False'].forEach(label => {
+        const letter = label === 'True' ? 'A' : 'B';
+        const isSelected = currentAnswer === letter;
+        html += `
+          <div class="option-item ${isSelected ? 'selected' : ''}" onclick="selectAnswer('${esc(item.quiz_item_id)}', '${letter}', false)">
+            <div class="option-letter">${letter}</div>
+            <div class="option-text">${label}</div>
+          </div>`;
+      });
+    } else {
+      // MCQ or SATA
+      displayLetters.forEach(displayLetter => {
+        const origLetter = item.opt_map[displayLetter];
+        const optText = snap['snap_option_' + origLetter.toLowerCase()] || '';
+        if (!optText && !isTF) return; // skip empty options
+
+        const isSelected = isSATA ? selectedSet.has(displayLetter) : (currentAnswer === displayLetter);
+
+        html += `
+          <div class="option-item ${isSATA ? 'sata' : ''} ${isSelected ? 'selected' : ''}" onclick="selectAnswer('${esc(item.quiz_item_id)}', '${displayLetter}', ${isSATA})">
+            <div class="option-letter"><span>${displayLetter}</span></div>
+            <div class="option-text">${esc(optText)}</div>
+          </div>`;
+      });
+    }
+
+    html += '</div>';
+
+    if (isSATA) {
+      html += '<p style="font-size:12px; color:#6b7280; margin-top:10px;">Select all that apply.</p>';
+    }
+
+    $('questionCard').innerHTML = html;
+
+    // Nav buttons
+    $('btnPrev').disabled = CURRENT_Q === 0;
+    $('btnNext').style.display = CURRENT_Q < attemptItems.length - 1 ? 'inline-flex' : 'none';
+  }
+
+
+  // ── Answer selection ──────────────────────────────────────
+  function selectAnswer(quizItemId, letter, isSATA) {
+    if (IS_SUBMITTING) return;
+
+    if (isSATA) {
+      // Toggle in set
+      let current = ANSWERS[quizItemId];
+      let set;
+      if (Array.isArray(current)) {
+        set = new Set(current);
+      } else if (typeof current === 'string' && current) {
+        set = new Set(current.split(',').map(s => s.trim()).filter(Boolean));
+      } else {
+        set = new Set();
+      }
+
+      if (set.has(letter)) set.delete(letter);
+      else set.add(letter);
+
+      ANSWERS[quizItemId] = [...set].sort();
+    } else {
+      ANSWERS[quizItemId] = letter;
+    }
+
+    renderQuestion();
+    updateProgress();
+    scheduleSave();
+  }
+
+
+  // ── Flag toggle ───────────────────────────────────────────
+  function toggleFlag(quizItemId) {
+    if (FLAGS[quizItemId]) delete FLAGS[quizItemId];
+    else FLAGS[quizItemId] = true;
+    renderQuestion();
+    scheduleSave();
+  }
+
+
+  // ── Navigation ────────────────────────────────────────────
+  function goQuestion(delta) {
+    const items = ATTEMPT.items_json || [];
+    const next = CURRENT_Q + delta;
+    if (next < 0 || next >= items.length) return;
+    CURRENT_Q = next;
+    renderQuestion();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function jumpToQuestion(idx) {
+    CURRENT_Q = idx;
+    renderQuestion();
+    closeGridDirect();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+
+  // ── Progress ──────────────────────────────────────────────
+  function updateProgress() {
+    const items = ATTEMPT.items_json || [];
+    let answered = 0;
+    items.forEach(item => {
+      const a = ANSWERS[item.quiz_item_id];
+      if (a !== undefined && a !== null && a !== '' && (!Array.isArray(a) || a.length > 0)) answered++;
+    });
+    $('progressText').textContent = `${answered}/${items.length} answered`;
+  }
+
+
+  // ── Question grid ─────────────────────────────────────────
+  let gridFlaggedOnly = false;
+
+  function toggleGrid() {
+    renderGrid();
+    $('gridOverlay').classList.add('show');
+  }
+
+  function closeGrid(e) {
+    if (e.target === $('gridOverlay')) closeGridDirect();
+  }
+
+  function closeGridDirect() {
+    $('gridOverlay').classList.remove('show');
+    gridFlaggedOnly = false;
+    $('btnFilterFlagged').classList.remove('active');
+  }
+
+  function toggleFlaggedFilter() {
+    gridFlaggedOnly = !gridFlaggedOnly;
+    $('btnFilterFlagged').classList.toggle('active', gridFlaggedOnly);
+    renderGrid();
+  }
+
+  function renderGrid() {
+    const items = ATTEMPT.items_json || [];
+    let html = '';
+
+    items.forEach((item, idx) => {
+      const isFlagged = !!FLAGS[item.quiz_item_id];
+      if (gridFlaggedOnly && !isFlagged) return;
+
+      const a = ANSWERS[item.quiz_item_id];
+      const isAnswered = a !== undefined && a !== null && a !== '' && (!Array.isArray(a) || a.length > 0);
+      const isCurrent = idx === CURRENT_Q;
+
+      let cls = 'grid-cell';
+      if (isCurrent) cls += ' current';
+      else if (isAnswered) cls += ' answered';
+      if (isFlagged) cls += ' flagged';
+
+      html += `<div class="${cls}" onclick="jumpToQuestion(${idx})">${idx + 1}</div>`;
+    });
+
+    $('gridCells').innerHTML = html || '<p style="font-size:13px; color:#6b7280; padding:10px;">No flagged questions.</p>';
+  }
+
+
+  // ── Auto-save ─────────────────────────────────────────────
+  let saveQueued = false;
+
+  function scheduleSave() {
+    if (saveQueued) return;
+    saveQueued = true;
+    setTimeout(() => {
+      saveQueued = false;
+      autoSave();
+    }, 2000);
+  }
+
+  async function autoSave() {
+    if (!ATTEMPT || IS_SUBMITTING) return;
+    if (ATTEMPT.status !== 'IN_PROGRESS') return;
+
+    const result = await saveAttemptProgress(ATTEMPT.attempt_id, ANSWERS, FLAGS, TIME_ELAPSED);
+
+    if (result && result.timed_out) {
+      showToast('Time Up', 'Submitting automatically…', 'error');
+      confirmSubmit();
+    }
+
+    LAST_SAVE = Date.now();
+  }
+
+
+  // ── Submit modal ──────────────────────────────────────────
+  function openSubmitModal() {
+    const items = ATTEMPT.items_json || [];
+    let answered = 0, flagged = 0;
+    items.forEach(item => {
+      const a = ANSWERS[item.quiz_item_id];
+      if (a !== undefined && a !== null && a !== '' && (!Array.isArray(a) || a.length > 0)) answered++;
+      if (FLAGS[item.quiz_item_id]) flagged++;
+    });
+    const unanswered = items.length - answered;
+
+    $('submitSummary').innerHTML = `
+      <div class="modal-stat">
+        <div class="modal-stat-value">${items.length}</div>
+        <div class="modal-stat-label">Total Questions</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-value" style="color:#2d7d72;">${answered}</div>
+        <div class="modal-stat-label">Answered</div>
+      </div>
+      <div class="modal-stat ${unanswered ? 'warn' : ''}">
+        <div class="modal-stat-value">${unanswered}</div>
+        <div class="modal-stat-label">Unanswered</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-value" style="color:#a16207;">${flagged}</div>
+        <div class="modal-stat-label">Flagged</div>
+      </div>`;
+
+    $('btnGoUnanswered').style.display = unanswered > 0 ? 'inline-flex' : 'none';
+    $('submitModal').classList.add('show');
+  }
+
+  function closeSubmitModal() {
+    $('submitModal').classList.remove('show');
+  }
+
+  function goFirstUnanswered() {
+    closeSubmitModal();
+    const items = ATTEMPT.items_json || [];
+    for (let i = 0; i < items.length; i++) {
+      const a = ANSWERS[items[i].quiz_item_id];
+      if (a === undefined || a === null || a === '' || (Array.isArray(a) && a.length === 0)) {
+        CURRENT_Q = i;
+        renderQuestion();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+  }
+
+
+  // ── Confirm submit ────────────────────────────────────────
+  async function confirmSubmit() {
+    if (IS_SUBMITTING) return;
+    IS_SUBMITTING = true;
+    closeSubmitModal();
+
+    // Stop timer
+    if (TIMER_ID) clearInterval(TIMER_ID);
+    if (SAVE_TIMER) clearInterval(SAVE_TIMER);
+
+    showToast('Submitting', 'Please wait…', 'ok');
+
+    const result = await submitQuizAttempt(ATTEMPT.attempt_id, ANSWERS, TIME_ELAPSED);
+
+    if (!result.success) {
+      IS_SUBMITTING = false;
+      showToast('Error', result.message || 'Submission failed.', 'error');
+      return;
+    }
+
+    ATTEMPT = result.attempt;
+    showCompletionScreen();
+  }
+
+
+  // ── Completion screen ─────────────────────────────────────
+  function showCompletionScreen() {
+    if (TIMER_ID) clearInterval(TIMER_ID);
+    if (SAVE_TIMER) clearInterval(SAVE_TIMER);
+
+    const status = ATTEMPT.status;
+    const isTimedOut = status === 'TIMED_OUT';
+    const icon = isTimedOut ? '⏰' : '✅';
+    const heading = isTimedOut ? 'Time Expired' : 'Quiz Submitted';
+    const subMsg = isTimedOut
+      ? 'Your time ran out and your answers have been submitted automatically.'
+      : 'Your answers have been submitted successfully.';
+
+    // Time taken
+    const timeTaken = ATTEMPT.time_taken_s
+      ? formatDuration(ATTEMPT.time_taken_s)
+      : '—';
+
+    // Results availability message
+    const policy = QUIZ.results_release_policy || 'MANUAL';
+    let resultsMsg = '';
+    let resultsAvailable = false;
+
+    if (policy === 'IMMEDIATE') {
+      resultsMsg = 'Your results are available now.';
+      resultsAvailable = true;
+    } else if (policy === 'AFTER_CLOSE') {
+      if (QUIZ.close_at) {
+        resultsMsg = `Results will be available after the quiz closes on ${formatDate(QUIZ.close_at)}.`;
+      } else {
+        resultsMsg = 'Results will be available after the quiz closes.';
+      }
+    } else {
+      // MANUAL
+      if (QUIZ.results_released) {
+        resultsMsg = 'Your results are available now.';
+        resultsAvailable = true;
+      } else {
+        resultsMsg = 'Your teacher will release results when ready.';
+      }
+    }
+
+    // Review availability
+    const reviewAvailable = QUIZ.show_review && resultsAvailable;
+    let reviewMsg = '';
+    if (QUIZ.show_review) {
+      if (resultsAvailable) {
+        reviewMsg = 'You can review your answers and see the correct responses.';
+      } else {
+        reviewMsg = 'Question review will be available when results are released.';
+      }
+    } else {
+      reviewMsg = 'Question review is not enabled for this quiz.';
+    }
+
+    let html = `
+      <div class="icon">${icon}</div>
+      <h2>${heading}</h2>
+      <p class="sub">${subMsg}</p>
+
+      <div class="completion-info">
+        <div class="completion-info-cell">
+          <div class="completion-info-label">Attempt</div>
+          <div class="completion-info-value">#${ATTEMPT.attempt_no || 1}</div>
+        </div>
+        <div class="completion-info-cell">
+          <div class="completion-info-label">Time Taken</div>
+          <div class="completion-info-value">⏱ ${timeTaken}</div>
+        </div>
+        <div class="completion-info-cell">
+          <div class="completion-info-label">Status</div>
+          <div class="completion-info-value">${isTimedOut ? '⏰ Timed Out' : '✅ Submitted'}</div>
+        </div>
+        <div class="completion-info-cell">
+          <div class="completion-info-label">Submitted</div>
+          <div class="completion-info-value">${formatDate(ATTEMPT.submitted_at)}</div>
+        </div>
+      </div>
+
+      <div style="text-align:left; margin-bottom:20px;">
+        <div style="padding:12px 14px; border-radius:12px; background:rgba(0,0,0,.03); margin-bottom:8px;">
+          <div style="font-size:12px; font-weight:800; color:#6b7280; text-transform:uppercase; margin-bottom:4px;">Results</div>
+          <div style="font-size:13px; line-height:1.5;">${resultsMsg}</div>
+        </div>
+        <div style="padding:12px 14px; border-radius:12px; background:rgba(0,0,0,.03);">
+          <div style="font-size:12px; font-weight:800; color:#6b7280; text-transform:uppercase; margin-bottom:4px;">Review</div>
+          <div style="font-size:13px; line-height:1.5;">${reviewMsg}</div>
+        </div>
+      </div>
+
+      <div class="completion-links">
+        <a class="nav-btn primary" href="/myteacher/student/my-classes.html">← Back to My Classes</a>`;
+
+    if (resultsAvailable) {
+      html += `
+        <a class="nav-btn" href="/myteacher/student/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}" style="opacity:0.6; pointer-events:none;">
+          📊 View Results
+        </a>
+        <span class="link-note">Results page coming in Slice 8</span>`;
+    }
+
+    if (reviewAvailable) {
+      html += `
+        <a class="nav-btn" href="/myteacher/student/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}&tab=review" style="opacity:0.6; pointer-events:none;">
+          📝 Review Questions
+        </a>
+        <span class="link-note">Review page coming in Slice 8</span>`;
+    }
+
+    html += '</div>';
+
+    $('completionCard').innerHTML = html;
+    showScreen('screenCompletion');
+  }
+
+
+  // ── Run ───────────────────────────────────────────────────
+  boot();
+
+</script>
+</body>
+</html>
