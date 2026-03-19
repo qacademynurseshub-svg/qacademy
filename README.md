@@ -80,12 +80,22 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 - `student/upgrade.html` — upgrade page for existing logged-in students
 - `payment-confirmation.html` — post-payment redirect handler, calls verify
 
+### Teacher Assess — MyTeacher ✅ (Slices 1–8)
+- **Slice 1–2: Foundation** — Teacher profiles, access request/approval, admin approval page
+- **Slice 3: Classes Manager** — Full CRUD, join codes, custom fields, member management
+- **Slice 4: Student My Classes** — Join by code, class detail, quizzes tab placeholder
+- **Slice 5: Question Bank** — Full CRUD, MCQ/TF/SATA support, image upload, CSV import, filters
+- **Slice 6: Quiz Manager** — 4-tab editor (Settings, Classes, Questions, Publish), presets, grade bands, quiz custom fields, inline create, bank browser, library placeholder, publish with snapshots, clone, archive
+- **Slice 7: Quiz Runner** — Intake form, timer, question grid, MCQ/TF/SATA rendering, auto-save, pre-submit modal, completion screen with context-aware messaging, keyboard nav, desktop sidebar grid, progress indicators
+- **Slice 8: Student Results & Review** — Results tab (score card, grade, pass/fail gate, metadata, print), Review tab (questions with correct/wrong, feedback, rationale, filters, sidebar question map)
+- **Integrity Hardening** — 12 fixes across 3 tiers (see Quiz Lifecycle Rules below)
+
 ### Next Up ⏭️
-1. `admin/payments.html` — view and manage all payment records
-2. Messaging: `student/messages.html` + admin side
-3. Telegram integration
-4. Downloads / offline packs (`student/downloads.html`)
-5. Teacher Assess system (classes, question bank, quiz builder, results)
+1. Teacher Assess: CSV import for quiz questions, Library Picker
+2. `admin/payments.html` — view and manage all payment records
+3. Messaging: `student/messages.html` + admin side
+4. Telegram integration
+5. Downloads / offline packs (`student/downloads.html`)
 6. RLS policies — tighten all tables before go-live
 
 ### Intentionally Deferred
@@ -121,6 +131,22 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 | student/upgrade.html | ✅ Done | Upgrade payment flow for logged-in students |
 | student/downloads.html | ⏳ Later | Offline packs / PDF downloads |
 | student/messages.html | ⏳ Later | Thread-based messaging |
+
+### Teacher Assess — Teacher Pages
+| Page | Status | Notes |
+|---|---|---|
+| myteacher/teacher/dashboard.html | ✅ Done | Teacher home, class/quiz summary |
+| myteacher/teacher/classes.html | ✅ Done | Full CRUD, join codes, custom fields, members |
+| myteacher/teacher/bank.html | ✅ Done | MCQ/TF/SATA, image upload, CSV import, filters |
+| myteacher/teacher/quizzes.html | ✅ Done | 4-tab editor, presets, publish with snapshots, clone, archive, release results |
+
+### Teacher Assess — Student Pages
+| Page | Status | Notes |
+|---|---|---|
+| myteacher/student/dashboard.html | ✅ Done | Student home for Teacher Assess |
+| myteacher/student/my-classes.html | ✅ Done | Join by code, class detail, quizzes tab with attempts modal |
+| myteacher/student/quiz-runner.html | ✅ Done | Full exam engine: intake, timer, grid, MCQ/TF/SATA, auto-save, submit |
+| myteacher/student/my-results.html | ✅ Done | Results tab + Review tab, gated by release policy |
 
 ### Public Pages
 | Page | Status | Notes |
@@ -201,6 +227,53 @@ Every key is a system key referenced by platform code. Never rename or delete un
 - `finishAttempt()`, `retakeAttempt()`
 - `getAttemptForReview()`, `getStudentAttempts()`, `getAttemptById()`
 
+### Teacher Assess (teacher-api.js)
+- `createTeacherQuiz()`, `getTeacherQuiz()`, `getTeacherQuizzes()`, `updateTeacherQuiz()`
+- `publishTeacherQuiz()`, `archiveTeacherQuiz()`, `cloneTeacherQuiz()`, `releaseQuizResults()`
+- `setQuizClasses()`, `getQuizClasses()`, `removeFromDraftItems()`
+- `startQuizAttempt()`, `saveAttemptProgress()`, `submitQuizAttempt()`
+- `getAttempt()`, `getAttemptResults()`, `getAttemptReview()`
+- `getQuizzesForClass()`, `getPublishedQuizWithItems()`
+- `createTeacherClass()`, `updateTeacherClass()`, `archiveTeacherClass()`
+- `getTeacherClasses()`, `joinClassByCode()`
+- `createBankItem()`, `updateBankItem()`, `getBankItems()`, `getBankFilterOptions()`
+
+---
+
+## Quiz Lifecycle Rules
+
+### State Machine
+```
+DRAFT ──publish──▶ PUBLISHED ──archive──▶ ARCHIVED
+  │                                          ▲
+  └────────────archive───────────────────────┘
+```
+No unpublish. No unarchive. Clone creates a new DRAFT from any state.
+
+### Field Mutability After Publish
+
+| Category | Fields | DRAFT | PUBLISHED | ARCHIVED |
+|---|---|---|---|---|
+| **Integrity (scoring)** | `sata_scoring_policy`, `duration_minutes`, `shuffle_questions`, `shuffle_options`, `custom_fields_json`, `draft_items_json` | ✏️ Editable | 🔒 Locked | 🔒 Locked |
+| **Administrative** | `title`, `subject`, `max_attempts`, `open_at`, `close_at` | ✏️ Editable | ✏️ Editable | 🔒 Locked |
+| **Display & Policy** | `results_release_policy`, `show_results`, `show_review`, `score_display_policy`, `pass_threshold_pct`, `grade_bands_json` | ✏️ Editable | ✏️ Editable | ✏️ Editable |
+| **Access** | `access_code` | ✏️ Editable | 🔒 Locked | 🔒 Locked |
+
+**Why?** Integrity fields affect scoring — changing them mid-flight would make some students' scores invalid. Administrative fields are schedule/logistics. Display/policy fields only affect how results are shown, not how scores are calculated.
+
+### Snapshots (frozen at submit time)
+These values are captured from the live quiz onto each attempt's `score_json` at submission, so retroactive teacher changes don't corrupt historical results:
+- `pass_threshold_pct`, `sata_scoring_policy`
+- `results_release_policy`, `show_review`, `show_results`, `results_released`, `close_at`
+- `grading_policy`, `grade_bands_json`, `score_display_policy` (stored as separate columns on attempt)
+
+### Safety Guards
+- **Archive blocked** while students have IN_PROGRESS attempts
+- **Concurrency guard** prevents double-click from creating duplicate attempts
+- **Date validation** enforced: `close_at > open_at`, `AFTER_CLOSE` requires `close_at`
+- **Draft deduplication** at publish time (server-side)
+- **Release Results** works on both PUBLISHED and ARCHIVED quizzes (prevents permanent lock)
+
 ---
 
 ## Automation
@@ -211,6 +284,10 @@ Every key is a system key referenced by platform code. Never rename or delete un
 - Add fixed quiz → use `admin/fixed-quizzes.html`
 - Add/edit questions → use `admin/question-bank.html`
 - Change settings → use `admin/config.html`
+- Manage teacher classes → use `myteacher/teacher/classes.html`
+- Manage question bank → use `myteacher/teacher/bank.html`
+- Create/publish quizzes → use `myteacher/teacher/quizzes.html`
+- Release quiz results → Publish tab on quiz editor, or "Release Results" button
 
 ---
 
@@ -222,6 +299,13 @@ Every key is a system key referenced by platform code. Never rename or delete un
 | STUDENT | Justice Asiamah | RM / L100 / 2023 cohort / TRIAL |
 
 ---
+
+## Role Guards
+- Admin pages (`admin/*`) — guarded by `guardPage('ADMIN')`
+- Teacher pages (`myteacher/teacher/*`) — guarded by `guardPage('TEACHER')`
+- Student pages (`myteacher/student/*`) — guarded by `guardPage('STUDENT')`
+- Original student pages (`student/*`) — guarded by sidebar auth check
+- Wrong role → redirected to `/router.html`; no session → redirected to `/login`
 
 ## RLS
 All tables use `dev_allow_all` policies during build. Replace with proper role-based policies before go-live.
