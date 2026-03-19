@@ -327,7 +327,6 @@ a { color: var(--brand); }
               <option value="ALL_OR_NOTHING">All or Nothing</option>
               <option value="PARTIAL_CREDIT">Partial Credit</option>
               <option value="PER_OPTION">Per Option</option>
-              <option value="HIDE">Hide Score</option>
             </select>
           </div>
           <div class="form-group">
@@ -586,8 +585,8 @@ a { color: var(--brand); }
         </div>
         <div class="release-section" id="releaseSection" style="display:none">
           <div style="font-weight:900;margin-bottom:8px">Release Results</div>
-          <div class="hint" style="margin-bottom:10px">For MANUAL policy: click below to make results visible to students.</div>
-          <div style="display:flex;gap:10px;align-items:center">
+          <div class="hint" style="margin-bottom:10px">Make results visible to students immediately, regardless of the release policy.</div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="btn primary" id="btnRelease">Release Results to Students</button>
             <span class="hint" id="releaseStatus"></span>
           </div>
@@ -891,31 +890,55 @@ function updateEditorStrip() {
 // READ-ONLY STATE (for non-DRAFT quizzes)
 // ================================================================
 function setReadOnlyState(readOnly) {
-  // Settings fields
-  const fields = ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
-  fields.forEach(id => { if ($(id)) $(id).disabled = readOnly; });
-  $('btnSaveQuiz').disabled = readOnly;
-  $('btnRegenCode').disabled = readOnly;
-  $('btnAddBand').disabled = readOnly;
-  $('btnAddField').disabled = readOnly;
-  if (readOnly) {
+  const status = SELECTED_QUIZ?.status;
+
+  if (status === 'PUBLISHED') {
+    // PUBLISHED: lock integrity fields, allow administrative fields
+    const immutable = ['fDuration','fSataScoring','fShuffleQ','fShuffleO'];
+    const mutable = ['fTitle','fSubject','fMaxAttempts','fResultsPolicy','fScoreDisplay','fOpenAt','fCloseAt','fShowReview','fShowResults','fPassThreshold'];
+    immutable.forEach(id => { if ($(id)) $(id).disabled = true; });
+    mutable.forEach(id => { if ($(id)) $(id).disabled = false; });
+    $('btnSaveQuiz').disabled = false;
+    $('btnRegenCode').disabled = true;
+    $('btnAddBand').disabled = false;
+    $('btnAddField').disabled = true;
     $('presetRow').style.pointerEvents = 'none';
     $('presetRow').style.opacity = '0.6';
+    $('btnSaveLinks').disabled = false;
+    $('btnClearDraft').disabled = true;
+    $('btnSaveDraft').disabled = true;
+  } else if (status === 'ARCHIVED') {
+    // ARCHIVED: lock almost everything, allow results/display settings
+    const mutableArchived = ['fTitle','fSubject','fResultsPolicy','fScoreDisplay','fShowReview','fShowResults','fPassThreshold'];
+    const allFields = ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
+    allFields.forEach(id => { if ($(id)) $(id).disabled = !mutableArchived.includes(id); });
+    $('btnSaveQuiz').disabled = false;
+    $('btnRegenCode').disabled = true;
+    $('btnAddBand').disabled = false;
+    $('btnAddField').disabled = true;
+    $('presetRow').style.pointerEvents = 'none';
+    $('presetRow').style.opacity = '0.6';
+    $('btnSaveLinks').disabled = true;
+    $('btnClearDraft').disabled = true;
+    $('btnSaveDraft').disabled = true;
   } else {
-    $('presetRow').style.pointerEvents = '';
-    $('presetRow').style.opacity = '';
+    // DRAFT: everything editable
+    const fields = ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
+    fields.forEach(id => { if ($(id)) $(id).disabled = readOnly; });
+    $('btnSaveQuiz').disabled = readOnly;
+    $('btnRegenCode').disabled = readOnly;
+    $('btnAddBand').disabled = readOnly;
+    $('btnAddField').disabled = readOnly;
+    $('presetRow').style.pointerEvents = readOnly ? 'none' : '';
+    $('presetRow').style.opacity = readOnly ? '0.6' : '';
+    $('btnSaveLinks').disabled = readOnly;
+    $('btnClearDraft').disabled = readOnly;
+    $('btnSaveDraft').disabled = readOnly;
   }
 
-  // Classes
-  $('btnSaveLinks').disabled = readOnly;
-
-  // Questions
-  $('btnClearDraft').disabled = readOnly;
-  $('btnSaveDraft').disabled = readOnly;
-
-  // Publish
-  $('btnPublish').disabled = readOnly && SELECTED_QUIZ?.status !== 'PUBLISHED';
-  $('btnArchive').disabled = SELECTED_QUIZ?.status === 'ARCHIVED';
+  // Publish/Archive — always available based on status
+  $('btnPublish').disabled = status !== 'DRAFT' || !DRAFT_IDS.length;
+  $('btnArchive').disabled = status === 'ARCHIVED';
 }
 
 
@@ -1017,6 +1040,14 @@ function readForm() {
 async function saveQuiz() {
   const form = readForm();
   if (!form.title) { showToast('Error', 'Quiz title is required.', 'error'); $('fTitle').focus(); return; }
+
+  // Date validation
+  if (form.open_at && form.close_at && new Date(form.close_at) <= new Date(form.open_at)) {
+    showToast('Error', 'Close date must be after open date.', 'error'); $('fCloseAt').focus(); return;
+  }
+  if (form.results_release_policy === 'AFTER_CLOSE' && !form.close_at) {
+    showToast('Error', 'AFTER_CLOSE policy requires a Close At date.', 'error'); $('fCloseAt').focus(); return;
+  }
 
   const btn = $('btnSaveQuiz');
   btn.disabled = true;
@@ -1737,6 +1768,9 @@ function renderPublishPane() {
   if (q.results_release_policy === 'AFTER_CLOSE' && !q.close_at) pass(false, 'AFTER_CLOSE policy requires a Close At date');
   else pass(true, `Results policy: ${q.results_release_policy}`);
 
+  if (q.open_at && q.close_at && new Date(q.close_at) <= new Date(q.open_at)) pass(false, 'Close date must be after open date');
+  else if (q.open_at || q.close_at) pass(true, 'Schedule dates are valid');
+
   $('pubChecklist').innerHTML = checks.map(c => {
     const cls = c.ok === true ? 'pass' : c.ok === 'warn' ? 'warn' : 'fail';
     const icon = c.ok === true ? '✓' : c.ok === 'warn' ? '⚠' : '✗';
@@ -1749,14 +1783,19 @@ function renderPublishPane() {
   $('btnPublish').disabled = !canPublish;
   $('btnArchive').disabled = q.status === 'ARCHIVED';
 
-  // Release results section
-  const showRelease = q.status === 'PUBLISHED' && q.results_release_policy === 'MANUAL';
-  $('releaseSection').style.display = showRelease ? '' : 'none';
+  // Release results section — show for PUBLISHED or ARCHIVED with MANUAL policy
+  const showRelease = (q.status === 'PUBLISHED' || q.status === 'ARCHIVED') && q.results_release_policy === 'MANUAL';
+  // Also show "Release Now" button for any policy (allows teacher to override)
+  const showReleaseNow = (q.status === 'PUBLISHED' || q.status === 'ARCHIVED') && q.results_release_policy !== 'MANUAL' && !q.results_released;
+  $('releaseSection').style.display = (showRelease || showReleaseNow) ? '' : 'none';
   if (showRelease) {
     $('releaseStatus').textContent = q.results_released
       ? 'Released at ' + fmtDate(q.results_released_at)
       : 'Not yet released';
     $('btnRelease').disabled = !!q.results_released;
+  } else if (showReleaseNow) {
+    $('releaseStatus').textContent = `Current policy: ${q.results_release_policy}. You can override and release now.`;
+    $('btnRelease').disabled = false;
   }
 }
 

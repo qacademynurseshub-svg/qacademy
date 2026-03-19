@@ -888,9 +888,64 @@ async function createTeacherQuiz(teacherId, payload) {
 async function updateTeacherQuiz(quizId, patch) {
   const now = new Date().toISOString();
 
+  // Fetch current quiz to enforce field-level guards
+  const { data: current, error: fetchErr } = await db
+    .from('teacher_quizzes')
+    .select('status')
+    .eq('teacher_quiz_id', quizId)
+    .maybeSingle();
+
+  if (fetchErr || !current) return { success: false, message: 'Quiz not found.' };
+
+  // ── Field-level guards by status ───────────────────────────
+  // DRAFT: everything mutable
+  // PUBLISHED: only administrative fields (schedule, display, policy)
+  // ARCHIVED: only results release fields
+  const IMMUTABLE_AFTER_PUBLISH = new Set([
+    'sata_scoring_policy', 'shuffle_questions', 'shuffle_options',
+    'duration_minutes', 'custom_fields_json', 'draft_items_json'
+  ]);
+  const MUTABLE_WHEN_ARCHIVED = new Set([
+    'results_released', 'results_released_at', 'results_release_policy',
+    'show_results', 'show_review', 'score_display_policy',
+    'pass_threshold_pct', 'grade_bands_json', 'title', 'subject'
+  ]);
+
+  let safePatch = { ...patch };
+
+  if (current.status === 'PUBLISHED') {
+    IMMUTABLE_AFTER_PUBLISH.forEach(key => delete safePatch[key]);
+  } else if (current.status === 'ARCHIVED') {
+    const filtered = {};
+    MUTABLE_WHEN_ARCHIVED.forEach(key => { if (key in safePatch) filtered[key] = safePatch[key]; });
+    safePatch = filtered;
+  }
+
+  // ── Cross-field validation ─────────────────────────────────
+  // AFTER_CLOSE requires a close_at date
+  if (safePatch.results_release_policy === 'AFTER_CLOSE') {
+    const effectiveCloseAt = safePatch.close_at !== undefined ? safePatch.close_at : current.close_at;
+    if (!effectiveCloseAt) {
+      return { success: false, message: 'AFTER_CLOSE policy requires a Close At date.' };
+    }
+  }
+
+  // close_at must be after open_at
+  if (safePatch.open_at !== undefined || safePatch.close_at !== undefined) {
+    const { data: full } = await db.from('teacher_quizzes').select('open_at, close_at').eq('teacher_quiz_id', quizId).maybeSingle();
+    const openAt = safePatch.open_at !== undefined ? safePatch.open_at : full?.open_at;
+    const closeAt = safePatch.close_at !== undefined ? safePatch.close_at : full?.close_at;
+    if (openAt && closeAt && new Date(closeAt) <= new Date(openAt)) {
+      return { success: false, message: 'Close date must be after open date.' };
+    }
+  }
+
+  // Nothing to update after filtering
+  if (Object.keys(safePatch).length === 0) return { success: true };
+
   const { error } = await db
     .from('teacher_quizzes')
-    .update({ ...patch, updated_at: now })
+    .update({ ...safePatch, updated_at: now })
     .eq('teacher_quiz_id', quizId);
 
   if (error) { console.error('updateTeacherQuiz:', error); return { success: false, message: error.message }; }
@@ -905,6 +960,17 @@ async function updateTeacherQuiz(quizId, patch) {
 // Used by: quizzes.html Publish tab
 // ------------------------------------------------------------
 async function archiveTeacherQuiz(quizId) {
+  // Check for IN_PROGRESS attempts — don't archive while students are mid-attempt
+  const { count, error: countErr } = await db
+    .from('teacher_quiz_attempts')
+    .select('attempt_id', { count: 'exact', head: true })
+    .eq('teacher_quiz_id', quizId)
+    .eq('status', 'IN_PROGRESS');
+
+  if (!countErr && (count || 0) > 0) {
+    return { success: false, message: `Cannot archive: ${count} student(s) currently have in-progress attempts. Wait for them to finish or timeout.` };
+  }
+
   const now = new Date().toISOString();
 
   const { error } = await db
@@ -1070,7 +1136,18 @@ async function publishTeacherQuiz(quizId, teacherId) {
     draftIds = Array.isArray(parsed.items) ? parsed.items : [];
   } catch (_) { draftIds = []; }
 
+  // Deduplicate draft items (server-side safety)
+  draftIds = [...new Set(draftIds)];
+
   if (!draftIds.length) return { success: false, message: 'Draft has no items.' };
+
+  // Validate dates
+  if (quiz.open_at && quiz.close_at && new Date(quiz.close_at) <= new Date(quiz.open_at)) {
+    return { success: false, message: 'Close date must be after open date.' };
+  }
+  if (quiz.results_release_policy === 'AFTER_CLOSE' && !quiz.close_at) {
+    return { success: false, message: 'AFTER_CLOSE policy requires a Close At date.' };
+  }
 
   // 3. Fetch bank items
   const { data: bankItems, error: bankErr } = await db
@@ -1509,7 +1586,21 @@ async function startQuizAttempt(userId, quizId, classId, candidateFields = {}) {
     }
   }
 
-  // 9. Create attempt row
+  // 9. Concurrency guard — re-check for IN_PROGRESS (prevents double-click race)
+  const { data: raceCheck } = await db
+    .from('teacher_quiz_attempts')
+    .select('attempt_id')
+    .eq('user_id', userId)
+    .eq('teacher_quiz_id', quizId)
+    .eq('class_id', classId)
+    .eq('status', 'IN_PROGRESS')
+    .limit(1)
+    .maybeSingle();
+  if (raceCheck) {
+    return { success: false, message: 'An attempt is already in progress. Please refresh the page.' };
+  }
+
+  // 10. Create attempt row
   const attemptId = makeAttemptId();
   const attemptNo = (count || 0) + 1;
   const nowIso = now.toISOString();
@@ -1726,7 +1817,16 @@ async function submitQuizAttempt(attemptId, answersJson, timeTakenS) {
     score_raw           : scoreMarks,
     score_total         : totalMarks,
     score_pct           : pct,
-    score_json          : { total_marks: totalMarks, score_marks: scoreMarks, percent: pct },
+    score_json          : {
+      total_marks: totalMarks, score_marks: scoreMarks, percent: pct,
+      sata_scoring_policy: sataPolicy,
+      pass_threshold_pct: quiz.pass_threshold_pct ?? 50,
+      results_release_policy: quiz.results_release_policy,
+      show_review: quiz.show_review,
+      show_results: quiz.show_results,
+      results_released: quiz.results_released,
+      close_at: quiz.close_at
+    },
     grading_policy      : quiz.grading_policy,
     grade_bands_json    : quiz.grade_bands_json,
     score_display_policy: quiz.score_display_policy
@@ -1954,8 +2054,9 @@ async function getAttemptResults(attemptId, userId) {
       attempt.score_pct
     );
 
-    // Pass/fail
-    const threshold = quiz.pass_threshold_pct ?? 50;
+    // Pass/fail — prefer attempt snapshot (score_json), fall back to live quiz
+    const scoreSnap = attempt.score_json || {};
+    const threshold = scoreSnap.pass_threshold_pct ?? quiz.pass_threshold_pct ?? 50;
     passStatus = attempt.score_pct >= threshold ? 'PASS' : 'FAIL';
   }
 
@@ -2007,7 +2108,7 @@ async function getAttemptResults(attemptId, userId) {
       show_results: quiz.show_results,
       results_release_policy: policy,
       score_display_policy: scorePolicy,
-      pass_threshold_pct: quiz.pass_threshold_pct,
+      pass_threshold_pct: (attempt.score_json || {}).pass_threshold_pct ?? quiz.pass_threshold_pct,
       close_at: quiz.close_at
     },
     attempt_meta: {
@@ -2201,7 +2302,7 @@ async function getAttemptReview(attemptId, userId) {
     review_allowed: true,
     display_score: displayScore,
     grade_label: _gradeLabelFromBands(attempt.grade_bands_json || quiz.grade_bands_json, attempt.score_pct),
-    pass_status: attempt.score_pct != null ? (attempt.score_pct >= (quiz.pass_threshold_pct ?? 50) ? 'PASS' : 'FAIL') : null,
+    pass_status: attempt.score_pct != null ? (attempt.score_pct >= ((attempt.score_json || {}).pass_threshold_pct ?? quiz.pass_threshold_pct ?? 50) ? 'PASS' : 'FAIL') : null,
     questions: questions
   };
 }

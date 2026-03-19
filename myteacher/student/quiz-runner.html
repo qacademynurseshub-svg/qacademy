@@ -1273,20 +1273,27 @@
 
     const timeTaken = ATTEMPT.time_taken_s ? formatDuration(ATTEMPT.time_taken_s) : '—';
 
-    const policy = QUIZ.results_release_policy || 'MANUAL';
+    // Use attempt snapshot (score_json) for completion display — not live quiz
+    // This prevents stale/misleading messages if teacher changes settings between start and submit
+    const snap = ATTEMPT.score_json || {};
+    const policy = snap.results_release_policy || QUIZ.results_release_policy || 'MANUAL';
+    const snapCloseAt = snap.close_at || QUIZ.close_at;
+    const snapShowReview = snap.show_review !== undefined ? snap.show_review : QUIZ.show_review;
+    const snapReleased = snap.results_released || QUIZ.results_released;
+
     let resultsMsg = '', resultsAvailable = false;
 
     if (policy === 'IMMEDIATE') { resultsMsg = 'Your results are available now.'; resultsAvailable = true; }
     else if (policy === 'AFTER_CLOSE') {
-      resultsMsg = QUIZ.close_at ? `Results will be available after the quiz closes on ${formatDate(QUIZ.close_at)}.` : 'Results will be available after the quiz closes.';
+      resultsMsg = snapCloseAt ? `Results will be available after the quiz closes on ${formatDate(snapCloseAt)}.` : 'Results will be available after the quiz closes.';
     } else {
-      if (QUIZ.results_released) { resultsMsg = 'Your results are available now.'; resultsAvailable = true; }
+      if (snapReleased) { resultsMsg = 'Your results are available now.'; resultsAvailable = true; }
       else resultsMsg = 'Your teacher will release results when ready.';
     }
 
-    const reviewAvailable = QUIZ.show_review && resultsAvailable;
+    const reviewAvailable = snapShowReview && resultsAvailable;
     let reviewMsg = '';
-    if (QUIZ.show_review) {
+    if (snapShowReview) {
       reviewMsg = resultsAvailable ? 'You can review your answers and see the correct responses.' : 'Question review will be available when results are released.';
     } else {
       reviewMsg = 'Question review is not enabled for this quiz.';
