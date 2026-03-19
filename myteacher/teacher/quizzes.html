@@ -416,7 +416,6 @@ a { color: var(--brand); }
               </div>
               <div class="q-bd">
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-                  <button class="btn sm" id="btnLoadDetails">Load Details</button>
                   <button class="btn sm" id="btnSaveDraft">Save Draft</button>
                   <button class="btn sm danger" id="btnClearDraft">Clear</button>
                   <button class="btn sm" id="btnCopyIds">Copy IDs</button>
@@ -1031,28 +1030,10 @@ function fillFormFromQuiz(quiz) {
   renderDraftList();
   renderLibItems();
 
-  // Auto-resolve LIB items so stems and previews work immediately
-  const libRefs = DRAFT_IDS.filter(id => id.startsWith('LIB:'));
-  if (libRefs.length) {
-    resolveLibraryRefs(libRefs).then(libMap => {
-      libMap.forEach((item, ref) => {
-        BANK_CACHE.set(ref, {
-          bank_item_id: ref,
-          stem: item.stem,
-          question_type: item.question_type || 'MCQ',
-          option_a: item.option_a, option_b: item.option_b,
-          option_c: item.option_c, option_d: item.option_d,
-          option_e: item.option_e, option_f: item.option_f,
-          fb_a: item.fb_a, fb_b: item.fb_b,
-          fb_c: item.fb_c, fb_d: item.fb_d,
-          fb_e: item.fb_e, fb_f: item.fb_f,
-          correct: item.correct, rationale: item.rationale,
-          rationale_img: item.rationale_img,
-          subject: item.subject, maintopic: item.maintopic,
-          subtopic: item.subtopic, difficulty: item.difficulty,
-          marks: item.marks || 1, _isLibrary: true
-        });
-      });
+  // Auto-load all draft item details (bank + library)
+  if (DRAFT_IDS.length) {
+    getDraftPreview(quiz.teacher_quiz_id).then(({ items, missing }) => {
+      items.forEach(item => BANK_CACHE.set(item.bank_item_id, item));
       renderDraftList();
       renderLibItems();
     });
@@ -1375,7 +1356,7 @@ function renderDraftList() {
     return `
     <div class="q-item"${isLib ? ' style="border-left:3px solid #6d28d9"' : ''}>
       <div style="min-width:0;flex:1">
-        <div class="q-item-stem">${stem ? esc(stem) : '<span class="hint">Click "Load Details"</span>'}</div>
+        <div class="q-item-stem">${stem ? esc(stem) : '<span class="hint">Loading…</span>'}</div>
         <div class="q-item-meta">${libBadge} ${typeBadge} <span class="kbd">${esc(id)}</span></div>
       </div>
       <div class="q-btns">
@@ -1384,21 +1365,6 @@ function renderDraftList() {
       </div>
     </div>`;
   }).join('');
-}
-
-async function loadDraftDetails() {
-  if (!SELECTED_ID) return;
-  $('btnLoadDetails').disabled = true;
-  $('btnLoadDetails').textContent = 'Loading…';
-
-  const { items, missing } = await getDraftPreview(SELECTED_ID);
-  items.forEach(item => BANK_CACHE.set(item.bank_item_id, item));
-
-  renderDraftList();
-  renderLibItems();
-  if (missing.length) showToast('Warning', `${missing.length} items not found.`, 'error');
-  $('btnLoadDetails').disabled = false;
-  $('btnLoadDetails').textContent = 'Load Details';
 }
 
 function addToDraft(bankItemId) {
@@ -2114,7 +2080,7 @@ function bindEvents() {
   $('classSearch').addEventListener('input', () => { clearTimeout(clsSearchTimer); clsSearchTimer = setTimeout(renderClassesList, 200); });
 
   // Draft list
-  $('btnLoadDetails').addEventListener('click', loadDraftDetails);
+  // btnLoadDetails removed — draft items auto-load on quiz open
   $('btnSaveDraft').addEventListener('click', () => saveDraftToServer());
   $('btnClearDraft').addEventListener('click', clearDraftAction);
   $('btnCopyIds').addEventListener('click', copyDraftIds);
