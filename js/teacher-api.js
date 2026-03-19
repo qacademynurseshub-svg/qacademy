@@ -2308,6 +2308,549 @@ async function getAttemptReview(attemptId, userId) {
 }
 
 
+// ============================================================
+// TEACHER RESULTS — Slice 9
+// ============================================================
+
+
+// ------------------------------------------------------------
+// HEADLINE RULE
+// Determines which attempt is the "headline" for marksheet display.
+// EXAM/IN_CLASS → FIRST submitted, ASSIGNMENT/STUDY → BEST score
+// ------------------------------------------------------------
+function _headlineRule(preset) {
+  const p = (preset || '').toUpperCase();
+  if (p === 'EXAM' || p === 'IN_CLASS') return 'FIRST';
+  if (p === 'STUDY') return 'BEST';
+  return 'BEST'; // default for ASSIGNMENT and custom
+}
+
+function _pickHeadlineAttempt(attempts, rule) {
+  const submitted = attempts.filter(a => a.status === 'SUBMITTED' || a.status === 'TIMED_OUT');
+  if (!submitted.length) return null;
+  if (rule === 'FIRST') {
+    return submitted.reduce((a, b) => new Date(a.started_at) < new Date(b.started_at) ? a : b);
+  }
+  // BEST — highest score_pct
+  return submitted.reduce((a, b) => (b.score_pct || 0) > (a.score_pct || 0) ? b : a);
+}
+
+
+// ------------------------------------------------------------
+// GET TEACHER RESULTS SUMMARY
+// Returns aggregate stats for a quiz+class combination.
+// Used by: results.html — summary stat cards
+// ------------------------------------------------------------
+async function getTeacherResultsSummary(quizId, classId, opts = {}) {
+  const quiz = await getTeacherQuiz(quizId);
+  if (!quiz) return { success: false, message: 'Quiz not found.' };
+
+  // Get class members
+  const memberFilter = opts.includeRemoved ? {} : { status: 'ACTIVE' };
+  let memberQuery = db.from('teacher_class_members')
+    .select('user_id, display_name, status')
+    .eq('class_id', classId);
+  if (!opts.includeRemoved) memberQuery = memberQuery.eq('status', 'ACTIVE');
+  const { data: members, error: mErr } = await memberQuery;
+  if (mErr) return { success: false, message: mErr.message };
+
+  const rosterTotal = (members || []).length;
+  const memberIds = (members || []).map(m => m.user_id);
+
+  // Get all attempts for this quiz+class
+  let attQuery = db.from('teacher_quiz_attempts')
+    .select('attempt_id, user_id, status, score_raw, score_total, score_pct, time_taken_s, submitted_at, started_at, attempt_no')
+    .eq('teacher_quiz_id', quizId)
+    .eq('class_id', classId)
+    .neq('status', 'ABANDONED');
+
+  if (opts.dateFrom) attQuery = attQuery.gte('started_at', opts.dateFrom);
+  if (opts.dateTo) attQuery = attQuery.lte('started_at', opts.dateTo);
+
+  const { data: attempts, error: aErr } = await attQuery;
+  if (aErr) return { success: false, message: aErr.message };
+
+  const allAttempts = attempts || [];
+  const headlineRule = _headlineRule(quiz.preset);
+
+  // Group by user, pick headline
+  const byUser = {};
+  allAttempts.forEach(a => {
+    if (!byUser[a.user_id]) byUser[a.user_id] = [];
+    byUser[a.user_id].push(a);
+  });
+
+  let submittedCount = 0;
+  let inProgressCount = 0;
+  const scores = [];
+  const times = [];
+
+  memberIds.forEach(uid => {
+    const userAttempts = byUser[uid] || [];
+    if (!userAttempts.length) return; // not started
+    const hasSubmitted = userAttempts.some(a => a.status === 'SUBMITTED' || a.status === 'TIMED_OUT');
+    const hasInProgress = userAttempts.some(a => a.status === 'IN_PROGRESS');
+    if (hasSubmitted) {
+      submittedCount++;
+      const headline = _pickHeadlineAttempt(userAttempts, headlineRule);
+      if (headline && headline.score_pct != null) scores.push(headline.score_pct);
+      if (headline && headline.time_taken_s) times.push(headline.time_taken_s);
+    } else if (hasInProgress) {
+      inProgressCount++;
+    }
+  });
+
+  const notStartedCount = rosterTotal - submittedCount - inProgressCount;
+  const avgPct = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100) / 100 : null;
+  const medianPct = scores.length ? _median(scores) : null;
+  const threshold = quiz.pass_threshold_pct ?? 50;
+  const passCount = scores.filter(s => s >= threshold).length;
+  const passRate = scores.length ? Math.round(passCount / scores.length * 10000) / 100 : null;
+  const avgTime = times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null;
+
+  // Grade distribution
+  const gradeDist = {};
+  scores.forEach(pct => {
+    const label = _gradeLabelFromBands(quiz.grade_bands_json, pct) || 'Ungraded';
+    gradeDist[label] = (gradeDist[label] || 0) + 1;
+  });
+
+  return {
+    success: true,
+    headline_rule: headlineRule,
+    roster_total: rosterTotal,
+    submitted_count: submittedCount,
+    in_progress_count: inProgressCount,
+    not_started_count: notStartedCount,
+    avg_pct: avgPct,
+    median_pct: medianPct,
+    pass_threshold_pct: threshold,
+    pass_rate_pct: passRate,
+    pass_count: passCount,
+    avg_time_s: avgTime,
+    grade_distribution: gradeDist,
+    score_display_policy: quiz.score_display_policy || 'RAW_AND_PCT'
+  };
+}
+
+function _median(arr) {
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2 * 100) / 100;
+}
+
+
+// ------------------------------------------------------------
+// GET TEACHER RESULTS MARKSHEET
+// Returns per-student rows with headline attempt for a quiz+class.
+// Used by: results.html — marksheet tab
+// ------------------------------------------------------------
+async function getTeacherResultsMarksheet(quizId, classId, opts = {}) {
+  const quiz = await getTeacherQuiz(quizId);
+  if (!quiz) return { success: false, message: 'Quiz not found.' };
+
+  // Get class with custom fields schema
+  const { data: cls } = await db.from('teacher_classes')
+    .select('class_id, title, custom_fields_json')
+    .eq('class_id', classId).maybeSingle();
+
+  // Get members
+  let memberQuery = db.from('teacher_class_members')
+    .select('user_id, display_name, email, member_fields_json, status')
+    .eq('class_id', classId);
+  if (!opts.includeRemoved) memberQuery = memberQuery.eq('status', 'ACTIVE');
+  const { data: members, error: mErr } = await memberQuery;
+  if (mErr) return { success: false, message: mErr.message };
+
+  // Get all attempts
+  let attQuery = db.from('teacher_quiz_attempts')
+    .select('attempt_id, user_id, status, score_raw, score_total, score_pct, time_taken_s, submitted_at, started_at, attempt_no, candidate_fields_json, grade_bands_json, score_display_policy, score_json')
+    .eq('teacher_quiz_id', quizId)
+    .eq('class_id', classId)
+    .neq('status', 'ABANDONED');
+  if (opts.dateFrom) attQuery = attQuery.gte('started_at', opts.dateFrom);
+  if (opts.dateTo) attQuery = attQuery.lte('started_at', opts.dateTo);
+  const { data: attempts } = await attQuery;
+
+  const headlineRule = _headlineRule(quiz.preset);
+  const threshold = quiz.pass_threshold_pct ?? 50;
+
+  // Group attempts by user
+  const byUser = {};
+  (attempts || []).forEach(a => {
+    if (!byUser[a.user_id]) byUser[a.user_id] = [];
+    byUser[a.user_id].push(a);
+  });
+
+  // Parse field schemas
+  let classFields = [];
+  try {
+    const cf = typeof cls?.custom_fields_json === 'object' ? cls.custom_fields_json : JSON.parse(cls?.custom_fields_json || '[]');
+    classFields = Array.isArray(cf) ? cf : (Array.isArray(cf.fields) ? cf.fields : []);
+  } catch(_) {}
+
+  let quizFields = [];
+  try {
+    const qf = typeof quiz.custom_fields_json === 'object' ? quiz.custom_fields_json : JSON.parse(quiz.custom_fields_json || '{}');
+    quizFields = Array.isArray(qf.fields) ? qf.fields : [];
+  } catch(_) {}
+
+  // Build rows
+  const rows = (members || []).map(m => {
+    const userAttempts = byUser[m.user_id] || [];
+    const totalAttempts = userAttempts.length;
+    const headline = _pickHeadlineAttempt(userAttempts, headlineRule);
+    const hasInProgress = userAttempts.some(a => a.status === 'IN_PROGRESS');
+
+    let status = 'NOT_STARTED';
+    if (headline) status = headline.status;
+    else if (hasInProgress) status = 'IN_PROGRESS';
+
+    // Parse member fields
+    let memberValues = {};
+    try {
+      const mf = typeof m.member_fields_json === 'object' ? m.member_fields_json : JSON.parse(m.member_fields_json || '{}');
+      memberValues = (mf && typeof mf === 'object' && !Array.isArray(mf)) ? mf : (mf?.fields || {});
+    } catch(_) {}
+
+    // Parse quiz candidate fields from headline attempt
+    let candidateValues = {};
+    if (headline) {
+      try {
+        const cf = typeof headline.candidate_fields_json === 'object' ? headline.candidate_fields_json : JSON.parse(headline.candidate_fields_json || '{}');
+        candidateValues = cf.fields || cf || {};
+      } catch(_) {}
+    }
+
+    const gradeBands = headline?.grade_bands_json || quiz.grade_bands_json;
+    const gradeLabel = headline ? _gradeLabelFromBands(gradeBands, headline.score_pct) : null;
+    const passThresh = (headline?.score_json || {}).pass_threshold_pct ?? threshold;
+    const passFail = headline && headline.score_pct != null ? (headline.score_pct >= passThresh ? 'PASS' : 'FAIL') : null;
+
+    return {
+      user_id: m.user_id,
+      display_name: m.display_name || m.email || m.user_id,
+      email: m.email,
+      member_status: m.status,
+      member_fields: memberValues,
+      candidate_fields: candidateValues,
+      status,
+      attempts_used: totalAttempts,
+      headline_attempt_id: headline?.attempt_id || null,
+      score_raw: headline?.score_raw ?? null,
+      score_total: headline?.score_total ?? null,
+      score_pct: headline?.score_pct ?? null,
+      time_taken_s: headline?.time_taken_s ?? null,
+      grade_label: gradeLabel,
+      pass_fail: passFail,
+      submitted_at: headline?.submitted_at || null,
+      attempt_no: headline?.attempt_no ?? null
+    };
+  });
+
+  // Sort
+  const sort = opts.sort || 'name_asc';
+  rows.sort((a, b) => {
+    if (sort === 'score_desc') return (b.score_pct ?? -1) - (a.score_pct ?? -1);
+    if (sort === 'score_asc') return (a.score_pct ?? -1) - (b.score_pct ?? -1);
+    if (sort === 'status_asc') return (a.status || '').localeCompare(b.status || '');
+    return (a.display_name || '').localeCompare(b.display_name || '');
+  });
+
+  // Filter by status
+  let filtered = rows;
+  if (opts.statusFilter && opts.statusFilter !== 'ALL') {
+    filtered = rows.filter(r => r.status === opts.statusFilter);
+  }
+
+  return {
+    success: true,
+    headline_rule: headlineRule,
+    quiz_title: quiz.title,
+    quiz_preset: quiz.preset,
+    class_title: cls?.title || '',
+    class_fields: classFields,
+    quiz_fields: quizFields,
+    score_display_policy: quiz.score_display_policy || 'RAW_AND_PCT',
+    pass_threshold_pct: threshold,
+    rows: filtered,
+    total: rows.length
+  };
+}
+
+
+// ------------------------------------------------------------
+// GET TEACHER RESULTS ITEM ANALYSIS
+// Per-question stats for a quiz+class combination.
+// Used by: results.html — item analysis tab
+// ------------------------------------------------------------
+async function getTeacherResultsItemAnalysis(quizId, classId, opts = {}) {
+  const quiz = await getTeacherQuiz(quizId);
+  if (!quiz) return { success: false, message: 'Quiz not found.' };
+
+  // Get snapshot items
+  const { data: snapItems, error: sErr } = await db.from('teacher_quiz_items')
+    .select('*')
+    .eq('teacher_quiz_id', quizId)
+    .order('position');
+  if (sErr) return { success: false, message: sErr.message };
+  if (!snapItems?.length) return { success: false, message: 'No published items.' };
+
+  // Get all submitted attempts
+  let attQuery = db.from('teacher_quiz_attempts')
+    .select('attempt_id, items_json, answers_json, status')
+    .eq('teacher_quiz_id', quizId)
+    .eq('class_id', classId)
+    .in('status', ['SUBMITTED', 'TIMED_OUT']);
+  const { data: attempts } = await attQuery;
+
+  const totalAttempts = (attempts || []).length;
+  const snapMap = new Map(snapItems.map(s => [s.quiz_item_id, s]));
+
+  // Build per-item stats
+  const itemStats = snapItems.map(snap => {
+    const qid = snap.quiz_item_id;
+    let correctCount = 0, wrongCount = 0, blankCount = 0;
+    const optionCounts = {};
+    const letters = ['A','B','C','D','E','F'];
+    letters.forEach(l => { if (snap['snap_option_' + l.toLowerCase()]) optionCounts[l] = 0; });
+
+    (attempts || []).forEach(att => {
+      const items = att.items_json || [];
+      const answers = att.answers_json || {};
+      const itemEntry = items.find(i => i.quiz_item_id === qid);
+      if (!itemEntry) return;
+
+      const studentAnswer = answers[qid];
+      const qType = snap.snap_question_type || 'MCQ';
+      const correctSet = new Set((snap.snap_correct || '').split(',').map(s => s.trim()).filter(Boolean));
+
+      if (qType === 'SATA') {
+        const studentArr = Array.isArray(studentAnswer) ? studentAnswer :
+          (typeof studentAnswer === 'string' ? studentAnswer.split(',').map(s => s.trim()).filter(Boolean) : []);
+        if (!studentArr.length) { blankCount++; return; }
+
+        // Map back through opt_map
+        const origSet = new Set();
+        studentArr.forEach(dl => {
+          const orig = itemEntry.opt_map ? itemEntry.opt_map[dl] : dl;
+          if (orig) origSet.add(orig);
+        });
+
+        // Count each option
+        origSet.forEach(l => { if (optionCounts[l] !== undefined) optionCounts[l]++; });
+
+        const isCorrect = origSet.size === correctSet.size && [...origSet].every(l => correctSet.has(l));
+        if (isCorrect) correctCount++; else wrongCount++;
+      } else {
+        // MCQ / TF
+        const chosen = typeof studentAnswer === 'string' ? studentAnswer.trim() : '';
+        if (!chosen) { blankCount++; return; }
+
+        const origChosen = itemEntry.opt_map ? (itemEntry.opt_map[chosen] || chosen) : chosen;
+        if (optionCounts[origChosen] !== undefined) optionCounts[origChosen]++;
+
+        if (origChosen === snap.snap_correct) correctCount++; else wrongCount++;
+      }
+    });
+
+    const attCount = correctCount + wrongCount + blankCount;
+    const pctCorrect = attCount > 0 ? Math.round(correctCount / attCount * 10000) / 100 : 0;
+
+    // Find common wrong distractor
+    let commonDistractor = null;
+    let maxWrong = 0;
+    const correctLetters = new Set((snap.snap_correct || '').split(',').map(s => s.trim()));
+    Object.entries(optionCounts).forEach(([letter, count]) => {
+      if (!correctLetters.has(letter) && count > maxWrong) {
+        maxWrong = count;
+        commonDistractor = { letter, count, pct: attCount > 0 ? Math.round(count / attCount * 100) : 0 };
+      }
+    });
+
+    // Flags
+    const flags = [];
+    if (pctCorrect >= 95 && attCount >= 5) flags.push('TOO_EASY');
+    if (pctCorrect <= 20 && attCount >= 5) flags.push('TOO_HARD');
+    if (attCount > 0 && blankCount / attCount >= 0.25) flags.push('HIGH_BLANKS');
+    if (commonDistractor && commonDistractor.pct > 40 && commonDistractor.pct > pctCorrect) flags.push('DISTRACTOR_DOMINANT');
+
+    return {
+      quiz_item_id: qid,
+      position: snap.position,
+      question_type: snap.snap_question_type || 'MCQ',
+      stem_preview: (snap.snap_stem || '').substring(0, 120),
+      topic: snap.snap_maintopic || snap.snap_subtopic || '',
+      marks: snap.snap_marks || 1,
+      correct_answer: snap.snap_correct,
+      attempts: attCount,
+      correct_count: correctCount,
+      wrong_count: wrongCount,
+      blank_count: blankCount,
+      pct_correct: pctCorrect,
+      option_counts: optionCounts,
+      common_distractor: commonDistractor,
+      flags
+    };
+  });
+
+  return {
+    success: true,
+    total_attempts: totalAttempts,
+    items: itemStats
+  };
+}
+
+
+// ------------------------------------------------------------
+// GET STUDENT ATTEMPTS FOR TEACHER
+// Returns all attempts for a specific student on a quiz+class.
+// Used by: results.html — attempts drawer
+// ------------------------------------------------------------
+async function getStudentAttemptsForTeacher(quizId, classId, studentUserId) {
+  const { data, error } = await db.from('teacher_quiz_attempts')
+    .select('attempt_id, attempt_no, status, score_raw, score_total, score_pct, time_taken_s, submitted_at, started_at, candidate_fields_json, grade_bands_json, score_json')
+    .eq('teacher_quiz_id', quizId)
+    .eq('class_id', classId)
+    .eq('user_id', studentUserId)
+    .neq('status', 'ABANDONED')
+    .order('attempt_no');
+
+  if (error) return { success: false, message: error.message };
+  return { success: true, attempts: data || [] };
+}
+
+
+// ------------------------------------------------------------
+// GET ATTEMPT DETAIL FOR TEACHER
+// Returns full attempt with answer review for teacher viewing.
+// Unlike getAttemptReview, no ownership check — teacher access.
+// Used by: results.html — view attempt drawer
+// ------------------------------------------------------------
+async function getAttemptDetailForTeacher(attemptId) {
+  const { data: attempt, error: aErr } = await db.from('teacher_quiz_attempts')
+    .select('*')
+    .eq('attempt_id', attemptId)
+    .maybeSingle();
+
+  if (aErr || !attempt) return { success: false, message: 'Attempt not found.' };
+
+  const quiz = await getTeacherQuiz(attempt.teacher_quiz_id);
+  if (!quiz) return { success: false, message: 'Quiz not found.' };
+
+  const { data: snapItems } = await db.from('teacher_quiz_items')
+    .select('*')
+    .eq('teacher_quiz_id', attempt.teacher_quiz_id)
+    .order('position');
+
+  const snapMap = new Map((snapItems || []).map(s => [s.quiz_item_id, s]));
+  const attemptItems = attempt.items_json || [];
+  const answers = attempt.answers_json || {};
+
+  const questions = attemptItems.map((item, idx) => {
+    const snap = snapMap.get(item.quiz_item_id);
+    if (!snap) return null;
+    const qType = snap.snap_question_type || 'MCQ';
+    const studentAnswer = answers[item.quiz_item_id];
+
+    // Build options with original letters
+    const optMap = item.opt_map || {};
+    const reverseMap = {};
+    Object.entries(optMap).forEach(([display, orig]) => { reverseMap[orig] = display; });
+
+    const options = [];
+    ['A','B','C','D','E','F'].forEach(letter => {
+      const text = snap['snap_option_' + letter.toLowerCase()];
+      if (!text) return;
+      options.push({
+        letter,
+        text,
+        feedback: snap['snap_fb_' + letter.toLowerCase()] || null
+      });
+    });
+
+    // Determine correctness
+    const correctSet = new Set((snap.snap_correct || '').split(',').map(s => s.trim()).filter(Boolean));
+    let studentOriginal;
+    if (qType === 'SATA') {
+      const arr = Array.isArray(studentAnswer) ? studentAnswer : (typeof studentAnswer === 'string' ? studentAnswer.split(',').map(s => s.trim()).filter(Boolean) : []);
+      studentOriginal = arr.map(dl => optMap[dl] || dl);
+    } else {
+      const chosen = typeof studentAnswer === 'string' ? studentAnswer.trim() : '';
+      studentOriginal = chosen ? [optMap[chosen] || chosen] : [];
+    }
+
+    const isCorrect = qType === 'SATA'
+      ? studentOriginal.length === correctSet.size && studentOriginal.every(l => correctSet.has(l))
+      : studentOriginal.length === 1 && correctSet.has(studentOriginal[0]);
+
+    return {
+      position: idx + 1,
+      quiz_item_id: item.quiz_item_id,
+      question_type: qType,
+      stem: snap.snap_stem,
+      options,
+      correct_answer: snap.snap_correct,
+      student_answer: studentOriginal,
+      is_correct: isCorrect,
+      marks: snap.snap_marks || 1,
+      rationale: snap.snap_rationale,
+      rationale_img: snap.snap_rationale_img,
+      topic: snap.snap_maintopic || '',
+      subtopic: snap.snap_subtopic || '',
+      difficulty: snap.snap_difficulty || ''
+    };
+  }).filter(Boolean);
+
+  const gradeLabel = _gradeLabelFromBands(attempt.grade_bands_json || quiz.grade_bands_json, attempt.score_pct);
+  const passThresh = (attempt.score_json || {}).pass_threshold_pct ?? quiz.pass_threshold_pct ?? 50;
+
+  return {
+    success: true,
+    attempt: {
+      attempt_id: attempt.attempt_id,
+      attempt_no: attempt.attempt_no,
+      status: attempt.status,
+      score_raw: attempt.score_raw,
+      score_total: attempt.score_total,
+      score_pct: attempt.score_pct,
+      time_taken_s: attempt.time_taken_s,
+      started_at: attempt.started_at,
+      submitted_at: attempt.submitted_at,
+      grade_label: gradeLabel,
+      pass_fail: attempt.score_pct != null ? (attempt.score_pct >= passThresh ? 'PASS' : 'FAIL') : null
+    },
+    questions
+  };
+}
+
+
+// ------------------------------------------------------------
+// GET QUIZZES FOR CLASS (TEACHER VERSION)
+// Returns PUBLISHED quizzes linked to a class — for the scope dropdown.
+// Used by: results.html — quiz selector
+// ------------------------------------------------------------
+async function getClassQuizzesForTeacher(classId, teacherId) {
+  const { data: links, error: linkErr } = await db.from('teacher_quiz_classes')
+    .select('teacher_quiz_id')
+    .eq('class_id', classId)
+    .eq('status', 'ACTIVE');
+
+  if (linkErr || !links?.length) return [];
+
+  const quizIds = links.map(l => l.teacher_quiz_id);
+  const { data: quizzes, error: qErr } = await db.from('teacher_quizzes')
+    .select('teacher_quiz_id, title, preset, status, open_at, close_at')
+    .in('teacher_quiz_id', quizIds)
+    .eq('teacher_id', teacherId)
+    .in('status', ['PUBLISHED', 'ARCHIVED'])
+    .order('created_at', { ascending: false });
+
+  if (qErr) return [];
+  return quizzes || [];
+}
+
+
 // ── Helper: grade label from bands ──────────────────────────
 function _gradeLabelFromBands(bandsJson, pct) {
   if (pct == null) return null;
