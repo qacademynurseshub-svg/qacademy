@@ -1030,6 +1030,33 @@ function fillFormFromQuiz(quiz) {
   DRAFT_DIRTY = false;
   renderDraftList();
   renderLibItems();
+
+  // Auto-resolve LIB items so stems and previews work immediately
+  const libRefs = DRAFT_IDS.filter(id => id.startsWith('LIB:'));
+  if (libRefs.length) {
+    resolveLibraryRefs(libRefs).then(libMap => {
+      libMap.forEach((item, ref) => {
+        BANK_CACHE.set(ref, {
+          bank_item_id: ref,
+          stem: item.stem,
+          question_type: item.question_type || 'MCQ',
+          option_a: item.option_a, option_b: item.option_b,
+          option_c: item.option_c, option_d: item.option_d,
+          option_e: item.option_e, option_f: item.option_f,
+          fb_a: item.fb_a, fb_b: item.fb_b,
+          fb_c: item.fb_c, fb_d: item.fb_d,
+          fb_e: item.fb_e, fb_f: item.fb_f,
+          correct: item.correct, rationale: item.rationale,
+          rationale_img: item.rationale_img,
+          subject: item.subject, maintopic: item.maintopic,
+          subtopic: item.subtopic, difficulty: item.difficulty,
+          marks: item.marks || 1, _isLibrary: true
+        });
+      });
+      renderDraftList();
+      renderLibItems();
+    });
+  }
 }
 
 function readForm() {
