@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CSV Import — QAcademy My Teacher</title>
+<style>
+:root {
+  --primary:        #1e3a5f;
+  --primary-dark:   #142d4c;
+  --primary-light:  #edf6f5;
+  --accent:         #2d7d72;
+  --accent-light:   rgba(45,125,114,0.10);
+  --accent-border:  rgba(45,125,114,0.25);
+  --danger:         #b91c1c;
+  --danger-light:   rgba(185,28,28,0.08);
+  --danger-border:  rgba(185,28,28,0.25);
+  --warn:           #b45309;
+  --warn-light:     rgba(180,83,9,0.08);
+  --ok:             #15803d;
+  --ok-light:       rgba(21,128,61,0.08);
+  --ok-border:      rgba(21,128,61,0.25);
+  --border:         rgba(0,0,0,0.09);
+  --border-soft:    rgba(0,0,0,0.05);
+  --bg:             #f4f6f8;
+  --card-bg:        #ffffff;
+  --text:           #1a2332;
+  --text-muted:     rgba(26,35,50,0.55);
+  --text-faint:     rgba(26,35,50,0.38);
+  --radius:         14px;
+  --radius-sm:      10px;
+  --shadow:         0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md:      0 4px 16px rgba(0,0,0,0.08);
+  --line:           rgba(0,0,0,0.08);
+  --soft:           rgba(0,0,0,0.03);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── Layout ── */
+.page-header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+.page-header h1 { font-size: 18px; font-weight: 700; }
+.page-header .hint { color: var(--text-muted); font-size: 13px; }
+.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+/* ── Cards ── */
+.card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); transition: all .15s; }
+.btn:hover { background: var(--bg); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+.btn.danger { background: var(--danger-light); color: var(--danger); border-color: var(--danger-border); }
+.btn.sm { padding: 5px 12px; font-size: 12px; }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--accent); }
+.btn.ghost:hover { background: var(--accent-light); }
+
+/* ── Drop zone ── */
+.drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 48px 24px; text-align: center; cursor: pointer; transition: all .2s; background: var(--soft); }
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: var(--accent-light); }
+.drop-zone h3 { font-size: 16px; margin-bottom: 6px; }
+.drop-zone p { color: var(--text-muted); font-size: 13px; }
+
+/* ── Stats bar ── */
+.stats-bar { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 0; }
+.stat-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+.stat-pill.total { background: var(--accent-light); color: var(--accent); }
+.stat-pill.valid { background: var(--ok-light); color: var(--ok); }
+.stat-pill.errors { background: var(--danger-light); color: var(--danger); }
+.stat-pill.dupes { background: var(--warn-light); color: var(--warn); }
+.stat-pill.skipped { background: var(--soft); color: var(--text-muted); }
+
+/* ── Filter tabs ── */
+.filter-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.filter-tab { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-muted); transition: all .15s; }
+.filter-tab:hover { background: var(--bg); }
+.filter-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── Table ── */
+.preview-table-wrap { overflow-x: auto; max-height: 500px; overflow-y: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead { position: sticky; top: 0; z-index: 2; }
+th { background: var(--primary); color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; white-space: nowrap; }
+td { padding: 7px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: top; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+tr:hover td { background: var(--soft); }
+tr.row-valid { }
+tr.row-error td { background: var(--danger-light); }
+tr.row-dupe td { background: var(--warn-light); }
+tr.row-skipped td { opacity: .5; }
+.row-status { font-weight: 600; font-size: 11px; white-space: nowrap; }
+.row-status.ok { color: var(--ok); }
+.row-status.err { color: var(--danger); }
+.row-status.dup { color: var(--warn); }
+.row-status.skip { color: var(--text-muted); }
+
+/* ── Toast ── */
+.toast-wrap { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 10px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; background: var(--card-bg); border: 1px solid var(--border); box-shadow: var(--shadow-md); animation: fadeIn .2s; }
+.toast.ok { border-color: var(--ok-border); color: var(--ok); }
+.toast.error { border-color: var(--danger-border); color: var(--danger); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Progress bar ── */
+.progress-wrap { display: none; margin: 16px 0; }
+.progress-bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .15s; width: 0%; }
+.progress-label { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+/* ── Import result ── */
+.result-card { padding: 20px; border-radius: var(--radius); text-align: center; }
+.result-card.success { background: var(--ok-light); border: 1px solid var(--ok-border); }
+.result-card h3 { font-size: 18px; margin-bottom: 8px; }
+.result-card p { font-size: 14px; color: var(--text-muted); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .container { padding: 16px; }
+  .drop-zone { padding: 32px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<div class="page-header">
+  <button class="btn sm ghost" id="btnBack">← Back</button>
+  <h1>CSV Import</h1>
+  <span class="hint">Import questions into your Question Bank</span>
+</div>
+
+<div class="container">
+
+<!-- ── STEP 1: UPLOAD ── -->
+<div id="stepUpload">
+  <div class="card">
+    <div class="card-title">Upload CSV File</div>
+    <div class="drop-zone" id="dropZone">
+      <h3>Drop your CSV file here</h3>
+      <p>or click to browse · Max 300 rows · .csv files only</p>
+      <input type="file" id="fileInput" accept=".csv" style="display:none" />
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+      <button class="btn sm" id="btnTemplate">⬇ Download Template</button>
+      <span class="hint" style="font-size:12px">Use this template to format your questions correctly</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Expected CSV Format</div>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
+      <b>Required columns:</b> <code>stem</code>, <code>option_a</code>, <code>option_b</code>, <code>correct</code><br>
+      <b>Optional columns:</b> <code>question_type</code> (MCQ/TF/SATA, default MCQ), <code>option_c</code> to <code>option_f</code>,
+      <code>fb_a</code> to <code>fb_f</code> (per-option feedback), <code>rationale</code>, <code>rationale_img</code>,
+      <code>subject</code>, <code>maintopic</code>, <code>subtopic</code>, <code>difficulty</code>, <code>marks</code> (default 1),
+      <code>shuffle_options</code> (true/false)<br>
+      <b>SATA:</b> comma-separate correct answers, e.g. <code>A,C,E</code><br>
+      <b>TF:</b> set <code>question_type</code> to <code>TF</code>, options A = True, B = False, <code>correct</code> = A or B
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP 2: PREVIEW ── -->
+<div id="stepPreview" style="display:none">
+  <div class="card">
+    <div class="card-title">Preview & Validation</div>
+    <div class="stats-bar" id="statsBar"></div>
+    <div class="filter-tabs" id="filterTabs">
+      <div class="filter-tab active" data-filter="all">All</div>
+      <div class="filter-tab" data-filter="valid">Valid</div>
+      <div class="filter-tab" data-filter="error">Errors</div>
+      <div class="filter-tab" data-filter="dupe">Duplicates</div>
+    </div>
+    <div class="preview-table-wrap" id="tableWrap"></div>
+    <div style="margin-top:16px;display:flex;gap:10px;align-items:center;justify-content:space-between">
+      <div>
+        <button class="btn sm" id="btnReupload">↻ Upload Different File</button>
+      </div>
+      <div style="display:flex;gap:10px">
+        <span class="hint" id="importHint" style="font-size:12px;align-self:center"></span>
+        <button class="btn primary" id="btnImport" disabled>Import Valid Rows</button>
+      </div>
+    </div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">Importing...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP 3: RESULT ── -->
+<div id="stepResult" style="display:none">
+  <div class="card">
+    <div class="result-card success" id="resultCard"></div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:center">
+      <button class="btn" id="btnImportMore">Import More</button>
+      <button class="btn primary" id="btnGoToBank">Go to Question Bank</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- container -->
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ── SCRIPTS ── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/myteacher-teacher-nav.js"></script>
+<script src="/js/teacher-api.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+
+let PROFILE = null;
+let TEACHER_ID = '';
+let PARSED_ROWS = [];       // all parsed rows with validation
+let EXISTING_STEMS = new Set(); // for duplicate detection
+let ACTIVE_FILTER = 'all';
+
+// ── Column definitions ──
+const REQUIRED_COLS = ['stem', 'option_a', 'option_b', 'correct'];
+const ALL_COLS = [
+  'question_type', 'stem',
+  'option_a', 'fb_a', 'option_b', 'fb_b', 'option_c', 'fb_c',
+  'option_d', 'fb_d', 'option_e', 'fb_e', 'option_f', 'fb_f',
+  'correct', 'rationale', 'rationale_img',
+  'subject', 'maintopic', 'subtopic', 'difficulty',
+  'marks', 'shuffle_options'
+];
+
+// ── Toast ──
+function showToast(title, msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || '');
+  t.innerHTML = `<b>${esc(title)}</b> ${esc(msg)}`;
+  $('toastWrap').appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ── CSV Template ──
+function downloadTemplate() {
+  const header = ALL_COLS.join(',');
+  const example1 = 'MCQ,"What is the normal heart rate for an adult?","60-100 bpm","","40-60 bpm","","100-150 bpm","","20-40 bpm","","","","","",A,"Normal resting heart rate is 60-100 beats per minute.","",Medicine,"Vital Signs","",Easy,1,true';
+  const example2 = 'SATA,"Which of the following are signs of dehydration? (Select all that apply)","Dry mucous membranes","","Decreased urine output","","Bradycardia","","Sunken eyes","","","","","","A,B,D","Bradycardia is not a sign of dehydration; tachycardia is.","",Medicine,"Fluid Balance","",Medium,2,true';
+  const example3 = 'TF,"The liver is located in the right upper quadrant of the abdomen.",True,"",False,"","","","","","","","","",A,"The liver is primarily located in the right upper quadrant.","",Anatomy,"Abdomen","",Easy,1,true';
+  const csv = header + '\n' + example1 + '\n' + example2 + '\n' + example3;
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'qacademy_import_template.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── CSV Parsing (vanilla, handles quoted fields) ──
+function parseCSV(text) {
+  const rows = [];
+  let i = 0;
+  const len = text.length;
+
+  function parseField() {
+    if (i >= len || text[i] === '\n' || text[i] === '\r') return '';
+    if (text[i] === '"') {
+      i++; // skip opening quote
+      let val = '';
+      while (i < len) {
+        if (text[i] === '"') {
+          if (i + 1 < len && text[i + 1] === '"') { val += '"'; i += 2; }
+          else { i++; break; } // closing quote
+        } else { val += text[i]; i++; }
+      }
+      if (i < len && text[i] === ',') i++; // skip comma
+      return val;
+    } else {
+      let val = '';
+      while (i < len && text[i] !== ',' && text[i] !== '\n' && text[i] !== '\r') { val += text[i]; i++; }
+      if (i < len && text[i] === ',') i++;
+      return val;
+    }
+  }
+
+  while (i < len) {
+    // Skip empty lines
+    while (i < len && (text[i] === '\n' || text[i] === '\r')) i++;
+    if (i >= len) break;
+    const row = [];
+    while (i < len && text[i] !== '\n' && text[i] !== '\r') {
+      row.push(parseField());
+    }
+    if (row.length > 0 && row.some(c => c.trim())) rows.push(row);
+  }
+  return rows;
+}
+
+// ── Normalize header names ──
+function normalizeHeader(h) {
+  return h.trim().toLowerCase().replace(/[^a-z0-9_]/g, '').replace(/\s+/g, '_');
+}
+
+// ── Validate a single row ──
+function validateRow(row, idx) {
+  const errors = [];
+  const type = (row.question_type || 'MCQ').toUpperCase().trim();
+
+  if (!['MCQ', 'TF', 'SATA'].includes(type)) errors.push(`Invalid question_type "${row.question_type}"`);
+  if (!row.stem || !row.stem.trim()) errors.push('stem is required');
+  if (!row.correct || !row.correct.trim()) errors.push('correct is required');
+
+  if (type === 'TF') {
+    // TF just needs A and B
+    if (!row.option_a || !row.option_a.trim()) errors.push('option_a required for TF');
+    if (!row.option_b || !row.option_b.trim()) errors.push('option_b required for TF');
+    const c = row.correct.trim().toUpperCase();
+    if (!['A', 'B'].includes(c)) errors.push('TF correct must be A or B');
+  } else if (type === 'SATA') {
+    if (!row.option_a || !row.option_a.trim()) errors.push('option_a required');
+    if (!row.option_b || !row.option_b.trim()) errors.push('option_b required');
+    const parts = row.correct.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    if (parts.length < 2) errors.push('SATA requires at least 2 correct answers');
+    const validLetters = ['A','B','C','D','E','F'];
+    const filledOptions = ['A','B','C','D','E','F'].filter(l => row['option_' + l.toLowerCase()] && row['option_' + l.toLowerCase()].trim());
+    parts.forEach(p => {
+      if (!validLetters.includes(p)) errors.push(`Invalid correct letter "${p}"`);
+      if (!filledOptions.includes(p)) errors.push(`Correct letter ${p} has no option text`);
+    });
+  } else {
+    // MCQ
+    if (!row.option_a || !row.option_a.trim()) errors.push('option_a required');
+    if (!row.option_b || !row.option_b.trim()) errors.push('option_b required');
+    const c = row.correct.trim().toUpperCase();
+    if (!['A','B','C','D','E','F'].includes(c)) errors.push(`Invalid correct answer "${c}"`);
+    const filledOptions = ['A','B','C','D','E','F'].filter(l => row['option_' + l.toLowerCase()] && row['option_' + l.toLowerCase()].trim());
+    if (!filledOptions.includes(c)) errors.push(`Correct answer ${c} has no option text`);
+  }
+
+  // Marks
+  if (row.marks !== undefined && row.marks !== '') {
+    const m = Number(row.marks);
+    if (isNaN(m) || m < 0) errors.push('marks must be a positive number');
+  }
+
+  return errors;
+}
+
+// ── Check duplicates against existing bank ──
+async function loadExistingStems() {
+  const { data, error } = await db
+    .from('teacher_bank_items')
+    .select('stem')
+    .eq('teacher_id', TEACHER_ID)
+    .eq('status', 'ACTIVE');
+  if (error) { console.error('loadExistingStems:', error); return; }
+  EXISTING_STEMS = new Set((data || []).map(r => r.stem.trim().toLowerCase()));
+}
+
+// ── Process file ──
+async function processFile(file) {
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    showToast('Error', 'Please upload a .csv file', 'error');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Error', 'File too large (max 5MB)', 'error');
+    return;
+  }
+
+  showToast('Processing', 'Parsing CSV...', '');
+
+  const text = await file.text();
+  const raw = parseCSV(text);
+  if (raw.length < 2) {
+    showToast('Error', 'CSV must have a header row and at least one data row', 'error');
+    return;
+  }
+
+  // Map headers
+  const headers = raw[0].map(normalizeHeader);
+  const missingRequired = REQUIRED_COLS.filter(c => !headers.includes(c));
+  if (missingRequired.length) {
+    showToast('Error', `Missing required columns: ${missingRequired.join(', ')}`, 'error');
+    return;
+  }
+
+  const dataRows = raw.slice(1);
+  if (dataRows.length > 300) {
+    showToast('Error', `Too many rows (${dataRows.length}). Maximum is 300.`, 'error');
+    return;
+  }
+
+  // Load existing stems for duplicate checking
+  await loadExistingStems();
+
+  // Build row objects
+  const stemsSeen = new Set(); // track duplicates within the file itself
+  PARSED_ROWS = dataRows.map((cells, idx) => {
+    const row = {};
+    headers.forEach((h, i) => { row[h] = (cells[i] || '').trim(); });
+
+    const errors = validateRow(row, idx);
+    const stemKey = (row.stem || '').trim().toLowerCase();
+    let isDupe = false;
+    let dupeNote = '';
+
+    if (stemKey && EXISTING_STEMS.has(stemKey)) {
+      isDupe = true;
+      dupeNote = 'Duplicate of existing bank item';
+    } else if (stemKey && stemsSeen.has(stemKey)) {
+      isDupe = true;
+      dupeNote = 'Duplicate within this file';
+    }
+    if (stemKey) stemsSeen.add(stemKey);
+
+    return {
+      idx: idx + 1,
+      data: row,
+      errors,
+      isDupe,
+      dupeNote,
+      status: errors.length > 0 ? 'error' : isDupe ? 'dupe' : 'valid'
+    };
+  });
+
+  renderPreview();
+  $('stepUpload').style.display = 'none';
+  $('stepPreview').style.display = '';
+}
+
+// ── Render preview ──
+function renderPreview() {
+  const total = PARSED_ROWS.length;
+  const valid = PARSED_ROWS.filter(r => r.status === 'valid').length;
+  const errors = PARSED_ROWS.filter(r => r.status === 'error').length;
+  const dupes = PARSED_ROWS.filter(r => r.status === 'dupe').length;
+
+  $('statsBar').innerHTML = `
+    <span class="stat-pill total">Total: ${total}</span>
+    <span class="stat-pill valid">Valid: ${valid}</span>
+    <span class="stat-pill errors">Errors: ${errors}</span>
+    <span class="stat-pill dupes">Duplicates: ${dupes}</span>
+  `;
+
+  $('importHint').textContent = valid > 0 ? `${valid} valid row(s) will be imported. ${errors + dupes} will be skipped.` : 'No valid rows to import.';
+  $('btnImport').disabled = valid === 0;
+  $('btnImport').textContent = `Import ${valid} Valid Row${valid !== 1 ? 's' : ''}`;
+
+  renderTable();
+}
+
+function renderTable() {
+  const filtered = ACTIVE_FILTER === 'all' ? PARSED_ROWS :
+    PARSED_ROWS.filter(r => r.status === ACTIVE_FILTER);
+
+  const displayCols = ['question_type', 'stem', 'option_a', 'option_b', 'correct', 'subject', 'maintopic', 'difficulty', 'marks'];
+
+  let html = '<table><thead><tr><th>#</th><th>Status</th>';
+  displayCols.forEach(c => { html += `<th>${esc(c)}</th>`; });
+  html += '<th>Issues</th></tr></thead><tbody>';
+
+  filtered.forEach(r => {
+    const cls = r.status === 'error' ? 'row-error' : r.status === 'dupe' ? 'row-dupe' : 'row-valid';
+    const statusCls = r.status === 'error' ? 'err' : r.status === 'dupe' ? 'dup' : 'ok';
+    const statusLabel = r.status === 'error' ? '✗ Error' : r.status === 'dupe' ? '⚠ Duplicate' : '✓ Valid';
+    const issues = r.errors.length > 0 ? r.errors.join('; ') : r.isDupe ? r.dupeNote : '';
+
+    html += `<tr class="${cls}"><td>${r.idx}</td><td><span class="row-status ${statusCls}">${statusLabel}</span></td>`;
+    displayCols.forEach(c => { html += `<td title="${esc(r.data[c] || '')}">${esc(r.data[c] || '—')}</td>`; });
+    html += `<td style="color:var(--danger);font-size:11px;max-width:300px;white-space:normal">${esc(issues)}</td></tr>`;
+  });
+
+  html += '</tbody></table>';
+  $('tableWrap').innerHTML = filtered.length === 0
+    ? '<div style="padding:24px;text-align:center;color:var(--text-muted)">No rows match this filter</div>'
+    : html;
+}
+
+// ── Import valid rows ──
+async function doImport() {
+  const validRows = PARSED_ROWS.filter(r => r.status === 'valid');
+  if (!validRows.length) return;
+
+  $('btnImport').disabled = true;
+  $('btnReupload').disabled = true;
+  $('progressWrap').style.display = '';
+  $('progressFill').style.width = '0%';
+
+  let imported = 0;
+  let failed = 0;
+
+  for (let i = 0; i < validRows.length; i++) {
+    const r = validRows[i].data;
+    const type = (r.question_type || 'MCQ').toUpperCase().trim();
+    const marks = Number(r.marks) || 1;
+    const shuffle = r.shuffle_options === undefined || r.shuffle_options === '' || r.shuffle_options === 'true' || r.shuffle_options === '1';
+
+    const payload = {
+      question_type: type,
+      stem: r.stem,
+      option_a: r.option_a || null,
+      fb_a: r.fb_a || null,
+      option_b: r.option_b || null,
+      fb_b: r.fb_b || null,
+      option_c: r.option_c || null,
+      fb_c: r.fb_c || null,
+      option_d: r.option_d || null,
+      fb_d: r.fb_d || null,
+      option_e: r.option_e || null,
+      fb_e: r.fb_e || null,
+      option_f: r.option_f || null,
+      fb_f: r.fb_f || null,
+      correct: r.correct ? r.correct.toUpperCase().trim() : '',
+      rationale: r.rationale || null,
+      rationale_img: r.rationale_img || null,
+      subject: r.subject || null,
+      maintopic: r.maintopic || null,
+      subtopic: r.subtopic || null,
+      difficulty: r.difficulty || null,
+      marks: marks,
+      shuffle_options: shuffle,
+      source_type: 'IMPORT',
+    };
+
+    const result = await createBankItem(TEACHER_ID, payload);
+    if (result.success) { imported++; } else { failed++; }
+
+    const pct = Math.round(((i + 1) / validRows.length) * 100);
+    $('progressFill').style.width = pct + '%';
+    $('progressLabel').textContent = `Importing... ${i + 1}/${validRows.length}`;
+  }
+
+  // Show results
+  $('stepPreview').style.display = 'none';
+  $('stepResult').style.display = '';
+  $('resultCard').innerHTML = `
+    <h3>✓ Import Complete</h3>
+    <p><b>${imported}</b> question${imported !== 1 ? 's' : ''} imported to your Question Bank</p>
+    ${failed > 0 ? `<p style="color:var(--danger);margin-top:8px">${failed} row(s) failed to save</p>` : ''}
+    ${PARSED_ROWS.filter(r => r.status !== 'valid').length > 0
+      ? `<p style="color:var(--text-muted);margin-top:8px">${PARSED_ROWS.filter(r => r.status === 'error').length} error(s), ${PARSED_ROWS.filter(r => r.status === 'dupe').length} duplicate(s) skipped</p>`
+      : ''}
+  `;
+}
+
+// ── Event bindings ──
+async function boot() {
+  PROFILE = await guardPage('TEACHER');
+  TEACHER_ID = PROFILE.user_id;
+
+  // Back button
+  const params = new URLSearchParams(location.search);
+  const returnTo = params.get('return_to');
+  $('btnBack').addEventListener('click', () => {
+    location.href = returnTo ? decodeURIComponent(returnTo) : '/myteacher/teacher/bank.html';
+  });
+
+  // Template download
+  $('btnTemplate').addEventListener('click', downloadTemplate);
+
+  // Drop zone
+  const zone = $('dropZone');
+  const input = $('fileInput');
+
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+  input.addEventListener('change', () => { if (input.files[0]) processFile(input.files[0]); });
+
+  // Filter tabs
+  $('filterTabs').addEventListener('click', e => {
+    const tab = e.target.closest('.filter-tab');
+    if (!tab) return;
+    ACTIVE_FILTER = tab.dataset.filter;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t === tab));
+    renderTable();
+  });
+
+  // Re-upload
+  $('btnReupload').addEventListener('click', () => {
+    PARSED_ROWS = [];
+    ACTIVE_FILTER = 'all';
+    input.value = '';
+    $('stepPreview').style.display = 'none';
+    $('stepUpload').style.display = '';
+  });
+
+  // Import
+  $('btnImport').addEventListener('click', doImport);
+
+  // Result buttons
+  $('btnImportMore').addEventListener('click', () => {
+    PARSED_ROWS = [];
+    ACTIVE_FILTER = 'all';
+    input.value = '';
+    $('stepResult').style.display = 'none';
+    $('stepUpload').style.display = '';
+  });
+
+  $('btnGoToBank').addEventListener('click', () => {
+    location.href = '/myteacher/teacher/bank.html';
+  });
+}
+
+boot().catch(err => { console.error('Boot error:', err); showToast('Error', 'Failed to load page', 'error'); });
+</script>
+</body>
+</html>
