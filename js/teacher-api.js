@@ -3091,6 +3091,74 @@ async function resolveLibraryRefs(libRefs) {
 
 
 // ------------------------------------------------------------
+// COPY LIBRARY ITEM TO BANK
+// Creates a new teacher_bank_items row from a library item,
+// optionally with teacher edits applied.
+// source_type = 'LIBRARY', source_course_id / source_item_id set for traceability.
+// Used by: quizzes.html — when teacher edits a LIB item in draft
+// ------------------------------------------------------------
+async function copyLibItemToBank(teacherId, courseId, itemId, edits = {}) {
+  // 1. Resolve the library item
+  const ref = `LIB:${courseId}:${itemId}`;
+  const resolved = await resolveLibraryRefs([ref]);
+  const libItem = resolved.get(ref);
+  if (!libItem) return { success: false, message: 'Library item not found' };
+
+  // 2. Build payload: library item as base, teacher edits on top
+  const payload = {
+    question_type  : edits.question_type  || libItem.question_type  || 'MCQ',
+    stem           : edits.stem           !== undefined ? edits.stem           : libItem.stem,
+    option_a       : edits.option_a       !== undefined ? edits.option_a       : libItem.option_a,
+    fb_a           : edits.fb_a           !== undefined ? edits.fb_a           : libItem.fb_a,
+    option_b       : edits.option_b       !== undefined ? edits.option_b       : libItem.option_b,
+    fb_b           : edits.fb_b           !== undefined ? edits.fb_b           : libItem.fb_b,
+    option_c       : edits.option_c       !== undefined ? edits.option_c       : libItem.option_c,
+    fb_c           : edits.fb_c           !== undefined ? edits.fb_c           : libItem.fb_c,
+    option_d       : edits.option_d       !== undefined ? edits.option_d       : libItem.option_d,
+    fb_d           : edits.fb_d           !== undefined ? edits.fb_d           : libItem.fb_d,
+    option_e       : edits.option_e       !== undefined ? edits.option_e       : libItem.option_e,
+    fb_e           : edits.fb_e           !== undefined ? edits.fb_e           : libItem.fb_e,
+    option_f       : edits.option_f       !== undefined ? edits.option_f       : libItem.option_f,
+    fb_f           : edits.fb_f           !== undefined ? edits.fb_f           : libItem.fb_f,
+    correct        : edits.correct        !== undefined ? edits.correct        : libItem.correct,
+    rationale      : edits.rationale      !== undefined ? edits.rationale      : libItem.rationale,
+    rationale_img  : edits.rationale_img  !== undefined ? edits.rationale_img  : libItem.rationale_img,
+    subject        : edits.subject        !== undefined ? edits.subject        : libItem.subject,
+    maintopic      : edits.maintopic      !== undefined ? edits.maintopic      : libItem.maintopic,
+    subtopic       : edits.subtopic       !== undefined ? edits.subtopic       : libItem.subtopic,
+    difficulty     : edits.difficulty      !== undefined ? edits.difficulty     : libItem.difficulty,
+    marks          : edits.marks          !== undefined ? edits.marks          : libItem.marks,
+    shuffle_options: edits.shuffle_options !== undefined ? edits.shuffle_options : (libItem.shuffle_options !== false),
+  };
+
+  // 3. Insert into bank with source tracking
+  const now = new Date().toISOString();
+  const bankItemId = 'TBANK_' + Date.now();
+
+  const row = {
+    bank_item_id   : bankItemId,
+    teacher_id     : teacherId,
+    status         : 'ACTIVE',
+    source_type    : 'LIBRARY',
+    source_course_id: courseId,
+    source_item_id : itemId,
+    created_at     : now,
+    updated_at     : now,
+    ...payload,
+  };
+
+  const { data, error } = await db
+    .from('teacher_bank_items')
+    .insert(row)
+    .select('*')
+    .single();
+
+  if (error) { console.error('copyLibItemToBank:', error); return { success: false, message: error.message }; }
+  return { success: true, item: data, bankItemId };
+}
+
+
+// ------------------------------------------------------------
 // GET DRAFT QUIZZES (for library picker target selector)
 // Returns all DRAFT quizzes for a teacher.
 // Used by: library.html — target quiz dropdown

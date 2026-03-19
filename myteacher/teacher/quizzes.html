@@ -657,8 +657,9 @@ let LINKED_CLASS_IDS = new Set();
 let BANK_RESULTS = [];
 
 // Inline editor state
-let QE_MODE = 'NEW'; // NEW or EDIT
+let QE_MODE = 'NEW'; // NEW, EDIT, PREVIEW, or LIB_COPY
 let QE_BANK_ITEM_ID = '';
+let QE_LIB_REF = null; // stores original LIB:COURSE:ITEM ref during LIB_COPY
 let QE_TYPE = 'MCQ';
 let QE_IMG_FILE = null;
 let QE_IMG_URL = '';
@@ -1628,15 +1629,27 @@ function resetInlineEditor() {
 }
 
 function loadItemIntoEditor(item, mode) {
-  QE_MODE = mode; // 'EDIT' or 'PREVIEW'
+  QE_MODE = mode; // 'EDIT', 'PREVIEW', 'NEW', or 'LIB_COPY'
   QE_BANK_ITEM_ID = item.bank_item_id;
   QE_TYPE = item.question_type || 'MCQ';
   QE_IMG_URL = item.rationale_img || '';
 
-  $('qeTitle').textContent = mode === 'EDIT' ? 'Edit Bank Item' : 'Preview';
-  $('qeModeBadge').textContent = mode;
-  $('qeModeBadge').className = mode === 'EDIT' ? 'badge badge-upcoming' : 'badge badge-published';
-  $('qeBankIdHint').textContent = 'Bank ID: ' + item.bank_item_id;
+  // Store original LIB ref for swapping in draft after copy
+  QE_LIB_REF = mode === 'LIB_COPY' ? item.bank_item_id : null;
+
+  if (mode === 'LIB_COPY') {
+    $('qeTitle').textContent = 'Edit QAcademy Library Item';
+    $('qeModeBadge').textContent = 'COPY TO BANK';
+    $('qeModeBadge').className = 'badge';
+    $('qeModeBadge').style.cssText = 'background:rgba(109,40,217,.1);color:#6d28d9';
+    $('qeBankIdHint').innerHTML = '<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;margin:4px 0;font-size:12px;color:#92400e"><b>⚠ QAcademy Library Question</b> — Your changes will be saved as a new item in your Question Bank. The original library question will not be modified.</div>';
+  } else {
+    $('qeTitle').textContent = mode === 'EDIT' ? 'Edit Bank Item' : 'Preview';
+    $('qeModeBadge').textContent = mode;
+    $('qeModeBadge').className = mode === 'EDIT' ? 'badge badge-upcoming' : 'badge badge-published';
+    $('qeModeBadge').style.cssText = '';
+    $('qeBankIdHint').textContent = 'Bank ID: ' + item.bank_item_id;
+  }
   $('qeStem').value = item.stem || '';
   $('qeSubject').value = item.subject || '';
   $('qeMaintopic').value = item.maintopic || '';
@@ -1652,6 +1665,7 @@ function loadItemIntoEditor(item, mode) {
 
   const readOnly = mode === 'PREVIEW';
   $('btnQeSave').disabled = readOnly;
+  $('btnQeSave').textContent = mode === 'LIB_COPY' ? 'Save to My Bank' : 'Save';
   $('btnQeAddDraft').disabled = readOnly;
   $('qeStem').disabled = readOnly;
   ['qeSubject','qeMaintopic','qeSubtopic','qeDifficulty','qeMarks','qeRationale'].forEach(id => $(id).disabled = readOnly);
@@ -1790,6 +1804,37 @@ async function saveInlineQuestion(addToDraftAfter) {
       showToast('Created', 'Bank item saved.', 'ok');
       if (addToDraftAfter) addToDraft(result.item.bank_item_id);
     }
+  } else if (QE_MODE === 'LIB_COPY') {
+    // Parse LIB ref to get courseId and itemId
+    const libParts = QE_LIB_REF ? QE_LIB_REF.split(':') : [];
+    const courseId = libParts[1] || '';
+    const itemId = libParts[2] || '';
+    result = await copyLibItemToBank(TEACHER_ID, courseId, itemId, form);
+    if (result.success && result.item) {
+      // Update cache with new bank item
+      BANK_CACHE.set(result.item.bank_item_id, result.item);
+      // Swap the LIB ref in draft with the new bank item
+      if (QE_LIB_REF && DRAFT_SET.has(QE_LIB_REF)) {
+        const idx = DRAFT_IDS.indexOf(QE_LIB_REF);
+        if (idx !== -1) DRAFT_IDS[idx] = result.item.bank_item_id;
+        DRAFT_SET.delete(QE_LIB_REF);
+        DRAFT_SET.add(result.item.bank_item_id);
+        DRAFT_DIRTY = true;
+        scheduleDraftSave();
+      }
+      // Switch editor to normal EDIT mode for the new bank item
+      QE_MODE = 'EDIT';
+      QE_BANK_ITEM_ID = result.item.bank_item_id;
+      QE_LIB_REF = null;
+      $('qeTitle').textContent = 'Edit Bank Item';
+      $('qeModeBadge').textContent = 'EDIT';
+      $('qeModeBadge').className = 'badge badge-upcoming';
+      $('qeModeBadge').style.cssText = '';
+      $('qeBankIdHint').textContent = 'Bank ID: ' + result.item.bank_item_id;
+      $('btnQeSave').textContent = 'Save';
+      showToast('Copied to Bank', 'Library item saved to your Question Bank. Draft updated.', 'ok');
+      renderDraftList();
+    }
   } else if (QE_MODE === 'EDIT') {
     result = await updateBankItem(QE_BANK_ITEM_ID, form);
     if (result.success) {
@@ -1845,7 +1890,7 @@ function showPreview(bankItemId) {
         <span class="badge badge-draft">${esc(item.question_type || 'MCQ')}</span>
         <div class="q-btns">
           ${item._isLibrary || (item.bank_item_id && item.bank_item_id.startsWith('LIB:'))
-            ? '<span class="badge" style="background:rgba(109,40,217,.1);color:#6d28d9">Read-only (Library)</span>'
+            ? `<button class="btn sm" style="background:rgba(109,40,217,.1);color:#6d28d9;border:1px solid #6d28d9" onclick="loadItemIntoEditor(BANK_CACHE.get('${esc(item.bank_item_id)}'), 'LIB_COPY'); setActiveTool('create');">Edit (saves to your Bank)</button>`
             : `<button class="btn sm" onclick="loadItemIntoEditor(BANK_CACHE.get('${esc(item.bank_item_id)}'), 'EDIT'); setActiveTool('create');">Edit</button>`}
           <button class="btn sm primary" onclick="addToDraft('${esc(item.bank_item_id)}')" ${DRAFT_SET.has(item.bank_item_id) ? 'disabled' : ''}>Add to Draft</button>
         </div>
