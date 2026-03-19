@@ -386,11 +386,11 @@
     byId('valForename').textContent = fullUser.forename || '—';
     byId('valSurname').textContent  = fullUser.surname  || '—';
     byId('valEmail').textContent    = fullUser.email     || '—';
-    byId('valPhone').textContent    = fullUser.phone     || '—';
+    byId('valPhone').textContent    = fullUser.phone_number || '—';
 
-    byId('inpForename').value = fullUser.forename || '';
-    byId('inpSurname').value  = fullUser.surname  || '';
-    byId('inpPhone').value    = fullUser.phone     || '';
+    byId('inpForename').value = fullUser.forename     || '';
+    byId('inpSurname').value  = fullUser.surname      || '';
+    byId('inpPhone').value    = fullUser.phone_number  || '';
   }
 
   function renderAvatar(url, name) {
@@ -465,7 +465,7 @@
 
       const forename = byId('inpForename').value.trim();
       const surname  = byId('inpSurname').value.trim();
-      const phone    = byId('inpPhone').value.trim();
+      const phone_number = byId('inpPhone').value.trim();
 
       if (!forename) {
         showToast('Validation', 'First name is required.', 'error');
@@ -476,7 +476,7 @@
         forename,
         surname,
         name: (forename + ' ' + surname).trim(),
-        phone,
+        phone_number,
         avatar_url: avatarUrl
       });
 
@@ -485,10 +485,10 @@
         return;
       }
 
-      fullUser.forename   = forename;
-      fullUser.surname    = surname;
-      fullUser.name       = (forename + ' ' + surname).trim();
-      fullUser.phone      = phone;
+      fullUser.forename     = forename;
+      fullUser.surname      = surname;
+      fullUser.name         = (forename + ' ' + surname).trim();
+      fullUser.phone_number = phone_number;
       fullUser.avatar_url = avatarUrl;
       pendingAvatarFile = null;
 
