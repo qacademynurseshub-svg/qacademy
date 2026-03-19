@@ -156,6 +156,74 @@ tr.row-skipped td { opacity: .5; }
       <span class="hint" style="font-size:12px">Use the template and follow the rules for a smooth import</span>
     </div>
   </div>
+
+  <!-- ── AI HELP SECTION ── -->
+  <div class="card" style="border-left:3px solid #7c3aed;background:linear-gradient(135deg, rgba(124,58,237,0.03), rgba(124,58,237,0.08))">
+    <div class="card-title" style="cursor:pointer" onclick="$('aiHelpBody').style.display = $('aiHelpBody').style.display === 'none' ? '' : 'none'; $('aiChevron').textContent = $('aiHelpBody').style.display === 'none' ? '▸' : '▾'">
+      <span id="aiChevron">▾</span> <span style="color:#7c3aed">Tip: Use AI to prepare your questions in seconds</span>
+    </div>
+    <div id="aiHelpBody" style="font-size:13px;line-height:1.8;color:var(--text-muted)">
+      <p>Already have questions in <b>Word, PDF, notebooks, or any other format</b>? Use any AI assistant to convert them into the QAcademy CSV format instantly.</p>
+
+      <div style="margin:16px 0">
+        <b style="color:var(--text);font-size:13px">How it works:</b>
+        <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px;background:var(--card-bg);border-radius:10px;padding:14px;border:1px solid var(--border)">
+            <div style="font-size:20px;margin-bottom:6px">1</div>
+            <b style="font-size:12px;color:var(--text)">Download the template</b>
+            <p style="font-size:11px;margin-top:4px">Click "Download Template" above to get the QAcademy CSV format with example rows</p>
+          </div>
+          <div style="flex:1;min-width:180px;background:var(--card-bg);border-radius:10px;padding:14px;border:1px solid var(--border)">
+            <div style="font-size:20px;margin-bottom:6px">2</div>
+            <b style="font-size:12px;color:var(--text)">Give both files to any AI</b>
+            <p style="font-size:11px;margin-top:4px">Upload the template + your questions to ChatGPT, Claude, Gemini, or any AI tool you prefer</p>
+          </div>
+          <div style="flex:1;min-width:180px;background:var(--card-bg);border-radius:10px;padding:14px;border:1px solid var(--border)">
+            <div style="font-size:20px;margin-bottom:6px">3</div>
+            <b style="font-size:12px;color:var(--text)">Use the ready-made prompt</b>
+            <p style="font-size:11px;margin-top:4px">Copy the prompt below and paste it along with your files. Download the result and upload here</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <b style="color:var(--text);font-size:13px">Ready-made prompt (copy and paste this):</b>
+        <div style="position:relative;margin-top:8px">
+          <pre id="aiPromptText" style="background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12px;line-height:1.7;font-family:'Courier New',monospace;white-space:pre-wrap;word-wrap:break-word;max-height:300px;overflow-y:auto;color:var(--text)">I have questions that I need formatted into a specific CSV template for import into QAcademy.
+
+INSTRUCTIONS:
+1. I am uploading two files: the QAcademy CSV template and my questions document.
+2. Read the template to understand the exact column format.
+3. Convert ALL my questions into the template format, following these rules:
+
+COLUMN RULES:
+- question_type: Must be exactly MCQ, TF, or SATA
+- stem: The full question text
+- option_a through option_f: Answer options (minimum A and B required)
+- fb_a through fb_f: Optional feedback for each option (explain why right/wrong)
+- correct: For MCQ = single letter (e.g., A). For TF = A (True) or B (False). For SATA = comma-separated letters (e.g., A,C,E)
+- rationale: Brief explanation of the correct answer
+- subject, maintopic, subtopic: Categorise each question if possible
+- difficulty: Easy, Medium, or Hard
+- marks: Points per question (default 1, use 2 for SATA)
+- shuffle_options: true (default) or false
+
+IMPORTANT:
+- Keep the exact CSV header row from the template
+- Wrap any field containing commas in double quotes
+- For True/False questions: option_a must be "True", option_b must be "False"
+- For SATA: there must be at least 2 correct answers
+- Do NOT leave the stem or correct columns empty
+- Output ONLY the CSV content, ready to save as a .csv file</pre>
+          <button class="btn sm" id="btnCopyPrompt" style="position:absolute;top:8px;right:8px;background:var(--card-bg);z-index:1">📋 Copy</button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding:10px 14px;background:rgba(124,58,237,0.06);border-radius:8px;font-size:12px;border:1px solid rgba(124,58,237,0.15)">
+        <b style="color:#7c3aed">Note:</b> Always review the AI output in the preview table before importing. The validation system will catch any formatting errors, but you should verify the question content and correct answers are accurate.
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ── STEP 2: PREVIEW ── -->
@@ -655,10 +723,26 @@ async function boot() {
     location.href = returnTo ? decodeURIComponent(returnTo) : '/myteacher/teacher/bank.html';
   });
 
-  // Template download & instructions
+  // Template download, instructions & AI prompt copy
   $('btnTemplate').addEventListener('click', downloadTemplate);
   $('btnInstructions').addEventListener('click', () => $('instructionsModal').style.display = '');
   $('instructionsModal').addEventListener('click', e => { if (e.target === $('instructionsModal')) $('instructionsModal').style.display = 'none'; });
+  $('btnCopyPrompt').addEventListener('click', () => {
+    const text = $('aiPromptText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      $('btnCopyPrompt').textContent = '✓ Copied!';
+      setTimeout(() => { $('btnCopyPrompt').textContent = '📋 Copy'; }, 2000);
+    }).catch(() => {
+      // Fallback for older browsers
+      const range = document.createRange();
+      range.selectNodeContents($('aiPromptText'));
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      document.execCommand('copy');
+      $('btnCopyPrompt').textContent = '✓ Copied!';
+      setTimeout(() => { $('btnCopyPrompt').textContent = '📋 Copy'; }, 2000);
+    });
+  });
 
   // Drop zone
   const zone = $('dropZone');
