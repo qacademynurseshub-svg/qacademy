@@ -244,6 +244,40 @@
     .quiz-badge.submitted { background: rgba(45,125,114,0.08); color: var(--accent); }
     .quiz-badge.in-progress { background: rgba(234,179,8,0.10); color: #a16207; }
     .quiz-badge.exhausted { background: rgba(107,114,128,0.08); color: #6b7280; }
+    .quiz-badge.timed-out { background: rgba(220,38,38,0.06); color: #dc2626; }
+
+    /* ── Attempts modal ───────────────────────────────────── */
+    .att-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35); z-index: 9999;
+      padding: 18px; align-items: flex-end; justify-content: center;
+    }
+    .att-overlay.show { display: flex; }
+    .att-panel {
+      width: min(720px, 96vw); max-height: 78vh; overflow: auto;
+      background: #fff; border: 1px solid var(--border, #e2e8f0);
+      border-radius: 16px; padding: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .att-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--border, #e2e8f0);
+    }
+    .att-header h3 { font-size: 15px; font-weight: 800; color: var(--primary); margin: 0; }
+    .att-list { display: flex; flex-direction: column; gap: 8px; }
+    .att-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 12px 14px;
+      border: 1px solid var(--border, #e2e8f0); border-radius: 12px;
+      background: #fff; flex-wrap: wrap;
+    }
+    .att-row:hover { border-color: var(--accent, #2d7d72); background: rgba(45,125,114,0.02); }
+    .att-row-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+    .att-num { font-size: 14px; font-weight: 800; color: var(--primary); white-space: nowrap; }
+    .att-score { font-size: 13px; font-weight: 700; color: var(--accent); }
+    .att-date { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+    .att-empty { text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 13px; }
 
     /* ── Profile form ────────────────────────────────────── */
     .profile-hint {
@@ -442,6 +476,17 @@
     </div>
 
   </main>
+</div>
+
+<!-- Attempts modal -->
+<div class="att-overlay" id="attOverlay" onclick="closeAttemptsModal(event)">
+  <div class="att-panel" onclick="event.stopPropagation()">
+    <div class="att-header">
+      <h3 id="attTitle">Attempts</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeAttemptsModalDirect()">✕ Close</button>
+    </div>
+    <div class="att-list" id="attList"></div>
+  </div>
 </div>
 
 <!-- Toast -->
@@ -726,6 +771,16 @@
         actionHtml = `<span style="font-size:12px; color:var(--text-muted);">Opens ${openDate}</span>`;
       }
 
+      // Attempts button — show when student has attempts or max > 1
+      const showAttemptsBtn = attempts.length > 0 || (maxAttempts > 1 || maxAttempts === 0);
+      const attBtnHtml = showAttemptsBtn
+        ? `<button class="btn btn-sm" onclick="event.stopPropagation(); openAttemptsModal(quizDataCache['${esc(q.teacher_quiz_id)}'], '${esc(classId)}')">📋 Attempts${attempts.length ? ' (' + attempts.length + ')' : ''}</button>`
+        : '';
+
+      // Cache quiz data for modal
+      if (!window.quizDataCache) window.quizDataCache = {};
+      window.quizDataCache[q.teacher_quiz_id] = q;
+
       // Best score
       let scoreHtml = '';
       if (submitted.length) {
@@ -753,6 +808,7 @@
           </div>
           <div class="quiz-card-actions">
             ${actionHtml}
+            ${attBtnHtml}
           </div>
         </div>`;
     });
@@ -997,6 +1053,80 @@
     byId('cfFieldsWrap').innerHTML  = '';
     showAlert('joinAlert', '', '');
   }
+
+  // ── Attempts modal ──────────────────────────────────────────
+  function openAttemptsModal(quiz, classId) {
+    if (!quiz) return;
+    byId('attTitle').textContent = `Attempts — ${quiz.title || 'Quiz'}`;
+
+    const attempts = quiz.attempts || [];
+    const list = byId('attList');
+
+    if (!attempts.length) {
+      list.innerHTML = `
+        <div class="att-empty">
+          <p>No attempts yet.</p>
+        </div>`;
+      byId('attOverlay').classList.add('show');
+      return;
+    }
+
+    // Sort by attempt_no descending (newest first)
+    const sorted = [...attempts].sort((a, b) => (b.attempt_no || 0) - (a.attempt_no || 0));
+
+    let html = '';
+    sorted.forEach(a => {
+      const status = a.status || 'UNKNOWN';
+      const isInProgress = status === 'IN_PROGRESS';
+      const isTimedOut = status === 'TIMED_OUT';
+      const isSubmitted = status === 'SUBMITTED';
+
+      // Badge class
+      let badgeCls = 'submitted';
+      if (isInProgress) badgeCls = 'in-progress';
+      else if (isTimedOut) badgeCls = 'timed-out';
+
+      // Score
+      let scoreHtml = '';
+      if ((isSubmitted || isTimedOut) && a.score_pct != null) {
+        scoreHtml = `<span class="att-score">${a.score_pct}%</span>`;
+      }
+
+      // Date
+      const dateStr = a.submitted_at ? formatDate(a.submitted_at) : formatDate(a.started_at);
+
+      // Action button
+      let actionHtml = '';
+      if (isInProgress) {
+        actionHtml = `<a class="btn btn-primary btn-sm" href="/myteacher/student/quiz-runner.html?quiz_id=${esc(quiz.teacher_quiz_id)}&class_id=${esc(classId)}&attempt_id=${esc(a.attempt_id)}">Resume</a>`;
+      } else if (isSubmitted || isTimedOut) {
+        actionHtml = `<a class="btn btn-sm" href="/myteacher/student/my-results.html?attempt_id=${esc(a.attempt_id)}" style="opacity:0.5; pointer-events:none;" title="Coming in Slice 8">Results</a>`;
+      }
+
+      html += `
+        <div class="att-row">
+          <div class="att-row-left">
+            <span class="att-num">Attempt #${a.attempt_no || '?'}</span>
+            <span class="quiz-badge ${badgeCls}">${esc(status)}</span>
+            ${scoreHtml}
+            <span class="att-date">${dateStr}</span>
+          </div>
+          <div>${actionHtml}</div>
+        </div>`;
+    });
+
+    list.innerHTML = html;
+    byId('attOverlay').classList.add('show');
+  }
+
+  function closeAttemptsModal(e) {
+    if (e.target === byId('attOverlay')) closeAttemptsModalDirect();
+  }
+
+  function closeAttemptsModalDirect() {
+    byId('attOverlay').classList.remove('show');
+  }
+
 
   // ── Bind events ───────────────────────────────────────────
   function bindEvents() {
