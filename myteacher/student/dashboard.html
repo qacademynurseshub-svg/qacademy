@@ -205,6 +205,8 @@
     <input type="text" class="join-input" id="overlayCode" maxlength="6" placeholder="ABC123" autocomplete="off" />
     <button class="join-btn" id="overlayJoinBtn">Continue</button>
     <div class="join-alert" id="overlayAlert"></div>
+    <!-- Org card (shown after code validated) -->
+    <div id="overlayOrgCard" style="display:none"></div>
     <!-- Custom fields area (shown if class requires them) -->
     <div class="join-cf" id="overlayCf">
       <div class="join-cf-title" id="overlayCfTitle"></div>
@@ -402,6 +404,30 @@
 
     pendingClass = cls;
 
+    // Fetch teacher profile for org card
+    let tp = null;
+    try {
+      const { data: tRow } = await db.from('teacher_profiles')
+        .select('*')
+        .eq('teacher_id', cls.teacher_id)
+        .maybeSingle();
+      if (tRow) tp = tRow;
+    } catch(_) {}
+
+    // Show org card
+    const hasOrgInfo = tp && (tp.display_name || tp.organisation);
+    if (hasOrgInfo) {
+      $('overlayOrgCard').innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(45,125,114,0.04);border:1px solid var(--border,#e2e8f0);border-radius:10px;margin-bottom:12px;text-align:left;">
+          ${tp.org_logo_url ? `<img src="${tp.org_logo_url}" style="width:36px;height:36px;border-radius:6px;object-fit:contain;border:1px solid var(--border,#e2e8f0)" alt="" />` : ''}
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--primary)">${esc(cls.title)}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${tp.display_name ? esc(tp.display_name) : ''}${tp.display_name && tp.organisation ? ' — ' : ''}${tp.organisation ? esc(tp.organisation) : ''}</div>
+          </div>
+        </div>`;
+      $('overlayOrgCard').style.display = 'block';
+    }
+
     // Check for custom fields
     let fields = [];
     try {
@@ -484,9 +510,9 @@
 
     if (result.status === 'PENDING') {
       showToast('Request sent', `Your request to join ${pendingClass.title} has been sent for approval.`, 'ok');
-      showOverlayAlert(`Your request has been sent. You'll be able to access the class once your teacher approves it.`, 'info');
       pendingClass = null;
-      // Keep overlay visible — student has no active class yet
+      // Redirect to My Classes where they can see the pending card
+      window.location.href = '/myteacher/student/my-classes.html';
       return;
     }
 
