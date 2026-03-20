@@ -589,7 +589,7 @@
     const teacherIds = [...new Set(allMemberships.map(m => m.teacher_classes?.teacher_id).filter(Boolean))];
     if (teacherIds.length) {
       const { data: tRows } = await db.from('teacher_profiles')
-        .select('teacher_id, display_name, organisation, org_logo_url')
+        .select('*')
         .in('teacher_id', teacherIds);
       (tRows || []).forEach(t => { teacherProfiles[t.teacher_id] = t; });
     }
@@ -1001,14 +1001,15 @@
     let tp = teacherProfiles[cls.teacher_id];
     if (!tp) {
       const { data: tRow } = await db.from('teacher_profiles')
-        .select('teacher_id, display_name, organisation, org_logo_url')
+        .select('*')
         .eq('teacher_id', cls.teacher_id)
         .maybeSingle();
       if (tRow) { tp = tRow; teacherProfiles[cls.teacher_id] = tp; }
     }
 
     // Show teacher/org info in join confirmation
-    const orgHtml = tp ? `
+    const hasOrgInfo = tp && (tp.display_name || tp.organisation);
+    const orgHtml = hasOrgInfo ? `
       <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:10px;margin-bottom:12px;">
         ${tp.org_logo_url ? `<img src="${tp.org_logo_url}" style="width:36px;height:36px;border-radius:6px;object-fit:contain;border:1px solid var(--border,#e2e8f0)" alt="" />` : ''}
         <div>
