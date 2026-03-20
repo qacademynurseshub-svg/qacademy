@@ -85,6 +85,15 @@
     .class-card-title { font-size: 14px; font-weight: 700; color: var(--primary); margin: 0 0 5px; }
     .class-card-meta  { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
     .class-card-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .class-card.pending {
+      opacity: 0.75;
+      border-style: dashed;
+      cursor: default;
+    }
+    .class-card.pending:hover {
+      border-color: var(--border, #e2e8f0);
+      box-shadow: none;
+    }
 
     /* ── Chips ───────────────────────────────────────────── */
     .chip {
@@ -587,7 +596,8 @@
 
     applyFilter();
 
-    // Show the "no classes" hint in the join panel if empty
+    // Show the "no classes" hint in the join panel if no memberships at all
+    const hasActiveClasses = allMemberships.some(m => m.status === 'ACTIVE');
     byId('noClassesHint').style.display = allMemberships.length ? 'none' : 'block';
   }
 
@@ -627,6 +637,7 @@
       const fields      = parseFields(cls.custom_fields_json);
       const memberVals  = parseMemberFields(m.member_fields_json);
       const isSelected  = selectedClassId === cls.class_id;
+      const isPending   = m.status === 'PENDING';
 
       // Profile completeness — check all required fields are filled
       const requiredFields = fields.filter(f => f.required);
@@ -639,7 +650,7 @@
         : profileComplete ? 'Profile complete' : 'Profile incomplete';
 
       const div = document.createElement('div');
-      div.className = 'class-card' + (isSelected ? ' active' : '');
+      div.className = 'class-card' + (isSelected ? ' active' : '') + (isPending ? ' pending' : '');
       const tp = teacherProfiles[cls.teacher_id] || {};
       const teacherLine = tp.display_name
         ? (tp.organisation ? `${esc(tp.display_name)} — ${esc(tp.organisation)}` : esc(tp.display_name))
@@ -652,12 +663,17 @@
       div.innerHTML = `
         ${logoHtml}
         <div class="class-card-title">${esc(cls.title || '—')}</div>
-        <div class="class-card-meta">${teacherLine || ''}${teacherLine ? ' · ' : ''}Joined ${formatDate(m.joined_at)}</div>
+        <div class="class-card-meta">${teacherLine || ''}${teacherLine ? ' · ' : ''}${isPending ? 'Requested ' : 'Joined '}${formatDate(m.joined_at)}</div>
         <div class="class-card-chips">
-          <span class="chip ${cls.status === 'ACTIVE' ? 'ok' : 'neutral'}">${esc(cls.status || 'ACTIVE')}</span>
-          <span class="chip ${profileStatus}">${profileLabel}</span>
+          ${isPending
+            ? '<span class="chip warn">Pending approval</span>'
+            : `<span class="chip ${cls.status === 'ACTIVE' ? 'ok' : 'neutral'}">${esc(cls.status || 'ACTIVE')}</span>
+               <span class="chip ${profileStatus}">${profileLabel}</span>`
+          }
         </div>`;
-      div.addEventListener('click', () => openDetail(m));
+      if (!isPending) {
+        div.addEventListener('click', () => openDetail(m));
+      }
       list.appendChild(div);
     });
   }
@@ -971,6 +987,8 @@
     if (existing) {
       if (existing.status === 'ACTIVE') {
         showAlert('joinAlert', `You are already a member of "${cls.title}".`, 'info');
+      } else if (existing.status === 'PENDING') {
+        showAlert('joinAlert', `Your request to join "${cls.title}" is awaiting approval from the teacher.`, 'info');
       } else {
         showAlert('joinAlert', `You were previously removed from "${cls.title}". Please contact your teacher.`, 'error');
       }
@@ -978,18 +996,48 @@
     }
 
     pendingClass = cls;
+
+    // Fetch teacher profile for the join confirmation
+    let tp = teacherProfiles[cls.teacher_id];
+    if (!tp) {
+      const { data: tRow } = await db.from('teacher_profiles')
+        .select('teacher_id, display_name, organisation, org_logo_url')
+        .eq('teacher_id', cls.teacher_id)
+        .maybeSingle();
+      if (tRow) { tp = tRow; teacherProfiles[cls.teacher_id] = tp; }
+    }
+
+    // Show teacher/org info in join confirmation
+    const orgHtml = tp ? `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:10px;margin-bottom:12px;">
+        ${tp.org_logo_url ? `<img src="${tp.org_logo_url}" style="width:36px;height:36px;border-radius:6px;object-fit:contain;border:1px solid var(--border,#e2e8f0)" alt="" />` : ''}
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--primary)">${esc(cls.title)}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${tp.display_name ? esc(tp.display_name) : ''}${tp.display_name && tp.organisation ? ' — ' : ''}${tp.organisation ? esc(tp.organisation) : ''}</div>
+        </div>
+      </div>` : '';
+
     const fields = parseFields(cls.custom_fields_json);
 
     if (!fields.length) {
-      // No custom fields — join immediately
+      // No custom fields — show org card briefly then join
+      if (orgHtml) {
+        byId('cfSection').style.display = 'block';
+        byId('cfClassName').innerHTML = orgHtml;
+        byId('cfIntro').textContent = cls.require_approval
+          ? 'This class requires approval. Your request will be sent to the teacher.'
+          : 'You are about to join this class.';
+        byId('cfFieldsWrap').innerHTML = '';
+      }
       await submitJoin({});
       return;
     }
 
-    // Show custom fields form
-    byId('cfClassName').textContent = cls.title;
-    byId('cfIntro').textContent =
-      `Your lecturer requires the following details when joining ${cls.title}.`;
+    // Show custom fields form with org card
+    byId('cfClassName').innerHTML = orgHtml || esc(cls.title);
+    byId('cfIntro').textContent = cls.require_approval
+      ? `Your lecturer requires the following details. Your request will be sent for approval.`
+      : `Your lecturer requires the following details when joining ${cls.title}.`;
     renderJoinFields(fields);
     byId('cfSection').style.display = 'block';
   }
@@ -1044,7 +1092,8 @@
 
   async function submitJoin(fieldValues) {
     const btn = byId('btnJoin') || byId('btnContinue');
-    if (btn) { btn.disabled = true; btn.textContent = 'Joining…'; }
+    const requireApproval = !!pendingClass.require_approval;
+    if (btn) { btn.disabled = true; btn.textContent = requireApproval ? 'Requesting…' : 'Joining…'; }
 
     const displayName = [PROFILE.forename, PROFILE.surname]
       .filter(Boolean).join(' ') || PROFILE.name || PROFILE.email || '';
@@ -1055,7 +1104,8 @@
       pendingClass.teacher_id,
       displayName,
       PROFILE.email || '',
-      JSON.stringify(fieldValues)
+      JSON.stringify(fieldValues),
+      { requireApproval }
     );
 
     if (btn) { btn.disabled = false; btn.textContent = btn.id === 'btnJoin' ? 'Join class' : 'Continue'; }
@@ -1065,7 +1115,11 @@
       return;
     }
 
-    showToast('Joined!', `You have joined ${pendingClass.title}.`, 'ok');
+    if (result.status === 'PENDING') {
+      showToast('Request sent', `Your request to join ${pendingClass.title} has been sent to the teacher for approval.`, 'ok');
+    } else {
+      showToast('Joined!', `You have joined ${pendingClass.title}.`, 'ok');
+    }
     resetJoinUI();
     await loadClasses();
   }

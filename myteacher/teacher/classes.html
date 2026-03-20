@@ -492,6 +492,14 @@
         </select>
       </div>
 
+      <div class="form-field">
+        <label class="toggle-label" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="mRequireApproval" style="width:16px;height:16px;accent-color:var(--accent,#2d7d72);cursor:pointer;" />
+          <span>Require approval to join</span>
+        </label>
+        <div class="form-hint">When enabled, students who enter the join code will be placed in a pending queue until you approve them.</div>
+      </div>
+
       <div class="divider"></div>
 
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
@@ -550,6 +558,7 @@
   let allClasses     = [];      // full list from DB
   let filteredClasses = [];     // after search/filter
   let memberCounts   = {};      // { class_id: count }
+  let pendingCounts  = {};      // { class_id: pending_count }
   let selectedClassId = null;
   let selectedClass  = null;
   let allMembers     = [];      // members for selected class
@@ -604,9 +613,13 @@
     const statusFilter = byId('classStatusFilter').value;
     allClasses = await getTeacherClasses(PROFILE.user_id, { statusFilter });
 
-    // Batch fetch member counts
+    // Batch fetch member counts + pending counts
     if (allClasses.length) {
-      memberCounts = await getMemberCounts(allClasses.map(c => c.class_id));
+      const ids = allClasses.map(c => c.class_id);
+      [memberCounts, pendingCounts] = await Promise.all([
+        getMemberCounts(ids),
+        getPendingCounts(ids)
+      ]);
     }
 
     applyClassFilter();
@@ -640,7 +653,8 @@
 
     list.innerHTML = '';
     filteredClasses.forEach(cls => {
-      const count  = memberCounts[cls.class_id] || 0;
+      const count   = memberCounts[cls.class_id] || 0;
+      const pending = pendingCounts[cls.class_id] || 0;
       const isActive = selectedClassId === cls.class_id;
       const div = document.createElement('div');
       div.className = 'class-card' + (isActive ? ' active' : '');
@@ -649,7 +663,9 @@
         <div class="class-card-meta">
           <span class="status-chip ${cls.status === 'ACTIVE' ? 'active' : 'archived'}">${esc(cls.status)}</span>
           <span class="meta-chip">👥 ${count} member${count !== 1 ? 's' : ''}</span>
+          ${pending ? `<span class="meta-chip" style="color:#a16207;background:rgba(234,179,8,0.10);border-color:rgba(234,179,8,0.22);">⏳ ${pending} pending</span>` : ''}
           <span class="meta-chip">🔑 ${esc(cls.join_code)}</span>
+          ${cls.require_approval ? '<span class="meta-chip" style="color:var(--accent);font-size:10px;">🔒 Approval</span>' : ''}
         </div>`;
       div.addEventListener('click', () => selectClass(cls.class_id));
       list.appendChild(div);
@@ -695,6 +711,7 @@
           <button class="btn btn-sm btn-danger" id="btnRegenCode">Regenerate</button>
         </div>
         <div class="form-hint">Share this code with students. Regenerating invalidates the old code immediately.</div>
+        ${cls.require_approval ? '<div style="margin-top:8px;font-size:12px;font-weight:600;color:#a16207;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.20);border-radius:8px;padding:6px 10px;">🔒 Approval required — students must be approved before accessing class content.</div>' : ''}
       </div>
 
       <div class="divider"></div>
@@ -720,6 +737,7 @@
             <input type="text" id="memberSearch" placeholder="Search members…" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;outline:none;width:180px;" />
             <select id="memberStatusFilter" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;outline:none;">
               <option value="ACTIVE">Active</option>
+              <option value="PENDING">Pending approval</option>
               <option value="ALL">All</option>
               <option value="REMOVED">Removed</option>
             </select>
@@ -804,25 +822,38 @@
       ).join('');
 
       const isRemoved = m.status === 'REMOVED';
+      const isPending = m.status === 'PENDING';
+      const isRejected = m.status === 'REJECTED';
+      const dimRow = isRemoved || isRejected;
+
+      let actionHtml = '';
+      if (isPending) {
+        actionHtml = `
+          <button class="btn btn-sm btn-primary" onclick="confirmApproveMember('${esc(m.class_id)}','${esc(m.user_id)}','${esc(m.display_name || m.email || m.user_id)}')">Approve</button>
+          <button class="btn btn-sm btn-danger" onclick="confirmRejectMember('${esc(m.class_id)}','${esc(m.user_id)}','${esc(m.display_name || m.email || m.user_id)}')">Reject</button>`;
+      } else if (isRemoved) {
+        actionHtml = `<span style="font-size:12px;color:var(--text-muted);">Removed</span>`;
+      } else if (isRejected) {
+        actionHtml = `<span style="font-size:12px;color:var(--text-muted);">Rejected</span>`;
+      } else {
+        actionHtml = `<button class="btn btn-sm btn-danger" onclick="confirmRemoveMember('${esc(m.class_id)}','${esc(m.user_id)}','${esc(m.display_name || m.email || m.user_id)}')">Remove</button>`;
+      }
 
       return `
-        <tr style="${isRemoved ? 'opacity:0.5;' : ''}">
+        <tr style="${dimRow ? 'opacity:0.5;' : ''}">
           <td>
             <div style="display:flex;align-items:center;gap:8px">
               ${m.avatar_url ? `<img src="${m.avatar_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0" alt="" />` : `<span style="width:28px;height:28px;border-radius:50%;background:var(--accent-light,rgba(45,125,114,0.10));color:var(--accent,#2d7d72);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${esc(m.display_name || '?').slice(0,2).toUpperCase()}</span>`}
               <div>
-                <div class="member-name">${esc(m.display_name || '—')}</div>
+                <div class="member-name">${esc(m.display_name || '—')}${isPending ? ' <span style="font-size:10px;font-weight:700;color:#a16207;background:rgba(234,179,8,0.10);padding:1px 6px;border-radius:999px;margin-left:6px;">PENDING</span>' : ''}</div>
                 <div class="member-email">${esc(m.email || '')}</div>
               </div>
             </div>
           </td>
           ${fieldCells}
           <td>${formatDate(m.joined_at)}</td>
-          <td>
-            ${!isRemoved
-              ? `<button class="btn btn-sm btn-danger" onclick="confirmRemoveMember('${esc(m.class_id)}','${esc(m.user_id)}','${esc(m.display_name || m.email || m.user_id)}')">Remove</button>`
-              : `<span style="font-size:12px;color:var(--text-muted);">Removed</span>`
-            }
+          <td style="white-space:nowrap;">
+            ${actionHtml}
           </td>
         </tr>`;
     }).join('');
@@ -904,6 +935,39 @@
     await loadMembers();
   }
 
+  // ── Approve member ──────────────────────────────────────────
+  async function confirmApproveMember(classId, userId, name) {
+    if (!confirm(`Approve "${name}" to join this class?`)) return;
+
+    const result = await approveMember(classId, userId);
+    if (!result.success) {
+      showToast('Failed', result.message || 'Could not approve member.', 'error');
+      return;
+    }
+
+    memberCounts[classId] = (memberCounts[classId] || 0) + 1;
+    if (pendingCounts[classId]) pendingCounts[classId] = Math.max(0, pendingCounts[classId] - 1);
+    renderClassList();
+    showToast('Approved', `${name} has been approved and can now access the class.`, 'ok');
+    await loadMembers();
+  }
+
+  // ── Reject member ──────────────────────────────────────────
+  async function confirmRejectMember(classId, userId, name) {
+    if (!confirm(`Reject "${name}"? They will not be able to join this class.`)) return;
+
+    const result = await rejectMember(classId, userId);
+    if (!result.success) {
+      showToast('Failed', result.message || 'Could not reject member.', 'error');
+      return;
+    }
+
+    if (pendingCounts[classId]) pendingCounts[classId] = Math.max(0, pendingCounts[classId] - 1);
+    renderClassList();
+    showToast('Rejected', `${name} has been rejected.`, 'ok');
+    await loadMembers();
+  }
+
   // ── Parse custom fields JSON ──────────────────────────────
   function parseCustomFields(json) {
     try {
@@ -924,10 +988,12 @@
       byId('modalTitle').textContent = 'New Class';
       byId('mTitle').value   = '';
       byId('mStatus').value  = 'ACTIVE';
+      byId('mRequireApproval').checked = false;
     } else {
       byId('modalTitle').textContent = 'Edit Class';
       byId('mTitle').value   = selectedClass?.title || '';
       byId('mStatus').value  = selectedClass?.status || 'ACTIVE';
+      byId('mRequireApproval').checked = !!selectedClass?.require_approval;
       modalFields = parseCustomFields(selectedClass?.custom_fields_json).map(f => ({ ...f }));
     }
 
@@ -1021,10 +1087,12 @@
 
     let result;
 
+    const requireApproval = byId('mRequireApproval').checked;
+
     if (modalMode === 'create') {
-      result = await createClass(PROFILE.user_id, title, customFieldsJson);
+      result = await createClass(PROFILE.user_id, title, customFieldsJson, { requireApproval });
     } else {
-      result = await updateClass(selectedClassId, { title, status, custom_fields_json: customFieldsJson });
+      result = await updateClass(selectedClassId, { title, status, custom_fields_json: customFieldsJson, require_approval: requireApproval });
     }
 
     if (!result.success) {

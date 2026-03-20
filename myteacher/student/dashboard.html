@@ -392,6 +392,8 @@
     if (existing) {
       if (existing.status === 'ACTIVE') {
         showOverlayAlert(`You are already a member of "${cls.title}".`, 'info');
+      } else if (existing.status === 'PENDING') {
+        showOverlayAlert(`Your request to join "${cls.title}" is awaiting approval from the teacher.`, 'info');
       } else {
         showOverlayAlert(`You were previously removed from "${cls.title}". Please contact your teacher.`, 'error');
       }
@@ -450,19 +452,29 @@
 
   async function submitOverlayJoin(fieldValues) {
     const btn = $('overlayCfJoinBtn').style.display !== 'none' ? $('overlayCfJoinBtn') : $('overlayJoinBtn');
-    btn.disabled = true; btn.textContent = 'Joining…';
+    const requireApproval = !!pendingClass.require_approval;
+    btn.disabled = true; btn.textContent = requireApproval ? 'Requesting…' : 'Joining…';
 
     const displayName = [PROFILE.forename, PROFILE.surname].filter(Boolean).join(' ') || PROFILE.name || PROFILE.email || '';
 
     const result = await joinClass(
       PROFILE.user_id, pendingClass.class_id, pendingClass.teacher_id,
-      displayName, PROFILE.email || '', JSON.stringify(fieldValues)
+      displayName, PROFILE.email || '', JSON.stringify(fieldValues),
+      { requireApproval }
     );
 
     btn.disabled = false; btn.textContent = 'Join Class';
 
     if (!result.success) {
       showOverlayAlert(result.message || 'Could not join class.', 'error');
+      return;
+    }
+
+    if (result.status === 'PENDING') {
+      showToast('Request sent', `Your request to join ${pendingClass.title} has been sent for approval.`, 'ok');
+      showOverlayAlert(`Your request has been sent. You'll be able to access the class once your teacher approves it.`, 'info');
+      pendingClass = null;
+      // Keep overlay visible — student has no active class yet
       return;
     }
 

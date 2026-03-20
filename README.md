@@ -99,9 +99,16 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 - **Teacher Profile** (`myteacher/teacher/profile.html`) — QAcademy account (name, phone, avatar, plan, status) + Organisation (name, tagline, region, logo). Inline edit with save.
 - **Student Teacher Assess Profile** (`myteacher/student/profile.html`) — Account info (read-only) + per-class custom fields with completeness tracking. Editable custom fields with save.
 
+### Class Join Approval ✅
+- **Require approval toggle** — Teachers can enable "require approval to join" per class (create/edit modal)
+- **Pending queue** — Students with pending status shown in member list with approve/reject buttons
+- **Student UX** — Pending class cards (dashed border), appropriate messaging, blocked from class content until approved
+- **Org identity on join** — Join flow shows teacher name, org name, and logo when entering a class code
+- **Schema**: `teacher_classes.require_approval` (boolean), `teacher_class_members.status` supports `PENDING`/`REJECTED`
+
 ### Next Up ⏭️
 1. Admin pages — payments, user management (shells scaffolded, need wiring)
-2. Notifications — quiz published, results released
+2. Notifications — quiz published, results released, join request approved
 3. Settings pages
 4. RLS policies — tighten all tables before go-live
 

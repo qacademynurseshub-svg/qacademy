@@ -116,7 +116,7 @@ async function getClassById(classId) {
 // Returns the created row
 // Used by: myteacher/teacher/classes.html
 // ------------------------------------------------------------
-async function createClass(teacherId, title, customFieldsJson) {
+async function createClass(teacherId, title, customFieldsJson, { requireApproval = false } = {}) {
   const now     = new Date().toISOString();
   const classId = makeClassId();
   const joinCode = makeJoinCode();
@@ -129,6 +129,7 @@ async function createClass(teacherId, title, customFieldsJson) {
       title             : title,
       join_code         : joinCode,
       custom_fields_json: customFieldsJson || '[]',
+      require_approval  : requireApproval,
       status            : 'ACTIVE',
       created_at        : now,
       updated_at        : now
@@ -229,6 +230,71 @@ async function removeMember(classId, userId) {
 
 
 // ------------------------------------------------------------
+// APPROVE MEMBER
+// Changes status from PENDING → ACTIVE
+// Used by: myteacher/teacher/classes.html pending list
+// ------------------------------------------------------------
+async function approveMember(classId, userId) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_class_members')
+    .update({ status: 'ACTIVE', updated_at: now })
+    .eq('class_id', classId)
+    .eq('user_id', userId)
+    .eq('status', 'PENDING');
+
+  if (error) { console.error('approveMember:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// REJECT MEMBER
+// Changes status from PENDING → REJECTED
+// Used by: myteacher/teacher/classes.html pending list
+// ------------------------------------------------------------
+async function rejectMember(classId, userId) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_class_members')
+    .update({ status: 'REJECTED', updated_at: now })
+    .eq('class_id', classId)
+    .eq('user_id', userId)
+    .eq('status', 'PENDING');
+
+  if (error) { console.error('rejectMember:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+
+// ------------------------------------------------------------
+// GET PENDING COUNT PER CLASS (batch)
+// Takes an array of class_ids
+// Returns a map: { class_id: count }
+// Used by: classes.html list — shows pending badge on cards
+// ------------------------------------------------------------
+async function getPendingCounts(classIds) {
+  if (!classIds || !classIds.length) return {};
+
+  const { data, error } = await db
+    .from('teacher_class_members')
+    .select('class_id')
+    .in('class_id', classIds)
+    .eq('status', 'PENDING');
+
+  if (error) { console.error('getPendingCounts:', error); return {}; }
+
+  const counts = {};
+  (data || []).forEach(row => {
+    counts[row.class_id] = (counts[row.class_id] || 0) + 1;
+  });
+  return counts;
+}
+
+
+// ------------------------------------------------------------
 // GET MEMBER COUNT PER CLASS (batch)
 // Takes an array of class_ids
 // Returns a map: { class_id: count }
@@ -279,7 +345,7 @@ async function getStudentClasses(userId) {
       )
     `)
     .eq('user_id', userId)
-    .eq('status', 'ACTIVE')
+    .in('status', ['ACTIVE', 'PENDING'])
     .order('joined_at', { ascending: false });
 
   if (error) { console.error('getStudentClasses:', error); return []; }
@@ -331,27 +397,28 @@ async function getExistingMembership(userId, classId) {
 // Returns { success, message }
 // Used by: myteacher/student/my-classes.html
 // ------------------------------------------------------------
-async function joinClass(userId, classId, teacherId, displayName, email, memberFieldsJson) {
+async function joinClass(userId, classId, teacherId, displayName, email, memberFieldsJson, { requireApproval = false } = {}) {
   const now      = new Date().toISOString();
-  const memberId = makeClassMemberId();  // ← was missing
+  const memberId = makeClassMemberId();
+  const status   = requireApproval ? 'PENDING' : 'ACTIVE';
 
   const { error } = await db
     .from('teacher_class_members')
     .insert({
-      member_id         : memberId,       // ← add this line
+      member_id         : memberId,
       class_id          : classId,
       user_id           : userId,
       teacher_id        : teacherId,
       display_name      : displayName || '',
       email             : email || '',
       member_fields_json: memberFieldsJson || '{}',
-      status            : 'ACTIVE',
+      status            : status,
       joined_at         : now,
       updated_at        : now
     });
 
   if (error) { console.error('joinClass:', error); return { success: false, message: error.message }; }
-  return { success: true };
+  return { success: true, status };
 }
 
 // ------------------------------------------------------------
