@@ -29,7 +29,15 @@
       <a href="/student/quiz-builder.html">🔧 Quiz Builder</a>
       <a href="/student/learning-history.html">📊 Learning History</a>
       <a href="/student/announcements.html">📢 Announcements</a>
-      <a href="/student/downloads.html">📥 Downloads</a>
+      <div class="sidebar-dropdown" id="sidebarOfflineDropdown">
+        <div class="sidebar-dropdown-toggle" id="sidebarOfflineToggle">
+          📥 Offline Packs <span class="sidebar-dropdown-arrow">▾</span>
+        </div>
+        <div class="sidebar-dropdown-menu" id="sidebarOfflineMenu">
+          <a href="/student/my-offline-packs.html">My Packs</a>
+          <a href="/student/offline-pack-builder.html">Build New Pack</a>
+        </div>
+      </div>
       <a href="/student/messages.html">💬 Messages <span id="sidebarMsgBadge" class="sidebar-msg-badge" style="display:none;"></span></a>
   <a href="/student/telegram.html">✈️ Telegram</a>
 
@@ -133,7 +141,20 @@
     if (toggle) toggle.classList.add('active');
     if (dropdown) dropdown.classList.add('open');
   }
-const accountToggle = document.getElementById('sidebarAccountToggle');
+  // Handle Offline Packs dropdown
+  const offlineToggle = document.getElementById('sidebarOfflineToggle');
+  const offlineDropdown = document.getElementById('sidebarOfflineDropdown');
+  if (path.startsWith('/student/my-offline-packs') || path.startsWith('/student/offline-pack')) {
+    if (offlineToggle) offlineToggle.classList.add('active');
+    if (offlineDropdown) offlineDropdown.classList.add('open');
+  }
+  if (offlineToggle) {
+    offlineToggle.addEventListener('click', () => {
+      if (offlineDropdown) offlineDropdown.classList.toggle('open');
+    });
+  }
+
+  const accountToggle = document.getElementById('sidebarAccountToggle');
   const accountDropdown = document.getElementById('sidebarAccountDropdown');
   accountToggle.addEventListener('click', () => {
     accountDropdown.classList.toggle('open');
