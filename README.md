@@ -115,10 +115,45 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 - **Student join flow** — org card shows programme, course, description
 - **Max capacity** — enforced on join (counts ACTIVE + PENDING members), returns "class is full" message
 
-### Next Up ⏭️
-1. Admin pages — payments, user management (shells scaffolded, need wiring)
+### In Progress — MyLicensure Messaging ⏭️
+
+Thread-based messaging system between admin and students.
+
+**Schema — 2 new tables:**
+- `messages_threads` — thread_id, user_id, admin_id, status (open/closed), context_type (general/course/question), subject, course_id, quiz_id, question_id, attempt_id, bulk_batch_id, created_at, last_message_at, last_sender_role
+- `messages` — message_id, thread_id, sender_id, sender_role (admin/student), body_text, created_at, read_by_user, read_by_admin
+
+**Pages:**
+- `student/messages.html` — Student inbox. Thread list + conversation view. New message, reply, unread indicators.
+- `admin/messages.html` — Admin inbox. Thread list with filters (All/Unread/Course/Question), search by student name/email, bulk send with recipient scoping (programme, course, cohort, level, subscription kind), close/reopen threads.
+
+**Entry points (context-aware thread creation):**
+| Entry point | Context type | Pre-filled data | Status |
+|---|---|---|---|
+| `runner/instant.html` → "Send feedback" | `question` | course_id, quiz_id, attempt_id, item_id, ref | Already wired |
+| `runner/timed.html` → "Send feedback" | `question` | course_id, quiz_id, attempt_id, item_id, ref | Already wired |
+| `student/course.html` → "Message us" | `course` | course_id | To add |
+| `student/messages.html` → "New message" | `general` | nothing | To build |
+
+**Thread reuse rules:** General and course contexts reuse existing open thread for same user+context. Question context always creates a new thread.
+
+**Bulk send scoping:** AND across filter types, OR within each. Queries `users` (programme, cohort, level), `subscriptions` + `products` (subscription kind, course entitlement).
+
+**Nav updates:** Unread badge on Messages link in `student-sidebar.js` and admin nav.
+
+**Build order:**
+1. Schema SQL (run in Supabase)
+2. API functions in `js/api.js`
+3. `student/messages.html`
+4. `admin/messages.html`
+5. Nav updates + unread badges
+6. Course page "Message us" button
+7. README update
+
+### Future ⏭️
+1. Teacher guidance / how-to pages (teachers first, then students)
 2. Notifications — quiz published, results released, join request approved
-3. Settings pages
+3. MyTeacher messaging (teacher ↔ student within classes)
 4. RLS policies — tighten all tables before go-live
 
 ### Intentionally Deferred
@@ -140,7 +175,8 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 | admin/fixed-quizzes.html | ✅ Done | 4-pane: List → Details → Picker → Review |
 | admin/question-bank.html | ✅ Done | Browse, edit, create, image upload, CSV import |
 | admin/config.html | ✅ Done | Edit values, add keys, delete with warning |
-| admin/payments.html | ⏳ Next | Worker done, admin page not yet built |
+| admin/messages.html | ⏳ Next | Thread-based messaging — admin inbox, bulk send, recipient scoping |
+| admin/payments.html | ⏳ Later | Worker done, admin page not yet built |
 
 ### Student Pages
 | Page | Status | Notes |
@@ -154,7 +190,7 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 | student/upgrade.html | ✅ Done | Upgrade payment flow for logged-in students |
 | student/profile.html | ✅ Done | Personal details, academic details, subscription, avatar upload |
 | student/downloads.html | ⏳ Later | Offline packs / PDF downloads |
-| student/messages.html | ⏳ Later | Thread-based messaging |
+| student/messages.html | ⏳ Next | Thread-based messaging — inbox, reply, context-aware from quiz runners |
 
 ### Teacher Assess — Teacher Pages
 | Page | Status | Notes |
