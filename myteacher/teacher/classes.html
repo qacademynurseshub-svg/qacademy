@@ -998,6 +998,8 @@
     }
 
     renderModalFields();
+    byId('modalSave').disabled = false;
+    byId('modalSave').textContent = 'Save class';
     byId('classModal').classList.add('show');
     setTimeout(() => byId('mTitle').focus(), 50);
   }
