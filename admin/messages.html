@@ -1264,19 +1264,21 @@ function formatRefText(raw) {
     if (trimmed.startsWith('QAcademy')) {
       html += `<div style="font-weight:700; color:var(--primary); margin-bottom:4px;">${esc(trimmed)}</div>`;
     }
+    // Section headers (exact match — must come before meta regex)
+    else if (trimmed === 'Question:' || trimmed === 'Options (as shown):') {
+      html += `<div style="margin-top:8px; font-weight:600; color:var(--primary);">${esc(trimmed)}</div>`;
+    }
+    // Meta lines (Course: ..., Question: 1 of 10, Topic: ...)
     else if (/^(Course|Question|Topic):/.test(trimmed)) {
       const [label, ...rest] = trimmed.split(':');
       html += `<div><strong>${esc(label)}:</strong> ${esc(rest.join(':').trim())}</div>`;
-    }
-    else if (trimmed === 'Question:' || trimmed === 'Options (as shown):') {
-      html += `<div style="margin-top:6px; font-weight:600; color:var(--primary);">${esc(trimmed)}</div>`;
     }
     else if (/^[A-H]\.\s/.test(trimmed)) {
       html += `<div style="padding-left:12px; font-size:11.5px;">${esc(trimmed)}</div>`;
     }
     else if (trimmed.startsWith('My answer:')) {
       const answer = trimmed.replace('My answer:', '').trim();
-      html += `<div style="margin-top:6px; font-weight:600;"><strong>My answer:</strong> ${esc(answer)}</div>`;
+      html += `<div style="margin-top:8px; font-weight:600;"><strong>My answer:</strong> ${esc(answer)}</div>`;
     }
     else {
       html += `<div style="padding-left:4px;">${esc(trimmed)}</div>`;
