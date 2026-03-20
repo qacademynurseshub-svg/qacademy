@@ -23,9 +23,33 @@
       <a href="/admin/announcements.html">📢 Announcements</a>
       <a href="/admin/fixed-quizzes.html">📝 Fixed Quizzes</a>
       <a href="/admin/question-bank.html">🗂️ Question Bank</a>
+      <a href="/admin/messages.html">💬 Messages <span id="adminMsgBadge" class="admin-msg-badge" style="display:none;"></span></a>
       <a href="/admin/config.html">⚙️ Config</a>
     </nav>
   </aside>`;
+
+  // ── Badge CSS ──────────────────────────────────────────
+  const badgeStyle = document.createElement('style');
+  badgeStyle.textContent = `
+.admin-msg-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px; background: #e74c3c; color: #fff;
+  font-size: 10px; font-weight: 700; margin-left: 4px;
+}`;
+  document.head.appendChild(badgeStyle);
+
+  // ── Public: update unread message badge ────────────────
+  window.adminUpdateMsgBadge = function (count) {
+    const badge = document.getElementById('adminMsgBadge');
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  };
 
   // Mark the active link
   const path = window.location.pathname;

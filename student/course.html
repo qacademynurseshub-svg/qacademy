@@ -165,6 +165,20 @@
       font-size: 14px;
     }
 
+    .btn-message-course {
+      padding: 8px 18px;
+      border-radius: 8px;
+      background: var(--primary-light, #edf6f5);
+      color: var(--primary);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.15s;
+    }
+    .btn-message-course:hover { background: #daf0ed; }
+
     /* No access state */
     .no-access-card {
       background: var(--white);
@@ -214,6 +228,13 @@
           <div class="days" id="accessDays">—</div>
           <div class="days-label">days left</div>
         </div>
+      </div>
+
+      <!-- Message us button -->
+      <div style="margin-bottom:20px;">
+        <button id="btnMessageCourse" class="btn-message-course" onclick="messageCourse()" style="display:none;">
+          💬 Message us about this course
+        </button>
       </div>
 
       <!-- 2. Fixed Quizzes (shell) -->
@@ -362,8 +383,19 @@
       `).join('');
     }
 
-    // 10. Show page content
+    // 10. Show message button
+    document.getElementById('btnMessageCourse').style.display = '';
+    document.getElementById('btnMessageCourse').setAttribute('data-course-id', courseId);
+
+    // 11. Show page content
     document.getElementById('pageContent').style.display = 'block';
+  }
+
+  function messageCourse() {
+    const courseId = document.getElementById('btnMessageCourse').getAttribute('data-course-id');
+    if (courseId) {
+      window.location.href = '/student/messages.html?course_id=' + encodeURIComponent(courseId);
+    }
   }
 
   initPage();

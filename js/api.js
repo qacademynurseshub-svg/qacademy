@@ -2042,3 +2042,407 @@ function getQuizAvailability(quiz) {
 
   return 'ACTIVE';
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// MESSAGING
+// ══════════════════════════════════════════════════════════════
+
+// ------------------------------------------------------------
+// ID GENERATOR — same pattern as old stack (THR_ / MSG_ prefix)
+// ------------------------------------------------------------
+function _msgId(prefix) {
+  return prefix + '_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase();
+}
+
+// ------------------------------------------------------------
+// GET OR CREATE THREAD
+// Reuse rules:
+//   general  → reuse open thread for same user
+//   course   → reuse open thread for same user + course_id
+//   question → always create new
+// Returns: { thread_id, created }
+// ------------------------------------------------------------
+async function ensureThread(userId, contextType, opts = {}) {
+  const ct = (contextType || 'general').toLowerCase();
+
+  // Try to reuse existing open thread (general / course only)
+  if (ct !== 'question') {
+    let q = db.from('messages_threads')
+      .select('thread_id')
+      .eq('user_id', userId)
+      .eq('status', 'open')
+      .eq('context_type', ct);
+
+    if (ct === 'course' && opts.course_id) q = q.eq('course_id', opts.course_id);
+
+    const { data } = await q.order('last_message_at', { ascending: false }).limit(1).maybeSingle();
+    if (data) return { thread_id: data.thread_id, created: false };
+  }
+
+  // Create new thread
+  const thread_id = _msgId('THR');
+  const now = new Date().toISOString();
+
+  const row = {
+    thread_id,
+    user_id:          userId,
+    admin_id:         opts.admin_id || 'admin1',
+    status:           'open',
+    context_type:     ct,
+    subject:          opts.subject || null,
+    course_id:        opts.course_id || null,
+    quiz_id:          opts.quiz_id || null,
+    question_id:      opts.question_id || null,
+    attempt_id:       opts.attempt_id || null,
+    bulk_batch_id:    opts.bulk_batch_id || null,
+    created_at:       now,
+    last_message_at:  now,
+    last_sender_role: opts.sender_role || 'student'
+  };
+
+  const { error } = await db.from('messages_threads').insert(row);
+  if (error) { console.error('ensureThread:', error); return null; }
+  return { thread_id, created: true };
+}
+
+// ------------------------------------------------------------
+// SEND MESSAGE
+// Inserts message row + updates thread summary
+// Returns: { success, message_id } or { success: false, message }
+// ------------------------------------------------------------
+async function sendMessage(threadId, senderId, senderRole, bodyText) {
+  const message_id = _msgId('MSG');
+  const now = new Date().toISOString();
+
+  const msg = {
+    message_id,
+    thread_id:     threadId,
+    sender_id:     senderId,
+    sender_role:   senderRole,
+    body_text:     bodyText.trim(),
+    created_at:    now,
+    read_by_user:  senderRole === 'student',
+    read_by_admin: senderRole === 'admin'
+  };
+
+  const { error: msgErr } = await db.from('messages').insert(msg);
+  if (msgErr) { console.error('sendMessage:', msgErr); return { success: false, message: msgErr.message }; }
+
+  // Update thread summary
+  await db.from('messages_threads')
+    .update({ last_message_at: now, last_sender_role: senderRole, status: 'open' })
+    .eq('thread_id', threadId);
+
+  return { success: true, message_id };
+}
+
+// ------------------------------------------------------------
+// GET STUDENT THREADS
+// Returns all threads for a student, newest first
+// Each thread includes latest message preview
+// ------------------------------------------------------------
+async function getStudentThreads(userId) {
+  const { data, error } = await db
+    .from('messages_threads')
+    .select('*')
+    .eq('user_id', userId)
+    .order('last_message_at', { ascending: false });
+
+  if (error) { console.error('getStudentThreads:', error); return []; }
+  const threads = data || [];
+
+  // Fetch latest message per thread for preview
+  if (threads.length) {
+    const tids = threads.map(t => t.thread_id);
+    const { data: msgs } = await db
+      .from('messages')
+      .select('thread_id, body_text, sender_role, created_at')
+      .in('thread_id', tids)
+      .order('created_at', { ascending: false });
+
+    const latestMap = {};
+    (msgs || []).forEach(m => {
+      if (!latestMap[m.thread_id]) latestMap[m.thread_id] = m;
+    });
+
+    threads.forEach(t => { t._latest = latestMap[t.thread_id] || null; });
+  }
+
+  return threads;
+}
+
+// ------------------------------------------------------------
+// GET THREAD MESSAGES
+// Returns all messages in a thread, oldest first
+// ------------------------------------------------------------
+async function getThreadMessages(threadId) {
+  const { data, error } = await db
+    .from('messages')
+    .select('*')
+    .eq('thread_id', threadId)
+    .order('created_at', { ascending: true });
+
+  if (error) { console.error('getThreadMessages:', error); return []; }
+  return data || [];
+}
+
+// ------------------------------------------------------------
+// MARK THREAD READ
+// Bulk-updates all unread messages in a thread for a role
+// ------------------------------------------------------------
+async function markThreadRead(threadId, role) {
+  const col = role === 'admin' ? 'read_by_admin' : 'read_by_user';
+
+  const { error } = await db
+    .from('messages')
+    .update({ [col]: true })
+    .eq('thread_id', threadId)
+    .eq(col, false);
+
+  if (error) console.error('markThreadRead:', error);
+}
+
+// ------------------------------------------------------------
+// GET UNREAD COUNT (for nav badge)
+// Counts threads that have at least one unread message
+// ------------------------------------------------------------
+async function getUnreadCountForUser(userId) {
+  // Get all threads for user
+  const { data: threads } = await db
+    .from('messages_threads')
+    .select('thread_id')
+    .eq('user_id', userId)
+    .eq('status', 'open');
+
+  if (!threads || !threads.length) return 0;
+
+  const tids = threads.map(t => t.thread_id);
+  const { data: unread } = await db
+    .from('messages')
+    .select('thread_id')
+    .in('thread_id', tids)
+    .eq('read_by_user', false);
+
+  // Count unique threads with unread messages
+  const unreadThreads = new Set((unread || []).map(m => m.thread_id));
+  return unreadThreads.size;
+}
+
+async function getUnreadCountForAdmin() {
+  const { data: unread } = await db
+    .from('messages')
+    .select('thread_id')
+    .eq('read_by_admin', false);
+
+  const unreadThreads = new Set((unread || []).map(m => m.thread_id));
+  return unreadThreads.size;
+}
+
+// ------------------------------------------------------------
+// ADMIN: GET ALL THREADS (with student info)
+// Supports filtering by context_type, status, search term
+// ------------------------------------------------------------
+async function getAdminThreads(filters = {}) {
+  let q = db.from('messages_threads')
+    .select('*')
+    .order('last_message_at', { ascending: false });
+
+  if (filters.status)       q = q.eq('status', filters.status);
+  if (filters.context_type) q = q.eq('context_type', filters.context_type);
+
+  const { data, error } = await q;
+  if (error) { console.error('getAdminThreads:', error); return []; }
+  const threads = data || [];
+
+  if (!threads.length) return [];
+
+  // Batch-fetch student info
+  const userIds = [...new Set(threads.map(t => t.user_id))];
+  const { data: users } = await db
+    .from('users')
+    .select('user_id, name, forename, surname, email, program_id')
+    .in('user_id', userIds);
+
+  const userMap = {};
+  (users || []).forEach(u => { userMap[u.user_id] = u; });
+
+  // Fetch latest message per thread for preview
+  const tids = threads.map(t => t.thread_id);
+  const { data: msgs } = await db
+    .from('messages')
+    .select('thread_id, body_text, sender_role, created_at, read_by_admin')
+    .in('thread_id', tids)
+    .order('created_at', { ascending: false });
+
+  const latestMap = {};
+  const unreadMap = {};
+  (msgs || []).forEach(m => {
+    if (!latestMap[m.thread_id]) latestMap[m.thread_id] = m;
+    if (!m.read_by_admin) unreadMap[m.thread_id] = true;
+  });
+
+  threads.forEach(t => {
+    t._user = userMap[t.user_id] || null;
+    t._latest = latestMap[t.thread_id] || null;
+    t._unread = !!unreadMap[t.thread_id];
+  });
+
+  // Client-side search filter
+  if (filters.search) {
+    const term = filters.search.toLowerCase();
+    return threads.filter(t => {
+      const u = t._user;
+      if (!u) return false;
+      return (u.name || '').toLowerCase().includes(term)
+        || (u.forename || '').toLowerCase().includes(term)
+        || (u.surname || '').toLowerCase().includes(term)
+        || (u.email || '').toLowerCase().includes(term);
+    });
+  }
+
+  return threads;
+}
+
+// ------------------------------------------------------------
+// ADMIN: CLOSE / REOPEN THREAD
+// ------------------------------------------------------------
+async function closeThread(threadId) {
+  const { error } = await db.from('messages_threads')
+    .update({ status: 'closed' }).eq('thread_id', threadId);
+  if (error) { console.error('closeThread:', error); return { success: false }; }
+  return { success: true };
+}
+
+async function reopenThread(threadId) {
+  const { error } = await db.from('messages_threads')
+    .update({ status: 'open' }).eq('thread_id', threadId);
+  if (error) { console.error('reopenThread:', error); return { success: false }; }
+  return { success: true };
+}
+
+// ------------------------------------------------------------
+// ADMIN: RESOLVE RECIPIENTS (for bulk send)
+// AND across filter types, OR within each
+// Returns: array of user_ids
+// ------------------------------------------------------------
+async function resolveRecipients(scope) {
+  // Fetch all active users
+  const { data: allUsers } = await db
+    .from('users')
+    .select('user_id, program_id, cohort, level, active')
+    .eq('active', true);
+
+  let users = allUsers || [];
+
+  // Programme filter
+  if (scope.program_ids && scope.program_ids.length) {
+    const want = new Set(scope.program_ids);
+    users = users.filter(u => want.has(u.program_id));
+  }
+
+  // Cohort filter
+  if (scope.cohort_ids && scope.cohort_ids.length) {
+    const want = new Set(scope.cohort_ids);
+    users = users.filter(u => want.has(String(u.cohort || '')));
+  }
+
+  // Level filter
+  if (scope.level_ids && scope.level_ids.length) {
+    const want = new Set(scope.level_ids);
+    users = users.filter(u => want.has(String(u.level || '')));
+  }
+
+  // Subscription kind filter (PAID / TRIAL / FREE)
+  if (scope.subscription_kinds && scope.subscription_kinds.length) {
+    const uids = users.map(u => u.user_id);
+    const { data: subs } = await db
+      .from('subscriptions')
+      .select('user_id, product_id, products ( kind )')
+      .eq('status', 'ACTIVE')
+      .in('user_id', uids);
+
+    const wantKinds = new Set(scope.subscription_kinds.map(k => k.toUpperCase()));
+    const matchedIds = new Set();
+    (subs || []).forEach(s => {
+      const kind = (s.products && s.products.kind || '').toUpperCase();
+      if (wantKinds.has(kind)) matchedIds.add(s.user_id);
+    });
+    users = users.filter(u => matchedIds.has(u.user_id));
+  }
+
+  // Course entitlement filter
+  if (scope.course_ids && scope.course_ids.length) {
+    const uids = users.map(u => u.user_id);
+    const { data: subs } = await db
+      .from('subscriptions')
+      .select('user_id, product_id, products ( courses_included )')
+      .eq('status', 'ACTIVE')
+      .in('user_id', uids);
+
+    const wantCourses = new Set(scope.course_ids);
+    const matchedIds = new Set();
+    (subs || []).forEach(s => {
+      const incl = (s.products && s.products.courses_included || '');
+      const courses = incl.split(',').map(c => c.trim()).filter(Boolean);
+      if (courses.some(c => wantCourses.has(c))) matchedIds.add(s.user_id);
+    });
+    users = users.filter(u => matchedIds.has(u.user_id));
+  }
+
+  return users.map(u => u.user_id);
+}
+
+// ------------------------------------------------------------
+// ADMIN: BULK SEND
+// Creates/reuses threads for each recipient, inserts messages
+// Returns: { success, batch_id, count }
+// ------------------------------------------------------------
+async function bulkSend(adminId, subject, bodyText, scope, contextType = 'general') {
+  const userIds = await resolveRecipients(scope);
+  if (!userIds.length) return { success: false, message: 'No matching recipients' };
+
+  const bulk_batch_id = 'BULK_' + new Date().toISOString().replace(/[^0-9TZ]/g, '') + '_' + Math.random().toString(16).slice(2, 6).toUpperCase();
+  const now = new Date().toISOString();
+  let count = 0;
+
+  for (const uid of userIds) {
+    const result = await ensureThread(uid, contextType, {
+      admin_id: adminId,
+      subject,
+      course_id: scope.course_id || null,
+      bulk_batch_id,
+      sender_role: 'admin'
+    });
+
+    if (!result) continue;
+
+    await sendMessage(result.thread_id, adminId, 'admin', subject ? `[${subject}]\n${bodyText}` : bodyText);
+    count++;
+  }
+
+  return { success: true, batch_id: bulk_batch_id, count };
+}
+
+// ------------------------------------------------------------
+// ADMIN: SEARCH STUDENTS (for new thread creation)
+// ------------------------------------------------------------
+async function searchStudentsForMessaging(query) {
+  const { data, error } = await db
+    .from('users')
+    .select('user_id, name, forename, surname, email, program_id')
+    .eq('active', true)
+    .order('name');
+
+  if (error) { console.error('searchStudentsForMessaging:', error); return []; }
+
+  const term = (query || '').toLowerCase();
+  if (!term) return data || [];
+
+  return (data || []).filter(u =>
+    (u.name || '').toLowerCase().includes(term)
+    || (u.forename || '').toLowerCase().includes(term)
+    || (u.surname || '').toLowerCase().includes(term)
+    || (u.email || '').toLowerCase().includes(term)
+  );
+}

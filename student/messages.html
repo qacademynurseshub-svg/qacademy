@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Messages — QAcademy Nurses Hub</title>
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+
+/* ── Layout ──────────────────────────────────────────── */
+.dashboard-wrapper { display: flex; min-height: 100vh; background: var(--bg, #f4f6f8); }
+.main-content { flex: 1; min-width: 0; padding: 24px 20px 40px; }
+
+.msg-container { max-width: 960px; margin: 0 auto; }
+
+.page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.page-header h1 { font-size: 22px; font-weight: 800; color: var(--primary); margin: 0; }
+
+/* ── Split pane ──────────────────────────────────────── */
+.msg-split { display: flex; gap: 0; border: 1px solid var(--border, #e2e8f0); border-radius: 14px; overflow: hidden; background: var(--white, #fff); min-height: 520px; box-shadow: 0 2px 12px rgba(30,58,95,0.06); }
+
+/* Thread list */
+.thread-list { width: 320px; min-width: 260px; border-right: 1px solid var(--border, #e2e8f0); display: flex; flex-direction: column; }
+.thread-list-header { padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.thread-list-header h2 { font-size: 14px; font-weight: 700; color: var(--primary); margin: 0; }
+.btn-new-msg { font-size: 12px; padding: 5px 12px; border-radius: 6px; background: var(--accent, #2d7d72); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+.btn-new-msg:hover { opacity: 0.9; }
+
+.thread-items { flex: 1; overflow-y: auto; }
+.thread-item { padding: 12px 16px; border-bottom: 1px solid var(--border, #e2e8f0); cursor: pointer; transition: background 0.12s; }
+.thread-item:hover { background: rgba(45,125,114,0.04); }
+.thread-item.active { background: rgba(45,125,114,0.08); border-left: 3px solid var(--accent); }
+.thread-item.unread { font-weight: 600; }
+.thread-item .t-subject { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread-item .t-preview { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread-item .t-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+.thread-item .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; flex-shrink: 0; }
+.context-chip { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--primary-light, #edf6f5); color: var(--primary); font-weight: 600; text-transform: uppercase; }
+
+.thread-empty { padding: 40px 16px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+/* Conversation pane */
+.convo-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.convo-header { padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.convo-header h3 { font-size: 14px; font-weight: 700; color: var(--primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.convo-header .back-btn { display: none; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--primary); padding: 0; }
+
+.convo-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.convo-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; text-align: center; padding: 40px; }
+
+/* Bubbles */
+.bubble { max-width: 75%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap; }
+.bubble.student { align-self: flex-end; background: var(--accent, #2d7d72); color: #fff; border-bottom-right-radius: 4px; }
+.bubble.admin { align-self: flex-start; background: var(--primary-light, #edf6f5); color: var(--primary); border-bottom-left-radius: 4px; }
+.bubble .b-time { font-size: 10px; opacity: 0.65; margin-top: 4px; display: block; }
+.bubble.student .b-time { text-align: right; }
+
+/* Compose */
+.compose-bar { padding: 12px 16px; border-top: 1px solid var(--border, #e2e8f0); display: flex; gap: 8px; align-items: flex-end; }
+.compose-bar textarea { flex: 1; resize: none; border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 10px 14px; font-size: 13px; font-family: 'Inter', sans-serif; min-height: 40px; max-height: 120px; line-height: 1.4; }
+.compose-bar textarea:focus { outline: none; border-color: var(--accent); }
+.btn-send { padding: 8px 18px; border-radius: 8px; background: var(--accent, #2d7d72); color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.btn-send:hover { opacity: 0.9; }
+.btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Context ref card (shown in convo header when question context) */
+.ref-card { font-size: 12px; color: var(--text-muted); background: var(--primary-light, #edf6f5); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; }
+.ref-card strong { color: var(--primary); }
+
+/* ── Mobile ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .msg-split { flex-direction: column; min-height: auto; border-radius: 10px; }
+  .thread-list { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--border, #e2e8f0); }
+  .thread-items { max-height: 300px; }
+  .convo-pane { min-height: 400px; }
+
+  /* When viewing a conversation on mobile, hide thread list */
+  .msg-split.convo-open .thread-list { display: none; }
+  .msg-split.convo-open .convo-pane .back-btn { display: inline-block; }
+}
+
+/* ── Toast ────────────────────────────────────────────── */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--primary); color: #fff; padding: 14px 22px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.25s; pointer-events: none; max-width: 340px; }
+.toast.show { opacity: 1; pointer-events: auto; }
+.toast-title { font-weight: 700; margin-bottom: 2px; }
+.toast-msg { font-size: 12px; opacity: 0.9; }
+.toast.error { background: #c0392b; }
+
+/* ── Loading ──────────────────────────────────────────── */
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.1); border-left-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+</style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+  <div id="sidebar"></div>
+
+  <div class="main-content">
+    <div class="msg-container">
+
+      <div class="page-header">
+        <h1>Messages</h1>
+      </div>
+
+      <div class="msg-split" id="msgSplit">
+
+        <!-- Thread list -->
+        <div class="thread-list">
+          <div class="thread-list-header">
+            <h2>Inbox</h2>
+            <button class="btn-new-msg" onclick="startNewThread()">+ New</button>
+          </div>
+          <div class="thread-items" id="threadItems">
+            <div class="thread-empty"><span class="spinner"></span> Loading...</div>
+          </div>
+        </div>
+
+        <!-- Conversation pane -->
+        <div class="convo-pane">
+          <div class="convo-empty" id="convoEmpty">
+            Select a conversation or start a new one
+          </div>
+          <div id="convoActive" style="display:none; flex-direction:column; flex:1;">
+            <div class="convo-header">
+              <button class="back-btn" onclick="closeConvo()">&#8592;</button>
+              <h3 id="convoTitle">Conversation</h3>
+              <span class="context-chip" id="convoContext" style="display:none;"></span>
+            </div>
+            <div id="convoRef" style="display:none;"></div>
+            <div class="convo-messages" id="convoMessages"></div>
+            <div class="compose-bar">
+              <textarea id="composeBox" placeholder="Type a message..." rows="1" onkeydown="handleComposeKey(event)"></textarea>
+              <button class="btn-send" id="btnSend" onclick="handleSend()">Send</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-title" id="toastTitle"></div>
+  <div class="toast-msg" id="toastMsg"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/student-sidebar.js"></script>
+<script src="/js/api.js"></script>
+<script>
+
+// ── State ──────────────────────────────────────────────
+let PROFILE     = null;
+let threads     = [];
+let activeThread = null;   // thread_id currently viewing
+let courseTitles = {};     // course_id → title for display
+let toastTimer  = null;
+
+const byId = id => document.getElementById(id);
+
+// ── Boot ───────────────────────────────────────────────
+async function boot() {
+  PROFILE = await guardPage('STUDENT');
+  if (!PROFILE) return;
+
+  // Load courses for display names
+  const courses = await getCourses();
+  (courses || []).forEach(c => { courseTitles[c.course_id] = c.title; });
+
+  await loadThreads();
+
+  // Check URL params for deep-link from runners / course page
+  handleDeepLink();
+}
+boot();
+
+// ── Deep link ──────────────────────────────────────────
+async function handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const courseId   = params.get('course_id');
+  const itemId     = params.get('item_id');
+  const quizId     = params.get('quiz_id');
+  const attemptId  = params.get('attempt_id');
+  const ref        = params.get('ref');
+
+  if (!courseId && !itemId) return;
+
+  // Determine context type
+  const contextType = itemId ? 'question' : 'course';
+  const opts = {
+    course_id:   courseId || null,
+    quiz_id:     quizId || null,
+    question_id: itemId || null,
+    attempt_id:  attemptId || null,
+    subject:     itemId ? `Question feedback` : null,
+    sender_role: 'student'
+  };
+
+  const result = await ensureThread(PROFILE.user_id, contextType, opts);
+  if (!result) {
+    showToast('Error', 'Could not create conversation.', 'error');
+    return;
+  }
+
+  // If question context and new thread, send auto-message with ref
+  if (result.created && contextType === 'question' && ref) {
+    const courseName = courseTitles[courseId] || courseId || '';
+    const autoMsg = `Question feedback\nCourse: ${courseName}\nQuestion: ${decodeURIComponent(ref)}`;
+    await sendMessage(result.thread_id, PROFILE.user_id, 'student', autoMsg);
+  }
+
+  // Reload threads and open the one we just created/found
+  await loadThreads();
+  openThread(result.thread_id);
+
+  // Clean URL
+  window.history.replaceState({}, '', '/student/messages.html');
+}
+
+// ── Load threads ───────────────────────────────────────
+async function loadThreads() {
+  threads = await getStudentThreads(PROFILE.user_id);
+  renderThreadList();
+}
+
+// ── Render thread list ─────────────────────────────────
+function renderThreadList() {
+  const el = byId('threadItems');
+
+  if (!threads.length) {
+    el.innerHTML = '<div class="thread-empty">No messages yet. Click + New to start a conversation.</div>';
+    return;
+  }
+
+  el.innerHTML = threads.map(t => {
+    const latest = t._latest;
+    const preview = latest ? truncate(latest.body_text, 60) : 'No messages';
+    const time    = latest ? formatTime(latest.created_at) : '';
+    const label   = threadLabel(t);
+    const isActive = t.thread_id === activeThread;
+
+    // Check if there are unread messages
+    const hasUnread = latest && !latest.read_by_user && latest.sender_role === 'admin';
+
+    return `
+      <div class="thread-item ${isActive ? 'active' : ''} ${hasUnread ? 'unread' : ''}"
+           onclick="openThread('${t.thread_id}')">
+        <div class="t-subject">${esc(label)}</div>
+        <div class="t-preview">${esc(preview)}</div>
+        <div class="t-meta">
+          ${hasUnread ? '<span class="unread-dot"></span>' : ''}
+          <span>${time}</span>
+          ${t.context_type !== 'general' ? `<span class="context-chip">${t.context_type}</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Open thread ────────────────────────────────────────
+async function openThread(threadId) {
+  activeThread = threadId;
+  renderThreadList();
+
+  const thread = threads.find(t => t.thread_id === threadId);
+
+  byId('convoEmpty').style.display = 'none';
+  const active = byId('convoActive');
+  active.style.display = 'flex';
+
+  byId('convoTitle').textContent = threadLabel(thread);
+
+  // Context chip
+  const ctxChip = byId('convoContext');
+  if (thread && thread.context_type !== 'general') {
+    ctxChip.textContent = thread.context_type;
+    ctxChip.style.display = '';
+  } else {
+    ctxChip.style.display = 'none';
+  }
+
+  // Ref card for question context
+  const refEl = byId('convoRef');
+  if (thread && thread.context_type === 'question' && thread.course_id) {
+    const courseName = courseTitles[thread.course_id] || thread.course_id;
+    refEl.innerHTML = `<div class="ref-card"><strong>Course:</strong> ${esc(courseName)}${thread.question_id ? ` &mdash; <strong>Question:</strong> ${esc(thread.question_id)}` : ''}</div>`;
+    refEl.style.display = '';
+  } else if (thread && thread.context_type === 'course' && thread.course_id) {
+    const courseName = courseTitles[thread.course_id] || thread.course_id;
+    refEl.innerHTML = `<div class="ref-card"><strong>Course:</strong> ${esc(courseName)}</div>`;
+    refEl.style.display = '';
+  } else {
+    refEl.style.display = 'none';
+  }
+
+  // Mobile: show convo pane
+  byId('msgSplit').classList.add('convo-open');
+
+  // Load messages
+  const msgs = await getThreadMessages(threadId);
+  renderMessages(msgs);
+
+  // Mark as read
+  await markThreadRead(threadId, 'student');
+
+  // Scroll to bottom
+  const container = byId('convoMessages');
+  container.scrollTop = container.scrollHeight;
+
+  // Focus compose box
+  byId('composeBox').focus();
+}
+
+// ── Close convo (mobile) ───────────────────────────────
+function closeConvo() {
+  activeThread = null;
+  byId('msgSplit').classList.remove('convo-open');
+  byId('convoActive').style.display = 'none';
+  byId('convoEmpty').style.display = '';
+  renderThreadList();
+}
+
+// ── Render messages ────────────────────────────────────
+function renderMessages(msgs) {
+  const el = byId('convoMessages');
+  if (!msgs.length) {
+    el.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; padding:30px;">No messages yet. Send a message below.</div>';
+    return;
+  }
+
+  el.innerHTML = msgs.map(m => {
+    const isStudent = m.sender_role === 'student';
+    return `<div class="bubble ${isStudent ? 'student' : 'admin'}">
+      ${esc(m.body_text)}
+      <span class="b-time">${formatTime(m.created_at)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Send message ───────────────────────────────────────
+async function handleSend() {
+  const box = byId('composeBox');
+  const text = box.value.trim();
+  if (!text || !activeThread) return;
+
+  byId('btnSend').disabled = true;
+
+  const result = await sendMessage(activeThread, PROFILE.user_id, 'student', text);
+
+  if (result.success) {
+    box.value = '';
+    autoResizeTextarea(box);
+
+    // Reload messages
+    const msgs = await getThreadMessages(activeThread);
+    renderMessages(msgs);
+
+    const container = byId('convoMessages');
+    container.scrollTop = container.scrollHeight;
+
+    // Refresh thread list to update preview
+    await loadThreads();
+  } else {
+    showToast('Error', 'Could not send message.', 'error');
+  }
+
+  byId('btnSend').disabled = false;
+}
+
+function handleComposeKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
+  }
+  // Auto-resize
+  autoResizeTextarea(e.target);
+}
+
+function autoResizeTextarea(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ── New thread ─────────────────────────────────────────
+async function startNewThread() {
+  const result = await ensureThread(PROFILE.user_id, 'general', { sender_role: 'student' });
+  if (!result) {
+    showToast('Error', 'Could not create conversation.', 'error');
+    return;
+  }
+  await loadThreads();
+  openThread(result.thread_id);
+}
+
+// ── Helpers ────────────────────────────────────────────
+function threadLabel(t) {
+  if (!t) return 'Conversation';
+  if (t.subject) return t.subject;
+  if (t.context_type === 'course' && t.course_id) {
+    return courseTitles[t.course_id] || t.course_id;
+  }
+  if (t.context_type === 'question') {
+    return 'Question feedback';
+  }
+  return 'General';
+}
+
+function truncate(s, n) {
+  if (!s) return '';
+  const clean = s.replace(/\s+/g, ' ').trim();
+  return clean.length <= n ? clean : clean.slice(0, n - 1) + '…';
+}
+
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / 60000);
+
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return diffMin + 'm ago';
+
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return diffH + 'h ago';
+
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 7) return diffD + 'd ago';
+
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function showToast(title, msg, type) {
+  clearTimeout(toastTimer);
+  const t = byId('toast');
+  byId('toastTitle').textContent = title;
+  byId('toastMsg').textContent = msg;
+  t.className = 'toast show' + (type === 'error' ? ' error' : '');
+  toastTimer = setTimeout(() => { t.className = 'toast'; }, 4000);
+}
+
+</script>
+</body>
+</html>

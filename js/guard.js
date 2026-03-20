@@ -110,6 +110,22 @@ async function guardPage(requiredRole = null) {
 function _notifySidebar(profile) {
   if (typeof window.sidebarSetUser === 'function') window.sidebarSetUser(profile);
   if (typeof window.mtSetUser === 'function') window.mtSetUser(profile);
+
+  // Load unread message badge (non-blocking)
+  _loadMsgBadge(profile);
+}
+
+async function _loadMsgBadge(profile) {
+  try {
+    if (profile.role === 'ADMIN' && typeof window.adminUpdateMsgBadge === 'function') {
+      const count = await getUnreadCountForAdmin();
+      window.adminUpdateMsgBadge(count);
+    }
+    if (typeof window.sidebarUpdateMsgBadge === 'function' && typeof getUnreadCountForUser === 'function') {
+      const count = await getUnreadCountForUser(profile.user_id);
+      window.sidebarUpdateMsgBadge(count);
+    }
+  } catch (_) { /* silent — badge is non-critical */ }
 }
 
 
