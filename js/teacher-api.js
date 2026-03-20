@@ -2535,6 +2535,14 @@ async function getTeacherResultsMarksheet(quizId, classId, opts = {}) {
   const { data: members, error: mErr } = await memberQuery;
   if (mErr) return { success: false, message: mErr.message };
 
+  // Batch-fetch avatar URLs from users table
+  const memberIds = (members || []).map(m => m.user_id).filter(Boolean);
+  const avatarMap = {};
+  if (memberIds.length) {
+    const { data: avatarRows } = await db.from('users').select('user_id, avatar_url').in('user_id', memberIds);
+    (avatarRows || []).forEach(u => { if (u.avatar_url) avatarMap[u.user_id] = u.avatar_url; });
+  }
+
   // Get all attempts
   let attQuery = db.from('teacher_quiz_attempts')
     .select('attempt_id, user_id, status, score_raw, score_total, score_pct, time_taken_s, submitted_at, started_at, attempt_no, candidate_fields_json, grade_bands_json, score_display_policy, score_json')
@@ -2611,6 +2619,7 @@ async function getTeacherResultsMarksheet(quizId, classId, opts = {}) {
       user_id: m.user_id,
       display_name: m.display_name || m.email || m.user_id,
       email: m.email,
+      avatar_url: avatarMap[m.user_id] || null,
       member_status: m.status,
       member_fields: memberValues,
       candidate_fields: candidateValues,
