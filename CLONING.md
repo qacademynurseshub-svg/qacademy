@@ -425,6 +425,55 @@ Full schema is documented in `myteacher new schema.md`. Key tables:
 -- items_table points to the actual items table (e.g., items_gp, items_rn_med)
 ```
 
+### 3.4 Messaging Tables
+
+#### messages_threads
+```sql
+CREATE TABLE messages_threads (
+  thread_id        TEXT PRIMARY KEY,
+  user_id          UUID REFERENCES users(user_id),
+  admin_id         TEXT,
+  status           TEXT NOT NULL DEFAULT 'open',
+  context_type     TEXT NOT NULL DEFAULT 'general',
+  subject          TEXT,
+  course_id        TEXT,
+  quiz_id          TEXT,
+  question_id      TEXT,
+  attempt_id       TEXT,
+  bulk_batch_id    TEXT,
+  ref_text         TEXT,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  last_message_at  TIMESTAMPTZ DEFAULT NOW(),
+  last_sender_role TEXT
+);
+-- thread_id: 'THR_' + Date.now() + random
+-- context_type: general | course | question
+-- status: open | closed
+-- ref_text: human-readable question reference (stem, options, student answer) for question context threads
+
+ALTER TABLE messages_threads ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON messages_threads FOR ALL USING (true) WITH CHECK (true);
+```
+
+#### messages
+```sql
+CREATE TABLE messages (
+  message_id   TEXT PRIMARY KEY,
+  thread_id    TEXT REFERENCES messages_threads(thread_id),
+  sender_id    TEXT NOT NULL,
+  sender_role  TEXT NOT NULL,
+  body_text    TEXT NOT NULL,
+  read_by_user  BOOLEAN DEFAULT false,
+  read_by_admin BOOLEAN DEFAULT false,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+-- message_id: 'MSG_' + Date.now() + random
+-- sender_role: student | admin
+
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON messages FOR ALL USING (true) WITH CHECK (true);
+```
+
 ### 3.5 RLS
 All tables use `dev_allow_all` during build:
 ```sql

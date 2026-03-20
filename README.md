@@ -12,7 +12,7 @@ QAcademy Nurses Hub is a web-based learning management system for nursing studen
 | Database & Auth | Supabase (free tier) |
 | Version Control | GitHub (`mybackpacc-byte/qacademy-gamma`) |
 | Payments | Paystack — Cloudflare Worker deployed (`payments-worker/`) |
-| Messaging | Telegram (planned) |
+| Messaging | Built-in thread-based system (Supabase) |
 
 No separate backend server. Everything is JAMstack. The Cloudflare Worker is isolated to payments only — it does not touch the rest of the frontend build.
 
@@ -115,31 +115,46 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 - **Student join flow** — org card shows programme, course, description
 - **Max capacity** — enforced on join (counts ACTIVE + PENDING members), returns "class is full" message
 
-### MyLicensure Messaging ✅ (v1)
+### MyLicensure Messaging ✅ (v2)
 
 Thread-based messaging system between admin and students.
 
-**Schema:** `messages_threads` + `messages` tables in Supabase. Thread reuse for general/course contexts, always new for question context.
+**Schema:** `messages_threads` + `messages` tables in Supabase. Thread reuse for general/course contexts, always new for question context. `ref_text` column stores human-readable question reference for question context threads.
 
-**Built:**
-- `student/messages.html` — Split-pane inbox (thread list + conversation). New thread, reply, Enter-to-send, deep-link from quiz runners and course page, mobile-responsive with back button
-- `admin/messages.html` — Admin inbox with 4 filters (search, context type, status, unread). New Thread modal with student search. Bulk Send modal with 5 recipient scopes (programme, level, cohort, subscription kind, course). Close/reopen threads. Reply compose.
-- 14 API functions in `js/api.js` — thread CRUD, message send/fetch, unread counts, recipient resolution, bulk send
-- Unread count badge on Messages nav link in both student and admin sidebars, auto-loaded on every page via `guard.js`
-- "Message us about this course" button on `student/course.html`
-- Both quiz runners already wired with "Send feedback" → `student/messages.html?item_id=...`
+**Student side** (`student/messages.html`):
+- Split-pane inbox with refined chat bubbles, initials avatars, grouped messages, date dividers
+- Deep-link from quiz runners and course page, optimistic send, Supabase Realtime
+- Question threads show persistent ref card with formatted question text, options, and student's answer
+- Mobile-responsive with thread list / conversation toggle
+
+**Admin side** (`admin/messages.html`):
+- Flat feed layout (Intercom-style) with accent left-border on admin messages
+- 4 filters: search (name, email, question text), context type, status, unread
+- **New Thread modal**: student search with manual user_id fallback, context-aware (general/course), multi-select course picker dynamically loaded from student's entitled courses, creates one thread per selected course
+- **Bulk Send modal**: 5 multi-select pill picker scopes (programme, level, cohort, subscription kind, course entitlement), live preview count, confirmation step
+- Close/reopen threads with inline banner
+- Question threads show ref card with question_id, formatted question text, and admin guidance
+
+**Quiz runner integration** (`runner/instant.html`, `runner/timed.html`):
+- "Send feedback" button builds rich `ref_text` via `buildFriendlyRefText()`: course name, question position, topic, full stem, all options as displayed, student's current answer
+- Correct answer deliberately excluded to prevent mid-quiz leaks
+- `ref_text` stored on thread for persistent display and admin searchability
+
+**API** (`js/api.js`):
+- 14 functions: thread CRUD, message send/fetch, unread counts, recipient resolution, bulk send
+- `ensureThread()` stores `ref_text` on thread creation
+- `resolveRecipients()` supports array-based scope filters (AND across fields, OR within)
+- Unread count badge on Messages nav link in both sidebars via `guard.js`
 
 **Entry points:**
 | Entry point | Context type | Pre-filled data |
 |---|---|---|
-| `runner/instant.html` → "Send feedback" | `question` | course_id, quiz_id, attempt_id, item_id, ref |
-| `runner/timed.html` → "Send feedback" | `question` | course_id, quiz_id, attempt_id, item_id, ref |
+| `runner/instant.html` → "Send feedback" | `question` | course_id, quiz_id, attempt_id, item_id, rich ref_text |
+| `runner/timed.html` → "Send feedback" | `question` | course_id, quiz_id, attempt_id, item_id, rich ref_text |
 | `student/course.html` → "Message us" | `course` | course_id |
 | `student/messages.html` → "+ New" | `general` | — |
-| `admin/messages.html` → "New Thread" | `general` | selected student |
-| `admin/messages.html` → "Bulk Send" | `general` / `course` | scoped recipients |
-
-**Refinements pending:** UI polish, further improvements to chat layout
+| `admin/messages.html` → "New Thread" | `general` / `course` | selected student, multi-select courses |
+| `admin/messages.html` → "Bulk Send" | `general` / `course` | scoped recipients via 5 pill pickers |
 
 ### Future ⏭️
 1. Teacher guidance / how-to pages (teachers first, then students)
