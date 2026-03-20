@@ -416,6 +416,7 @@
 
             <!-- Custom fields — shown after code validated -->
             <div class="cf-section" id="cfSection" style="display:none;">
+              <div id="cfOrgCard"></div>
               <h4 id="cfClassName">Class details</h4>
               <p id="cfIntro">This class requires some details from you.</p>
               <div id="cfFieldsWrap"></div>
@@ -1020,8 +1021,10 @@
 
     const fields = parseFields(cls.custom_fields_json);
 
-    // Always show confirmation step with org card
-    byId('cfClassName').innerHTML = orgHtml || `<div style="font-size:14px;font-weight:700;color:var(--primary);margin-bottom:4px;">${esc(cls.title)}</div>`;
+    // Always show confirmation step
+    // Org card in its own container
+    byId('cfOrgCard').innerHTML = orgHtml;
+    byId('cfClassName').textContent = cls.title;
     byId('cfFieldsWrap').innerHTML = '';
 
     if (!fields.length) {
@@ -1115,10 +1118,11 @@
       return;
     }
 
+    const title = pendingClass.title;
     if (result.status === 'PENDING') {
-      showToast('Request sent', `Your request to join ${pendingClass.title} has been sent to the teacher for approval.`, 'ok');
+      showToast('Request sent', `Your request to join ${title} has been sent to the teacher for approval.`, 'ok');
     } else {
-      showToast('Joined!', `You have joined ${pendingClass.title}.`, 'ok');
+      showToast('Joined!', `You have joined ${title}.`, 'ok');
     }
     resetJoinUI();
     await loadClasses();
@@ -1128,6 +1132,7 @@
     pendingClass = null;
     byId('joinCodeInput').value    = '';
     byId('cfSection').style.display = 'none';
+    byId('cfOrgCard').innerHTML     = '';
     byId('cfFieldsWrap').innerHTML  = '';
     showAlert('joinAlert', '', '');
   }
