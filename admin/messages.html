@@ -150,6 +150,22 @@
 .confirm-box { padding: 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; margin-bottom: 14px; text-align: center; }
 .confirm-box strong { color: var(--warning); }
 
+/* ── Multi-select pill picker ────────────────────────── */
+.ms-picker { position: relative; }
+.ms-picker .ms-selected { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; min-height: 0; }
+.ms-picker .ms-selected:empty { display: none; }
+.ms-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; background: var(--primary-light); border-radius: 4px; font-size: 11px; font-weight: 600; color: var(--primary); }
+.ms-pill .ms-x { cursor: pointer; opacity: 0.5; font-size: 13px; line-height: 1; }
+.ms-pill .ms-x:hover { opacity: 1; }
+.ms-picker .ms-dropdown { width: 100%; padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text); background: var(--white); cursor: pointer; }
+.ms-picker .ms-dropdown:focus { outline: none; border-color: var(--primary); }
+.ms-picker .ms-options { display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 10; background: var(--white); border: 1px solid var(--border); border-radius: 8px; max-height: 180px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 2px; }
+.ms-picker.open .ms-options { display: block; }
+.ms-option { padding: 6px 12px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.ms-option:hover { background: var(--primary-light); }
+.ms-option .ms-check { width: 14px; height: 14px; border: 1.5px solid var(--border); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+.ms-option.selected .ms-check { background: var(--primary); border-color: var(--primary); color: #fff; }
+
 /* ── Mobile ──────────────────────────────────────────── */
 @media (max-width: 768px) {
   .msg-split { flex-direction: column; height: auto; min-height: auto; border-radius: 10px; }
@@ -334,36 +350,31 @@
       <button class="modal-close" onclick="closeBulkModal()">&times;</button>
     </div>
     <div class="modal-body">
-      <!-- Scope filters -->
+      <!-- Scope filters (multi-select) -->
       <div class="form-row">
         <div class="form-group">
           <label>Programme</label>
-          <select id="bulkProgramme"><option value="">All</option></select>
+          <div class="ms-picker" id="msProgramme"></div>
         </div>
         <div class="form-group">
           <label>Level</label>
-          <select id="bulkLevel"><option value="">All</option></select>
+          <div class="ms-picker" id="msLevel"></div>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label>Cohort</label>
-          <select id="bulkCohort"><option value="">All</option></select>
+          <div class="ms-picker" id="msCohort"></div>
         </div>
         <div class="form-group">
           <label>Subscription Kind</label>
-          <select id="bulkSubKind">
-            <option value="">All</option>
-            <option value="PAID">Paid</option>
-            <option value="TRIAL">Trial</option>
-            <option value="FREE">Free</option>
-          </select>
+          <div class="ms-picker" id="msSubKind"></div>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label>Course entitlement</label>
-          <select id="bulkCourseScope"><option value="">All</option></select>
+          <div class="ms-picker" id="msCourseScope"></div>
         </div>
         <div class="form-group" style="display:flex; align-items:flex-end;">
           <button class="btn-sm" onclick="previewRecipients()" style="margin-bottom:0;">Preview count</button>
@@ -449,6 +460,108 @@ async function boot() {
 }
 boot();
 
+// ── Multi-select pill picker engine ─────────────────────
+function msInit(containerId, items, placeholder) {
+  // items: [{ value, label }]
+  const container = byId(containerId);
+  if (!container) return;
+  container._msItems = items;
+  container._msSelected = new Set();
+  container._msPlaceholder = placeholder || 'All';
+
+  function render() {
+    const sel = container._msSelected;
+    const selHtml = Array.from(sel).map(v => {
+      const item = items.find(i => i.value === v);
+      const label = item ? item.label : v;
+      return `<span class="ms-pill">${esc(label)}<span class="ms-x" data-v="${esc(v)}">&times;</span></span>`;
+    }).join('');
+
+    const optionsHtml = items.map(i => {
+      const checked = sel.has(i.value);
+      return `<div class="ms-option ${checked ? 'selected' : ''}" data-v="${esc(i.value)}">
+        <span class="ms-check">${checked ? '&#10003;' : ''}</span>
+        <span>${esc(i.label)}</span>
+      </div>`;
+    }).join('');
+
+    const btnLabel = sel.size === 0 ? container._msPlaceholder : sel.size + ' selected';
+
+    container.innerHTML = `
+      <div class="ms-selected">${selHtml}</div>
+      <div class="ms-dropdown">${btnLabel}</div>
+      <div class="ms-options">${optionsHtml}</div>
+    `;
+  }
+
+  render();
+
+  container.addEventListener('click', (e) => {
+    // Remove pill
+    const xBtn = e.target.closest('.ms-x');
+    if (xBtn) {
+      container._msSelected.delete(xBtn.dataset.v);
+      render();
+      bulkResolvedCount = null;
+      byId('bulkPreview').style.display = 'none';
+      byId('bulkConfirm').style.display = 'none';
+      return;
+    }
+
+    // Toggle dropdown
+    const dropdown = e.target.closest('.ms-dropdown');
+    if (dropdown) {
+      container.classList.toggle('open');
+      return;
+    }
+
+    // Select/deselect option
+    const opt = e.target.closest('.ms-option');
+    if (opt) {
+      const v = opt.dataset.v;
+      if (container._msSelected.has(v)) {
+        container._msSelected.delete(v);
+      } else {
+        container._msSelected.add(v);
+      }
+      render();
+      container.classList.add('open'); // keep open for multi-select
+      bulkResolvedCount = null;
+      byId('bulkPreview').style.display = 'none';
+      byId('bulkConfirm').style.display = 'none';
+      return;
+    }
+  });
+}
+
+function msGetValues(containerId) {
+  const container = byId(containerId);
+  return container && container._msSelected ? Array.from(container._msSelected) : [];
+}
+
+function msReset(containerId) {
+  const container = byId(containerId);
+  if (container && container._msSelected) {
+    container._msSelected.clear();
+    // Re-render
+    const items = container._msItems || [];
+    const placeholder = container._msPlaceholder || 'All';
+    container.innerHTML = `
+      <div class="ms-selected"></div>
+      <div class="ms-dropdown">${placeholder}</div>
+      <div class="ms-options">${items.map(i => `<div class="ms-option" data-v="${esc(i.value)}"><span class="ms-check"></span><span>${esc(i.label)}</span></div>`).join('')}</div>
+    `;
+    container.classList.remove('open');
+  }
+}
+
+// Close pickers when clicking outside
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.ms-picker.open').forEach(p => {
+    if (!p.contains(e.target)) p.classList.remove('open');
+  });
+});
+
 // ── Populate dropdowns ──────────────────────────────────
 function populateDropdowns() {
   const courseOpts = '<option value="">Select course</option>' +
@@ -457,13 +570,17 @@ function populateDropdowns() {
   // New thread modal
   byId('ntCourse').innerHTML = courseOpts;
 
-  // Bulk modal
+  // Bulk modal — thread course (single select, stays as <select>)
   byId('bulkCourse').innerHTML = courseOpts;
-  byId('bulkCourseScope').innerHTML = '<option value="">All</option>' +
-    coursesList.map(c => `<option value="${c.course_id}">${esc(c.title)}</option>`).join('');
 
-  byId('bulkProgramme').innerHTML = '<option value="">All</option>' +
-    programs.map(p => `<option value="${p.program_id}">${esc(p.program_id)}</option>`).join('');
+  // Bulk modal — multi-select pickers
+  msInit('msProgramme', programs.map(p => ({ value: p.program_id, label: p.program_id })), 'All programmes');
+  msInit('msCourseScope', coursesList.map(c => ({ value: c.course_id, label: c.title })), 'All courses');
+  msInit('msSubKind', [
+    { value: 'PAID', label: 'Paid' },
+    { value: 'TRIAL', label: 'Trial' },
+    { value: 'FREE', label: 'Free' }
+  ], 'All kinds');
 
   fetchDistinctFilters();
 }
@@ -473,8 +590,8 @@ async function fetchDistinctFilters() {
   const levels = [...new Set((users || []).map(u => u.level).filter(Boolean))].sort();
   const cohorts = [...new Set((users || []).map(u => String(u.cohort || '')).filter(Boolean))].sort();
 
-  byId('bulkLevel').innerHTML = '<option value="">All</option>' + levels.map(l => `<option value="${l}">${l}</option>`).join('');
-  byId('bulkCohort').innerHTML = '<option value="">All</option>' + cohorts.map(c => `<option value="${c}">${c}</option>`).join('');
+  msInit('msLevel', levels.map(l => ({ value: l, label: l })), 'All levels');
+  msInit('msCohort', cohorts.map(c => ({ value: c, label: c })), 'All cohorts');
 }
 
 // ── Load threads ────────────────────────────────────────
@@ -894,7 +1011,16 @@ function openBulkModal() {
   byId('bulkConfirm').style.display = 'none';
   byId('btnBulkSend').textContent = 'Send to all';
   byId('btnBulkSend').disabled = false;
+  byId('bulkContext').value = 'general';
+  byId('bulkCourseGroup').style.display = 'none';
   bulkResolvedCount = null;
+
+  // Reset all multi-select pickers
+  msReset('msProgramme');
+  msReset('msLevel');
+  msReset('msCohort');
+  msReset('msSubKind');
+  msReset('msCourseScope');
 }
 
 function closeBulkModal() {
@@ -907,17 +1033,17 @@ function bulkContextChanged() {
 
 function buildBulkScope() {
   const scope = {};
-  const prog = byId('bulkProgramme').value;
-  const level = byId('bulkLevel').value;
-  const cohort = byId('bulkCohort').value;
-  const subKind = byId('bulkSubKind').value;
-  const courseScope = byId('bulkCourseScope').value;
+  const progs = msGetValues('msProgramme');
+  const levels = msGetValues('msLevel');
+  const cohorts = msGetValues('msCohort');
+  const subKinds = msGetValues('msSubKind');
+  const courseScopes = msGetValues('msCourseScope');
 
-  if (prog) scope.program_ids = [prog];
-  if (level) scope.level_ids = [level];
-  if (cohort) scope.cohort_ids = [cohort];
-  if (subKind) scope.subscription_kinds = [subKind];
-  if (courseScope) scope.course_ids = [courseScope];
+  if (progs.length) scope.program_ids = progs;
+  if (levels.length) scope.level_ids = levels;
+  if (cohorts.length) scope.cohort_ids = cohorts;
+  if (subKinds.length) scope.subscription_kinds = subKinds;
+  if (courseScopes.length) scope.course_ids = courseScopes;
 
   return scope;
 }
