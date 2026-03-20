@@ -300,7 +300,7 @@
       <!-- Manual fallback -->
       <div class="form-group" id="ntManualGroup">
         <label>Or paste user_id directly</label>
-        <input type="text" id="ntManualId" placeholder="U_..." oninput="ntCheckReady()" />
+        <input type="text" id="ntManualId" placeholder="U_..." oninput="ntManualChanged()" />
         <div class="form-hint">Use this if search doesn't find the student.</div>
       </div>
       <!-- Context -->
@@ -314,7 +314,8 @@
         </div>
         <div class="form-group" id="ntCourseGroup" style="display:none;">
           <label>Course</label>
-          <select id="ntCourse"></select>
+          <div class="ms-picker" id="msNtCourse"></div>
+          <div class="form-hint" id="ntCourseHint">Select a student first to load their courses.</div>
         </div>
       </div>
       <div class="form-row">
@@ -461,13 +462,14 @@ async function boot() {
 boot();
 
 // ── Multi-select pill picker engine ─────────────────────
-function msInit(containerId, items, placeholder) {
+function msInit(containerId, items, placeholder, onChange) {
   // items: [{ value, label }]
   const container = byId(containerId);
   if (!container) return;
   container._msItems = items;
   container._msSelected = new Set();
   container._msPlaceholder = placeholder || 'All';
+  container._msOnChange = onChange || null;
 
   function render() {
     const sel = container._msSelected;
@@ -502,9 +504,7 @@ function msInit(containerId, items, placeholder) {
     if (xBtn) {
       container._msSelected.delete(xBtn.dataset.v);
       render();
-      bulkResolvedCount = null;
-      byId('bulkPreview').style.display = 'none';
-      byId('bulkConfirm').style.display = 'none';
+      if (container._msOnChange) container._msOnChange();
       return;
     }
 
@@ -526,9 +526,7 @@ function msInit(containerId, items, placeholder) {
       }
       render();
       container.classList.add('open'); // keep open for multi-select
-      bulkResolvedCount = null;
-      byId('bulkPreview').style.display = 'none';
-      byId('bulkConfirm').style.display = 'none';
+      if (container._msOnChange) container._msOnChange();
       return;
     }
   });
@@ -567,20 +565,18 @@ function populateDropdowns() {
   const courseOpts = '<option value="">Select course</option>' +
     coursesList.map(c => `<option value="${c.course_id}">${esc(c.title)}</option>`).join('');
 
-  // New thread modal
-  byId('ntCourse').innerHTML = courseOpts;
-
   // Bulk modal — thread course (single select, stays as <select>)
   byId('bulkCourse').innerHTML = courseOpts;
 
   // Bulk modal — multi-select pickers
-  msInit('msProgramme', programs.map(p => ({ value: p.program_id, label: p.program_id })), 'All programmes');
-  msInit('msCourseScope', coursesList.map(c => ({ value: c.course_id, label: c.title })), 'All courses');
+  const bulkChanged = () => { bulkResolvedCount = null; byId('bulkPreview').style.display = 'none'; byId('bulkConfirm').style.display = 'none'; };
+  msInit('msProgramme', programs.map(p => ({ value: p.program_id, label: p.program_id })), 'All programmes', bulkChanged);
+  msInit('msCourseScope', coursesList.map(c => ({ value: c.course_id, label: c.title })), 'All courses', bulkChanged);
   msInit('msSubKind', [
     { value: 'PAID', label: 'Paid' },
     { value: 'TRIAL', label: 'Trial' },
     { value: 'FREE', label: 'Free' }
-  ], 'All kinds');
+  ], 'All kinds', bulkChanged);
 
   fetchDistinctFilters();
 }
@@ -590,8 +586,9 @@ async function fetchDistinctFilters() {
   const levels = [...new Set((users || []).map(u => u.level).filter(Boolean))].sort();
   const cohorts = [...new Set((users || []).map(u => String(u.cohort || '')).filter(Boolean))].sort();
 
-  msInit('msLevel', levels.map(l => ({ value: l, label: l })), 'All levels');
-  msInit('msCohort', cohorts.map(c => ({ value: c, label: c })), 'All cohorts');
+  const bulkChanged2 = () => { bulkResolvedCount = null; byId('bulkPreview').style.display = 'none'; byId('bulkConfirm').style.display = 'none'; };
+  msInit('msLevel', levels.map(l => ({ value: l, label: l })), 'All levels', bulkChanged2);
+  msInit('msCohort', cohorts.map(c => ({ value: c, label: c })), 'All cohorts', bulkChanged2);
 }
 
 // ── Load threads ────────────────────────────────────────
@@ -887,6 +884,8 @@ function openNewThreadModal() {
   byId('ntBody').value = '';
   byId('btnNtSend').disabled = true;
   ntSelectedUser = null;
+  msInit('msNtCourse', [], 'Select courses');
+  byId('ntCourseHint').textContent = 'Select a student first to load their courses.';
 }
 
 function closeNewThreadModal() {
@@ -925,7 +924,7 @@ async function ntSearchNow() {
   el.style.display = '';
 }
 
-function ntSelectStudent(userId, name, email, prog) {
+async function ntSelectStudent(userId, name, email, prog) {
   ntSelectedUser = userId;
   byId('ntResults').style.display = 'none';
   byId('ntSelected').style.display = '';
@@ -933,19 +932,78 @@ function ntSelectStudent(userId, name, email, prog) {
   byId('ntManualId').value = '';
   ntCheckReady();
   byId('ntBody').focus();
+
+  // Fetch this student's entitled courses and populate the picker
+  await ntLoadUserCourses(userId);
+}
+
+async function ntLoadUserCourses(userId) {
+  const hint = byId('ntCourseHint');
+  hint.textContent = 'Loading courses...';
+  msInit('msNtCourse', [], 'Loading...');
+
+  const { data: subs } = await db
+    .from('subscriptions')
+    .select('product_id, products ( courses_included )')
+    .eq('user_id', userId)
+    .eq('status', 'ACTIVE');
+
+  const courseIds = new Set();
+  (subs || []).forEach(s => {
+    const arr = (s.products && Array.isArray(s.products.courses_included)) ? s.products.courses_included : [];
+    arr.forEach(c => courseIds.add(c));
+  });
+
+  const items = Array.from(courseIds).map(cid => ({
+    value: cid,
+    label: courseTitles[cid] || cid
+  }));
+
+  if (items.length) {
+    msInit('msNtCourse', items, 'Select courses', ntCheckReady);
+    hint.textContent = items.length + ' course' + (items.length !== 1 ? 's' : '') + ' available';
+  } else {
+    msInit('msNtCourse', [], 'No courses', ntCheckReady);
+    hint.textContent = 'This student has no active course entitlements.';
+  }
+}
+
+let ntManualTimer = null;
+function ntManualChanged() {
+  ntCheckReady();
+  clearTimeout(ntManualTimer);
+  const uid = byId('ntManualId').value.trim();
+  if (uid.length >= 3) {
+    ntManualTimer = setTimeout(() => ntLoadUserCourses(uid), 500);
+  }
 }
 
 function ntClearSelection() {
   ntSelectedUser = null;
   byId('ntSelected').style.display = 'none';
   byId('ntSearch').value = '';
+  msInit('msNtCourse', [], 'Select courses');
+  byId('ntCourseHint').textContent = 'Select a student first to load their courses.';
   ntCheckReady();
 }
 
 function ntCheckReady() {
   const userId = ntSelectedUser || byId('ntManualId').value.trim();
   const body = byId('ntBody').value.trim();
-  byId('btnNtSend').disabled = !userId || !body;
+  const contextType = byId('ntContext').value;
+  const courseOk = contextType !== 'course' || msGetValues('msNtCourse').length > 0;
+  byId('btnNtSend').disabled = !userId || !body || !courseOk;
+
+  // Update send button label with thread count hint
+  const btn = byId('btnNtSend');
+  if (btn.textContent !== 'Sending...') {
+    const courses = msGetValues('msNtCourse');
+    if (contextType === 'course' && courses.length > 1) {
+      btn.textContent = `Send (${courses.length} threads)`;
+    } else {
+      btn.textContent = 'Send';
+    }
+  }
 }
 
 // Listen for body changes
@@ -970,33 +1028,53 @@ async function handleNewThread() {
   btn.textContent = 'Sending...';
 
   const contextType = byId('ntContext').value;
-  const opts = {
-    admin_id: ADMIN.user_id,
-    sender_role: 'admin',
-    subject: byId('ntSubject').value.trim() || null,
-    course_id: contextType === 'course' ? byId('ntCourse').value || null : null
-  };
-
-  const result = await ensureThread(userId, contextType, opts);
-
-  if (!result) {
-    showToast('Error', 'Could not create thread.', 'error');
-    btn.disabled = false;
-    btn.textContent = 'Send';
-    return;
-  }
-
-  const subject = byId('ntSubject').value.trim();
+  const subject = byId('ntSubject').value.trim() || null;
   const msgText = subject ? `[${subject}]\n${body}` : body;
-  await sendMessage(result.thread_id, ADMIN.user_id, 'admin', msgText);
+
+  let lastThreadId = null;
+  let threadCount = 0;
+
+  if (contextType === 'course') {
+    const selectedCourses = msGetValues('msNtCourse');
+    if (!selectedCourses.length) {
+      showToast('Error', 'Select at least one course.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Send';
+      return;
+    }
+
+    for (const courseId of selectedCourses) {
+      const opts = { admin_id: ADMIN.user_id, sender_role: 'admin', subject, course_id: courseId };
+      const result = await ensureThread(userId, 'course', opts);
+      if (result) {
+        await sendMessage(result.thread_id, ADMIN.user_id, 'admin', msgText);
+        lastThreadId = result.thread_id;
+        threadCount++;
+      }
+    }
+  } else {
+    const opts = { admin_id: ADMIN.user_id, sender_role: 'admin', subject };
+    const result = await ensureThread(userId, contextType, opts);
+    if (result) {
+      await sendMessage(result.thread_id, ADMIN.user_id, 'admin', msgText);
+      lastThreadId = result.thread_id;
+      threadCount = 1;
+    }
+  }
 
   btn.disabled = false;
   btn.textContent = 'Send';
 
+  if (!lastThreadId) {
+    showToast('Error', 'Could not create thread.', 'error');
+    return;
+  }
+
   closeNewThreadModal();
-  showToast('Sent', 'Thread created.', 'success');
+  const label = threadCount > 1 ? `${threadCount} threads created.` : 'Thread created.';
+  showToast('Sent', label, 'success');
   await loadThreads();
-  openThread(result.thread_id);
+  openThread(lastThreadId);
 }
 
 // ═══════════════════════════════════════════════════════
