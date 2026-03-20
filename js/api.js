@@ -2383,8 +2383,9 @@ async function resolveRecipients(scope) {
     const wantCourses = new Set(scope.course_ids);
     const matchedIds = new Set();
     (subs || []).forEach(s => {
-      const incl = (s.products && s.products.courses_included || '');
-      const courses = incl.split(',').map(c => c.trim()).filter(Boolean);
+      const courses = (s.products && Array.isArray(s.products.courses_included))
+        ? s.products.courses_included
+        : [];
       if (courses.some(c => wantCourses.has(c))) matchedIds.add(s.user_id);
     });
     users = users.filter(u => matchedIds.has(u.user_id));
