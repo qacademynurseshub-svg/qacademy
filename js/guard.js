@@ -49,6 +49,7 @@ async function guardPage(requiredRole = null) {
   // ── 4. ADMIN bypass ───────────────────────────────────────
   // Admin can access any page regardless of requiredRole
   if (profile.role === 'ADMIN') {
+    _notifySidebar(profile);
     return profile;
   }
 
@@ -78,6 +79,7 @@ async function guardPage(requiredRole = null) {
       }
 
       // Both checks passed — return full profile
+      _notifySidebar(profile);
       return profile;
     }
 
@@ -89,6 +91,7 @@ async function guardPage(requiredRole = null) {
         window.location.href = '/router.html';
         return null;
       }
+      _notifySidebar(profile);
       return profile;
     }
 
@@ -99,7 +102,14 @@ async function guardPage(requiredRole = null) {
     }
   }
 
+  _notifySidebar(profile);
   return profile;
+}
+
+// Auto-set avatar in sidebar/nav if the functions exist
+function _notifySidebar(profile) {
+  if (typeof window.sidebarSetUser === 'function') window.sidebarSetUser(profile);
+  if (typeof window.mtSetUser === 'function') window.mtSetUser(profile);
 }
 
 

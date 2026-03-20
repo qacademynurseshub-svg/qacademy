@@ -39,7 +39,9 @@
 
       <div class="sidebar-dropdown" id="sidebarAccountDropdown">
         <div class="sidebar-dropdown-toggle" id="sidebarAccountToggle">
-          👤 My Account <span class="sidebar-dropdown-arrow">▾</span>
+          <span id="sidebarAccountAvatar" class="sidebar-account-avatar-wrap"></span>
+          <span id="sidebarAccountLabel">My Account</span>
+          <span class="sidebar-dropdown-arrow">▾</span>
         </div>
         <div class="sidebar-dropdown-menu" id="sidebarAccountMenu">
           <a href="/student/profile.html">👤 My Profile</a>
@@ -94,6 +96,16 @@
 .sidebar-dropdown-menu a:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .sidebar-dropdown-menu a.active { color: #fff; font-weight: 600; }
 .sidebar-dropdown-loading { padding: 8px 24px 8px 40px; font-size: 12px; color: rgba(255,255,255,0.4); }
+.sidebar-account-avatar-wrap { display: inline-flex; align-items: center; flex-shrink: 0; }
+.sidebar-account-avatar {
+  width: 24px; height: 24px; border-radius: 50%; object-fit: cover;
+}
+.sidebar-account-initials {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+}
 `;
   document.head.appendChild(style);
 
@@ -203,4 +215,20 @@ const accountToggle = document.getElementById('sidebarAccountToggle');
       if (window.innerWidth <= 768) closeSidebar();
     });
   });
+
+  // ── Public: set user avatar + name in sidebar ──────────
+  window.sidebarSetUser = function (profile) {
+    const name = profile.forename || profile.name || profile.email || '';
+    const avatarEl = document.getElementById('sidebarAccountAvatar');
+    const labelEl  = document.getElementById('sidebarAccountLabel');
+    if (labelEl) labelEl.textContent = name || 'My Account';
+    if (avatarEl) {
+      if (profile.avatar_url) {
+        avatarEl.innerHTML = '<img class="sidebar-account-avatar" src="' + profile.avatar_url + '" alt="" />';
+      } else {
+        var initials = (name || '?').split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+        avatarEl.innerHTML = '<span class="sidebar-account-initials">' + initials + '</span>';
+      }
+    }
+  };
 })();

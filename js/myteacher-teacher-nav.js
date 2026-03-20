@@ -168,14 +168,38 @@
     .mt-user-chip {
       display: inline-flex;
       align-items: center;
+      gap: 8px;
       background: rgba(255,255,255,0.10);
       color: rgba(255,255,255,0.85);
       border: 1px solid rgba(255,255,255,0.14);
       border-radius: 999px;
-      padding: 4px 12px;
+      padding: 4px 12px 4px 4px;
       font-size: 12px;
       font-weight: 600;
-      max-width: 160px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .mt-user-chip-avatar {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .mt-user-chip-initials {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .mt-user-chip-name {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -327,7 +351,13 @@
   window.mtSetUser = function (profile) {
     const name = profile.forename || profile.name || profile.email || '';
     const chip = document.getElementById('mtUserChip');
-    if (chip) chip.textContent = name;
+    if (!chip) return;
+    const avatarUrl = profile.avatar_url;
+    const initials = (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const avatarHtml = avatarUrl
+      ? `<img class="mt-user-chip-avatar" src="${avatarUrl}" alt="" />`
+      : `<span class="mt-user-chip-initials">${initials}</span>`;
+    chip.innerHTML = `${avatarHtml}<span class="mt-user-chip-name">${name}</span>`;
   };
 
   // ── Sign out ────────────────────────────────────────────
