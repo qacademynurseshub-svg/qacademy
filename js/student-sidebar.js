@@ -33,6 +33,8 @@
       <a href="/student/messages.html">💬 Messages</a>
   <a href="/student/telegram.html">✈️ Telegram</a>
 
+      <a href="/myteacher/student/dashboard.html">📝 Teacher Assess</a>
+
       <div class="sidebar-account-divider"></div>
 
       <div class="sidebar-dropdown" id="sidebarAccountDropdown">
