@@ -409,21 +409,33 @@
       fields = Array.isArray(cf) ? cf : (Array.isArray(cf.fields) ? cf.fields : []);
     } catch(_) {}
 
-    if (!fields.length) {
+    if (!fields.length && !cls.require_approval) {
       await submitOverlayJoin({});
       return;
     }
 
-    // Show custom fields
-    $('overlayCfTitle').textContent = `${cls.title} requires the following details:`;
-    $('overlayCfFields').innerHTML = fields.map(f => {
-      const key = f.key || f.label.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 32);
-      return `<div class="join-cf-field">
-        <label for="ocf_${esc(key)}">${esc(f.label)}${f.required ? '<span class="req-star">*</span>' : ''}</label>
-        <input type="text" id="ocf_${esc(key)}" data-key="${esc(key)}" data-required="${f.required ? '1' : '0'}" placeholder="${esc(f.label)}" />
-        <div class="join-cf-error" id="ocferr_${esc(key)}">This field is required.</div>
-      </div>`;
-    }).join('');
+    // Show confirmation / custom fields
+    const approvalNote = cls.require_approval
+      ? '<div style="font-size:12px;color:#a16207;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.20);border-radius:8px;padding:8px 10px;margin-bottom:10px;">This class requires teacher approval. Your request will be sent once you confirm below.</div>'
+      : '';
+
+    if (fields.length) {
+      $('overlayCfTitle').innerHTML = `${approvalNote}${esc(cls.title)} requires the following details:`;
+      $('overlayCfFields').innerHTML = fields.map(f => {
+        const key = f.key || f.label.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 32);
+        return `<div class="join-cf-field">
+          <label for="ocf_${esc(key)}">${esc(f.label)}${f.required ? '<span class="req-star">*</span>' : ''}</label>
+          <input type="text" id="ocf_${esc(key)}" data-key="${esc(key)}" data-required="${f.required ? '1' : '0'}" placeholder="${esc(f.label)}" />
+          <div class="join-cf-error" id="ocferr_${esc(key)}">This field is required.</div>
+        </div>`;
+      }).join('');
+    } else {
+      // No fields but approval required — show confirmation step
+      $('overlayCfTitle').innerHTML = `${approvalNote}You are about to request access to <strong>${esc(cls.title)}</strong>.`;
+      $('overlayCfFields').innerHTML = '';
+    }
+
+    $('overlayCfJoinBtn').textContent = cls.require_approval ? 'Request to join' : 'Join Class';
     $('overlayCf').style.display = 'block';
     $('overlayJoinBtn').style.display = 'none';
     $('overlayCode').disabled = true;

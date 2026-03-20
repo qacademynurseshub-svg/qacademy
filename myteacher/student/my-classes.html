@@ -1019,26 +1019,25 @@
 
     const fields = parseFields(cls.custom_fields_json);
 
+    // Always show confirmation step with org card
+    byId('cfClassName').innerHTML = orgHtml || `<div style="font-size:14px;font-weight:700;color:var(--primary);margin-bottom:4px;">${esc(cls.title)}</div>`;
+    byId('cfFieldsWrap').innerHTML = '';
+
     if (!fields.length) {
-      // No custom fields — show org card briefly then join
-      if (orgHtml) {
-        byId('cfSection').style.display = 'block';
-        byId('cfClassName').innerHTML = orgHtml;
-        byId('cfIntro').textContent = cls.require_approval
-          ? 'This class requires approval. Your request will be sent to the teacher.'
-          : 'You are about to join this class.';
-        byId('cfFieldsWrap').innerHTML = '';
-      }
-      await submitJoin({});
-      return;
+      byId('cfIntro').textContent = cls.require_approval
+        ? 'This class requires teacher approval. Your request will be sent once you confirm below.'
+        : 'You are about to join this class.';
+    } else {
+      byId('cfIntro').textContent = cls.require_approval
+        ? 'Your lecturer requires the following details. Your request will be sent for approval.'
+        : `Your lecturer requires the following details when joining ${cls.title}.`;
+      renderJoinFields(fields);
     }
 
-    // Show custom fields form with org card
-    byId('cfClassName').innerHTML = orgHtml || esc(cls.title);
-    byId('cfIntro').textContent = cls.require_approval
-      ? `Your lecturer requires the following details. Your request will be sent for approval.`
-      : `Your lecturer requires the following details when joining ${cls.title}.`;
-    renderJoinFields(fields);
+    // Update join button text based on approval requirement
+    const joinBtn = byId('btnJoin');
+    if (joinBtn) joinBtn.textContent = cls.require_approval ? 'Request to join' : 'Join class';
+
     byId('cfSection').style.display = 'block';
   }
 
