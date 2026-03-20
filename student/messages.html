@@ -323,14 +323,11 @@ async function openThread(threadId) {
   // Ref card
   const refEl = byId('convoRef');
   if (thread && thread.context_type === 'question') {
-    const courseName = thread.course_id ? (courseTitles[thread.course_id] || thread.course_id) : '';
-    let refHtml = '';
-    if (courseName) refHtml += `<strong>Course:</strong> ${esc(courseName)}`;
-    if (thread.ref_text) {
-      if (refHtml) refHtml += '<br>';
-      refHtml += `<strong>Question:</strong> ${esc(thread.ref_text)}`;
+    let refHtml = thread.ref_text ? formatRefText(thread.ref_text) : '';
+    if (!refHtml && thread.course_id) {
+      refHtml = `<strong>Course:</strong> ${esc(courseTitles[thread.course_id] || thread.course_id)}`;
     }
-    refHtml += '<div style="margin-top:6px; font-size:11px; color:var(--text-muted);">Type your feedback below. Please mention what part (stem or option) you\'re referring to.</div>';
+    refHtml += '<div style="margin-top:8px; font-size:11px; color:var(--text-muted); font-style:italic;">Type your feedback below. Please mention what part (stem or option) you\'re referring to.</div>';
     refEl.innerHTML = refHtml;
     refEl.style.display = '';
   } else if (thread && thread.context_type === 'course' && thread.course_id) {
@@ -610,6 +607,47 @@ function esc(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+function formatRefText(raw) {
+  if (!raw) return '';
+  const lines = raw.split('\n');
+  let html = '';
+  let inOptions = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) { inOptions = false; continue; }
+
+    // Header line
+    if (trimmed.startsWith('QAcademy')) {
+      html += `<div style="font-weight:700; color:var(--primary); margin-bottom:4px;">${esc(trimmed)}</div>`;
+    }
+    // Meta lines (Course, Question, Topic)
+    else if (/^(Course|Question|Topic):/.test(trimmed)) {
+      const [label, ...rest] = trimmed.split(':');
+      html += `<div><strong>${esc(label)}:</strong> ${esc(rest.join(':').trim())}</div>`;
+    }
+    // Section headers
+    else if (trimmed === 'Question:' || trimmed === 'Options (as shown):') {
+      inOptions = trimmed.startsWith('Options');
+      html += `<div style="margin-top:6px; font-weight:600; color:var(--primary);">${esc(trimmed)}</div>`;
+    }
+    // Option lines (A. B. C. etc)
+    else if (/^[A-H]\.\s/.test(trimmed)) {
+      html += `<div style="padding-left:12px; font-size:11.5px;">${esc(trimmed)}</div>`;
+    }
+    // My answer
+    else if (trimmed.startsWith('My answer:')) {
+      const answer = trimmed.replace('My answer:', '').trim();
+      html += `<div style="margin-top:6px; font-weight:600;"><strong>My answer:</strong> ${esc(answer)}</div>`;
+    }
+    // Question stem (anything else)
+    else {
+      html += `<div style="padding-left:4px;">${esc(trimmed)}</div>`;
+    }
+  }
+  return html;
 }
 
 function showToast(title, msg, type) {
