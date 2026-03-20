@@ -503,10 +503,11 @@
 <script>
 
   // ── State ─────────────────────────────────────────────────
-  let PROFILE        = null;
-  let allMemberships = [];     // raw rows from getStudentClasses()
-  let filteredList   = [];
+  let PROFILE         = null;
+  let allMemberships  = [];     // raw rows from getStudentClasses()
+  let filteredList    = [];
   let selectedClassId = null;
+  let teacherProfiles = {};    // { teacher_id: { display_name, organisation, org_logo_url } }
   let pendingClass    = null;  // class row found by join code
   let searchTimer     = null;
   let toastTimer      = null;
@@ -574,6 +575,16 @@
       </div>`;
 
     allMemberships = await getStudentClasses(PROFILE.user_id);
+
+    // Batch-fetch teacher profiles (name, org, logo)
+    const teacherIds = [...new Set(allMemberships.map(m => m.teacher_classes?.teacher_id).filter(Boolean))];
+    if (teacherIds.length) {
+      const { data: tRows } = await db.from('teacher_profiles')
+        .select('teacher_id, display_name, organisation, org_logo_url')
+        .in('teacher_id', teacherIds);
+      (tRows || []).forEach(t => { teacherProfiles[t.teacher_id] = t; });
+    }
+
     applyFilter();
 
     // Show the "no classes" hint in the join panel if empty
@@ -629,12 +640,21 @@
 
       const div = document.createElement('div');
       div.className = 'class-card' + (isSelected ? ' active' : '');
+      const tp = teacherProfiles[cls.teacher_id] || {};
+      const teacherLine = tp.display_name
+        ? (tp.organisation ? `${esc(tp.display_name)} — ${esc(tp.organisation)}` : esc(tp.display_name))
+        : '';
+      const logoHtml = tp.org_logo_url
+        ? `<img src="${tp.org_logo_url}" style="width:32px;height:32px;border-radius:6px;object-fit:contain;position:absolute;top:10px;right:10px;border:1px solid var(--border,#e2e8f0)" alt="" />`
+        : '';
+
+      div.style.position = 'relative';
       div.innerHTML = `
+        ${logoHtml}
         <div class="class-card-title">${esc(cls.title || '—')}</div>
-        <div class="class-card-meta">Joined ${formatDate(m.joined_at)}</div>
+        <div class="class-card-meta">${teacherLine || ''}${teacherLine ? ' · ' : ''}Joined ${formatDate(m.joined_at)}</div>
         <div class="class-card-chips">
           <span class="chip ${cls.status === 'ACTIVE' ? 'ok' : 'neutral'}">${esc(cls.status || 'ACTIVE')}</span>
-          <span class="chip neutral">🔑 ${esc(cls.join_code || '')}</span>
           <span class="chip ${profileStatus}">${profileLabel}</span>
         </div>`;
       div.addEventListener('click', () => openDetail(m));
@@ -668,7 +688,11 @@
 
     // Header
     byId('detailClassName').textContent = cls.title || '—';
-    byId('detailClassSub').textContent  = `Code: ${cls.join_code || '—'}`;
+    const tp = teacherProfiles[cls.teacher_id] || {};
+    const detailSub = tp.display_name
+      ? (tp.organisation ? `${tp.display_name} — ${tp.organisation}` : tp.display_name)
+      : '';
+    byId('detailClassSub').textContent = detailSub || cls.title;
 
     // Chips
     const profileComplete = fields.length === 0 ||
