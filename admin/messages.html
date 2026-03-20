@@ -12,12 +12,12 @@
 .main-content { flex: 1; min-width: 0; padding: 24px 20px 40px; }
 .msg-container { max-width: 1100px; margin: 0 auto; }
 
-.page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.page-header { margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .page-header h1 { font-size: 22px; font-weight: 800; color: var(--primary); margin: 0; }
 .header-actions { display: flex; gap: 8px; }
-
-.btn-bulk { padding: 7px 16px; border-radius: 8px; background: var(--primary); color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
-.btn-bulk:hover { opacity: 0.9; }
+.btn-action { padding: 7px 16px; border-radius: 8px; background: var(--primary); color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
+.btn-action:hover { opacity: 0.9; }
+.btn-action.accent { background: var(--accent); }
 
 /* ── Filters bar ─────────────────────────────────────── */
 .filters-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
@@ -27,18 +27,24 @@
 .result-count { font-size: 13px; color: var(--text-muted); margin-left: auto; }
 
 /* ── Split pane ──────────────────────────────────────── */
-.msg-split { display: flex; gap: 0; border: 1px solid var(--border, #e2e8f0); border-radius: 14px; overflow: hidden; background: var(--white, #fff); min-height: 560px; box-shadow: 0 2px 12px rgba(30,58,95,0.06); }
+.msg-split {
+  display: flex; gap: 0;
+  border: 1px solid var(--border, #e2e8f0); border-radius: 14px;
+  overflow: hidden; background: var(--white, #fff);
+  height: calc(100vh - 200px); min-height: 480px;
+  box-shadow: 0 2px 12px rgba(30,58,95,0.06);
+}
 
-/* Thread list */
+/* ── Thread list ─────────────────────────────────────── */
 .thread-list { width: 360px; min-width: 300px; border-right: 1px solid var(--border, #e2e8f0); display: flex; flex-direction: column; }
-.thread-list-header { padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.thread-list-header { padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
 .thread-list-header h2 { font-size: 14px; font-weight: 700; color: var(--primary); margin: 0; }
 
 .thread-items { flex: 1; overflow-y: auto; }
 .thread-item { padding: 12px 16px; border-bottom: 1px solid var(--border, #e2e8f0); cursor: pointer; transition: background 0.12s; }
 .thread-item:hover { background: rgba(30,58,95,0.03); }
 .thread-item.active { background: rgba(30,58,95,0.06); border-left: 3px solid var(--primary); }
-.thread-item.unread { font-weight: 600; }
+.thread-item.unread .t-name { font-weight: 700; }
 .thread-item .t-name { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 1px; display: flex; align-items: center; gap: 6px; }
 .thread-item .t-label { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
 .thread-item .t-preview { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -50,47 +56,68 @@
 
 .thread-empty { padding: 40px 16px; text-align: center; color: var(--text-muted); font-size: 13px; }
 
-/* Conversation pane */
+/* ── Conversation pane ───────────────────────────────── */
 .convo-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.convo-header { padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.convo-header { padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
 .convo-header-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .convo-header h3 { font-size: 14px; font-weight: 700; color: var(--primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.convo-header .back-btn { display: none; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--primary); padding: 0; }
+.convo-header .back-btn { display: none; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--primary); padding: 0; flex-shrink: 0; }
 .convo-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .btn-sm { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); cursor: pointer; font-weight: 600; color: var(--text-muted); }
 .btn-sm:hover { background: var(--bg); }
+.btn-sm.danger { border-color: #fecaca; color: #c0392b; }
+.btn-sm.danger:hover { background: #fef2f2; }
 
-.convo-messages { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
-.convo-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; text-align: center; padding: 40px; }
+.convo-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; text-align: center; padding: 40px; flex-direction: column; gap: 12px; }
+.convo-empty .empty-icon { font-size: 36px; opacity: 0.3; }
 
-/* Bubbles */
-.bubble { max-width: 65%; padding: 6px 10px 4px; border-radius: 12px; font-size: 13px; line-height: 1.45; word-wrap: break-word; white-space: pre-wrap; }
-.bubble.admin { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 3px; }
-.bubble.student { align-self: flex-start; background: var(--primary-light, #edf6f5); color: var(--primary); border-bottom-left-radius: 3px; }
-.bubble .b-time { font-size: 9px; opacity: 0.55; margin-top: 1px; display: block; line-height: 1; }
-.bubble.admin .b-time { text-align: right; }
+/* ── Message area (scrollable, flat feed) ────────────── */
+.convo-messages { flex: 1; overflow-y: auto; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 0; }
 
-/* Ref card */
-.ref-card { font-size: 12px; color: var(--text-muted); background: var(--primary-light, #edf6f5); padding: 8px 12px; border-radius: 8px; margin: 0 16px; }
+/* ── Date dividers ───────────────────────────────────── */
+.date-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0 12px; }
+.date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.date-divider span { font-size: 11px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+
+/* ── Ref card ────────────────────────────────────────── */
+.ref-card { font-size: 12px; color: var(--text-muted); background: var(--primary-light, #edf6f5); padding: 10px 14px; border-radius: 10px; margin: 0 0 8px 0; flex-shrink: 0; line-height: 1.5; }
 .ref-card strong { color: var(--primary); }
 
-/* Compose */
-.compose-bar { padding: 12px 16px; border-top: 1px solid var(--border, #e2e8f0); display: flex; gap: 8px; align-items: flex-end; }
+/* ── Flat feed messages ──────────────────────────────── */
+.feed-msg { padding: 10px 0; }
+.feed-msg + .feed-msg { border-top: 1px solid rgba(0,0,0,0.04); }
+.feed-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.feed-avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; color: #fff; }
+.feed-avatar.student-av { background: var(--accent); }
+.feed-avatar.admin-av { background: var(--primary); }
+.feed-name { font-size: 12px; font-weight: 700; color: var(--primary); }
+.feed-name.admin-name { color: var(--accent); }
+.feed-time { font-size: 10px; color: var(--text-muted); }
+.feed-body { font-size: 13px; line-height: 1.5; color: var(--text); padding-left: 34px; white-space: pre-wrap; word-wrap: break-word; }
+.feed-msg.is-admin { border-left: 3px solid var(--accent); padding-left: 12px; margin-left: 0; }
+.feed-msg.is-admin .feed-body { padding-left: 34px; }
+
+/* ── Closed banner ───────────────────────────────────── */
+.closed-banner { padding: 10px 16px; background: #fef2f2; border-top: 1px solid #fecaca; color: #c0392b; font-size: 12px; font-weight: 600; text-align: center; flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+/* ── Compose ─────────────────────────────────────────── */
+.compose-bar { padding: 12px 16px; border-top: 1px solid var(--border, #e2e8f0); display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; background: var(--white); }
 .compose-bar textarea { flex: 1; resize: none; border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 10px 14px; font-size: 13px; font-family: 'Inter', sans-serif; min-height: 40px; max-height: 120px; line-height: 1.4; }
 .compose-bar textarea:focus { outline: none; border-color: var(--primary); }
+.compose-bar textarea:disabled { background: var(--bg); cursor: not-allowed; }
 .btn-send { padding: 8px 18px; border-radius: 8px; background: var(--primary); color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .btn-send:hover { opacity: 0.9; }
 .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ── Bulk send modal ─────────────────────────────────── */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
+/* ── Modals ──────────────────────────────────────────── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 12px; overflow-y: auto; }
 .modal-overlay.open { display: flex; }
-.modal { background: var(--white); border-radius: 14px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.18); }
-.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal { background: var(--white); border-radius: 14px; width: 580px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.18); }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--white); z-index: 1; }
 .modal-header h2 { font-size: 16px; font-weight: 700; color: var(--primary); margin: 0; }
 .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
 .modal-body { padding: 20px; }
-.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; position: sticky; bottom: 0; background: var(--white); }
 
 .form-group { margin-bottom: 14px; }
 .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
@@ -101,12 +128,13 @@
 }
 .form-group textarea { min-height: 100px; resize: vertical; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+.form-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-.preview-count { font-size: 13px; color: var(--primary); font-weight: 600; padding: 8px 12px; background: var(--primary-light); border-radius: 8px; text-align: center; }
+.preview-count { font-size: 13px; color: var(--primary); font-weight: 600; padding: 8px 12px; background: var(--primary-light); border-radius: 8px; text-align: center; margin-bottom: 12px; }
 
-/* New thread modal */
+/* Student search results */
 .student-search-results { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 6px; }
 .student-result { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
 .student-result:hover { background: var(--primary-light); }
@@ -114,13 +142,21 @@
 .student-result .sr-name { font-weight: 600; color: var(--primary); }
 .student-result .sr-meta { font-size: 11px; color: var(--text-muted); }
 
+.selected-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--primary-light); border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--primary); }
+.selected-pill .pill-clear { cursor: pointer; opacity: 0.6; font-size: 16px; }
+.selected-pill .pill-clear:hover { opacity: 1; }
+
+/* Confirmation step */
+.confirm-box { padding: 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; margin-bottom: 14px; text-align: center; }
+.confirm-box strong { color: var(--warning); }
+
 /* ── Mobile ──────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .msg-split { flex-direction: column; min-height: auto; border-radius: 10px; }
-  .thread-list { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--border); }
-  .thread-items { max-height: 300px; }
-  .convo-pane { min-height: 400px; }
+  .msg-split { flex-direction: column; height: auto; min-height: auto; border-radius: 10px; }
+  .thread-list { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--border, #e2e8f0); max-height: 40vh; }
+  .convo-pane { min-height: 55vh; }
   .msg-split.convo-open .thread-list { display: none; }
+  .msg-split.convo-open .convo-pane { min-height: 75vh; }
   .msg-split.convo-open .convo-pane .back-btn { display: inline-block; }
   .form-row { grid-template-columns: 1fr; }
   .filters-bar { flex-direction: column; align-items: stretch; }
@@ -150,8 +186,8 @@
       <div class="page-header">
         <h1>Messages</h1>
         <div class="header-actions">
-          <button class="btn-bulk" onclick="openNewThreadModal()">+ New Thread</button>
-          <button class="btn-bulk" onclick="openBulkModal()">Bulk Send</button>
+          <button class="btn-action accent" onclick="openNewThreadModal()">+ New Thread</button>
+          <button class="btn-action" onclick="openBulkModal()">Bulk Send</button>
         </div>
       </div>
 
@@ -191,7 +227,9 @@
         <!-- Conversation pane -->
         <div class="convo-pane">
           <div class="convo-empty" id="convoEmpty">
-            Select a thread to view the conversation
+            <div class="empty-icon">&#128172;</div>
+            <div><strong>Select a thread</strong></div>
+            <div>to view the conversation</div>
           </div>
           <div id="convoActive" style="display:none; flex-direction:column; flex:1;">
             <div class="convo-header">
@@ -202,8 +240,12 @@
               </div>
               <div class="convo-actions" id="convoActions"></div>
             </div>
-            <div id="convoRef" style="display:none;"></div>
+            <div id="convoRef" class="ref-card" style="display:none; margin:12px 16px 0;"></div>
             <div class="convo-messages" id="convoMessages"></div>
+            <div id="closedBanner" class="closed-banner" style="display:none;">
+              Thread closed.
+              <button class="btn-sm" onclick="handleReopenThread()">Reopen</button>
+            </div>
             <div class="compose-bar" id="composeBar">
               <textarea id="composeBox" placeholder="Type a reply..." rows="1" onkeydown="handleComposeKey(event)"></textarea>
               <button class="btn-send" id="btnSend" onclick="handleSend()">Send</button>
@@ -216,7 +258,75 @@
   </div>
 </div>
 
-<!-- Bulk Send Modal -->
+<!-- ══════════════════════════════════════════════════════
+     NEW THREAD MODAL (single user, context-aware)
+     ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="newThreadModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>New Thread</h2>
+      <button class="modal-close" onclick="closeNewThreadModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Student search -->
+      <div class="form-group">
+        <label>Search student (name, email, or user_id)</label>
+        <input type="text" id="ntSearch" placeholder="Start typing..." oninput="ntSearchDebounced()" />
+        <div class="student-search-results" id="ntResults" style="display:none;"></div>
+      </div>
+      <div id="ntSelected" style="display:none; margin-bottom:14px;">
+        <label style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px; display:block;">Selected student</label>
+        <div class="selected-pill" id="ntSelectedPill">
+          <span id="ntSelectedName"></span>
+          <span class="pill-clear" onclick="ntClearSelection()">&times;</span>
+        </div>
+      </div>
+      <!-- Manual fallback -->
+      <div class="form-group" id="ntManualGroup">
+        <label>Or paste user_id directly</label>
+        <input type="text" id="ntManualId" placeholder="U_..." oninput="ntCheckReady()" />
+        <div class="form-hint">Use this if search doesn't find the student.</div>
+      </div>
+      <!-- Context -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Thread context</label>
+          <select id="ntContext" onchange="ntContextChanged()">
+            <option value="general">General</option>
+            <option value="course">Course</option>
+          </select>
+        </div>
+        <div class="form-group" id="ntCourseGroup" style="display:none;">
+          <label>Course</label>
+          <select id="ntCourse"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Subject (optional)</label>
+          <input type="text" id="ntSubject" placeholder="Short title..." />
+        </div>
+        <div class="form-group">
+          <label>Ref text (optional)</label>
+          <input type="text" id="ntRefText" placeholder="Optional reference..." />
+        </div>
+      </div>
+      <!-- Message -->
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="ntBody" placeholder="Type your message..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm" onclick="closeNewThreadModal()">Cancel</button>
+      <button class="btn-action accent" id="btnNtSend" onclick="handleNewThread()" disabled>Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     BULK SEND MODAL (scoped, with live preview)
+     ══════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="bulkModal">
   <div class="modal">
     <div class="modal-header">
@@ -224,17 +334,7 @@
       <button class="modal-close" onclick="closeBulkModal()">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label>Context Type</label>
-        <select id="bulkContext">
-          <option value="general">General</option>
-          <option value="course">Course-specific</option>
-        </select>
-      </div>
-      <div class="form-group" id="bulkCourseGroup" style="display:none;">
-        <label>Course</label>
-        <select id="bulkCourse"></select>
-      </div>
+      <!-- Scope filters -->
       <div class="form-row">
         <div class="form-group">
           <label>Programme</label>
@@ -260,9 +360,30 @@
           </select>
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Course entitlement</label>
+          <select id="bulkCourseScope"><option value="">All</option></select>
+        </div>
+        <div class="form-group" style="display:flex; align-items:flex-end;">
+          <button class="btn-sm" onclick="previewRecipients()" style="margin-bottom:0;">Preview count</button>
+        </div>
+      </div>
       <div id="bulkPreview" class="preview-count" style="display:none;"></div>
-      <div style="text-align:right; margin-bottom:10px;">
-        <button class="btn-sm" onclick="previewRecipients()">Preview count</button>
+
+      <!-- Thread context -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Thread context</label>
+          <select id="bulkContext" onchange="bulkContextChanged()">
+            <option value="general">General</option>
+            <option value="course">Course</option>
+          </select>
+        </div>
+        <div class="form-group" id="bulkCourseGroup" style="display:none;">
+          <label>Thread course</label>
+          <select id="bulkCourse"></select>
+        </div>
       </div>
       <div class="form-group">
         <label>Subject (optional)</label>
@@ -272,41 +393,14 @@
         <label>Message</label>
         <textarea id="bulkBody" placeholder="Type your message..."></textarea>
       </div>
+      <!-- Confirmation -->
+      <div id="bulkConfirm" class="confirm-box" style="display:none;">
+        <strong>Are you sure?</strong> This will send to <span id="bulkConfirmCount">0</span> students.
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-sm" onclick="closeBulkModal()">Cancel</button>
-      <button class="btn-bulk" id="btnBulkSend" onclick="handleBulkSend()">Send to all</button>
-    </div>
-  </div>
-</div>
-
-<!-- New Thread Modal -->
-<div class="modal-overlay" id="newThreadModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>New Thread</h2>
-      <button class="modal-close" onclick="closeNewThreadModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>Search student</label>
-        <input type="text" id="newThreadSearch" placeholder="Name or email..." oninput="searchStudentsDebounced()" />
-        <div class="student-search-results" id="studentResults" style="display:none;"></div>
-      </div>
-      <div id="selectedStudent" style="display:none;">
-        <div class="form-group">
-          <label>Selected</label>
-          <div style="font-size:13px; font-weight:600; color:var(--primary);" id="selectedStudentName"></div>
-        </div>
-        <div class="form-group">
-          <label>Message</label>
-          <textarea id="newThreadBody" placeholder="Type your message..."></textarea>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-sm" onclick="closeNewThreadModal()">Cancel</button>
-      <button class="btn-bulk" id="btnNewThreadSend" onclick="handleNewThread()" disabled>Send</button>
+      <button class="btn-action" id="btnBulkSend" onclick="handleBulkSend()">Send to all</button>
     </div>
   </div>
 </div>
@@ -323,47 +417,73 @@
 <script src="/js/api.js"></script>
 <script>
 
-// ── State ──────────────────────────────────────────────
+// ── State ───────────────────────────────────────────────
 let ADMIN        = null;
 let allThreads   = [];
 let filtered     = [];
 let activeThread = null;
+let activeData   = null;
 let courseTitles = {};
+let coursesList   = [];
 let programs     = [];
-let selectedUserId = null;
-let searchTimer  = null;
+let ntSelectedUser = null;
+let ntSearchTimer  = null;
+let bulkResolvedCount = null;
 let toastTimer   = null;
+let realtimeSub  = null;
 
 const byId = id => document.getElementById(id);
 
-// ── Boot ───────────────────────────────────────────────
+// ── Boot ────────────────────────────────────────────────
 async function boot() {
   ADMIN = await guardPage('ADMIN');
   if (!ADMIN) return;
 
-  // Load reference data
-  const [courses, progs] = await Promise.all([
-    getAllCourses(),
-    getPrograms()
-  ]);
-
-  (courses || []).forEach(c => { courseTitles[c.course_id] = c.title; });
+  const [courses, progs] = await Promise.all([getAllCourses(), getPrograms()]);
+  coursesList = courses || [];
+  coursesList.forEach(c => { courseTitles[c.course_id] = c.title; });
   programs = progs || [];
 
-  // Populate bulk modal dropdowns
-  populateBulkDropdowns(courses);
-
+  populateDropdowns();
   await loadThreads();
 }
 boot();
 
-// ── Load threads ───────────────────────────────────────
+// ── Populate dropdowns ──────────────────────────────────
+function populateDropdowns() {
+  const courseOpts = '<option value="">Select course</option>' +
+    coursesList.map(c => `<option value="${c.course_id}">${esc(c.title)}</option>`).join('');
+
+  // New thread modal
+  byId('ntCourse').innerHTML = courseOpts;
+
+  // Bulk modal
+  byId('bulkCourse').innerHTML = courseOpts;
+  byId('bulkCourseScope').innerHTML = '<option value="">All</option>' +
+    coursesList.map(c => `<option value="${c.course_id}">${esc(c.title)}</option>`).join('');
+
+  byId('bulkProgramme').innerHTML = '<option value="">All</option>' +
+    programs.map(p => `<option value="${p.program_id}">${esc(p.program_id)}</option>`).join('');
+
+  fetchDistinctFilters();
+}
+
+async function fetchDistinctFilters() {
+  const { data: users } = await db.from('users').select('level, cohort').eq('active', true);
+  const levels = [...new Set((users || []).map(u => u.level).filter(Boolean))].sort();
+  const cohorts = [...new Set((users || []).map(u => String(u.cohort || '')).filter(Boolean))].sort();
+
+  byId('bulkLevel').innerHTML = '<option value="">All</option>' + levels.map(l => `<option value="${l}">${l}</option>`).join('');
+  byId('bulkCohort').innerHTML = '<option value="">All</option>' + cohorts.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+// ── Load threads ────────────────────────────────────────
 async function loadThreads() {
   allThreads = await getAdminThreads();
   applyFilters();
 }
 
-// ── Filters ────────────────────────────────────────────
+// ── Filters ─────────────────────────────────────────────
 function applyFilters() {
   const search  = byId('filterSearch').value.trim().toLowerCase();
   const context = byId('filterContext').value;
@@ -387,7 +507,7 @@ function applyFilters() {
   renderThreadList();
 }
 
-// ── Render thread list ─────────────────────────────────
+// ── Render thread list ──────────────────────────────────
 function renderThreadList() {
   const el = byId('threadItems');
 
@@ -425,19 +545,18 @@ function renderThreadList() {
   }).join('');
 }
 
-// ── Open thread ────────────────────────────────────────
+// ── Open thread ─────────────────────────────────────────
 async function openThread(threadId) {
   activeThread = threadId;
   renderThreadList();
 
   const thread = allThreads.find(t => t.thread_id === threadId);
+  activeData = thread;
   const u = thread && thread._user;
   const name = u ? [u.forename, u.surname].filter(Boolean).join(' ') || u.name || u.email : '';
 
   byId('convoEmpty').style.display = 'none';
-  const active = byId('convoActive');
-  active.style.display = 'flex';
-
+  byId('convoActive').style.display = 'flex';
   byId('convoTitle').textContent = name || 'Conversation';
 
   // Context chip
@@ -453,11 +572,10 @@ async function openThread(threadId) {
   const refEl = byId('convoRef');
   if (thread && thread.context_type === 'question' && thread.course_id) {
     const courseName = courseTitles[thread.course_id] || thread.course_id;
-    refEl.innerHTML = `<div class="ref-card"><strong>Course:</strong> ${esc(courseName)}${thread.question_id ? ` &mdash; <strong>Question:</strong> ${esc(thread.question_id)}` : ''}</div>`;
+    refEl.innerHTML = `<strong>Course:</strong> ${esc(courseName)}${thread.question_id ? ` &mdash; <strong>Question:</strong> ${esc(thread.question_id)}` : ''}`;
     refEl.style.display = '';
   } else if (thread && thread.context_type === 'course' && thread.course_id) {
-    const courseName = courseTitles[thread.course_id] || thread.course_id;
-    refEl.innerHTML = `<div class="ref-card"><strong>Course:</strong> ${esc(courseName)}</div>`;
+    refEl.innerHTML = `<strong>Course:</strong> ${esc(courseTitles[thread.course_id] || thread.course_id)}`;
     refEl.style.display = '';
   } else {
     refEl.style.display = 'none';
@@ -466,60 +584,86 @@ async function openThread(threadId) {
   // Actions (close/reopen)
   const actionsEl = byId('convoActions');
   if (thread && thread.status === 'open') {
-    actionsEl.innerHTML = '<button class="btn-sm" onclick="handleCloseThread()">Close thread</button>';
+    actionsEl.innerHTML = '<button class="btn-sm danger" onclick="handleCloseThread()">Close thread</button>';
   } else {
-    actionsEl.innerHTML = '<button class="btn-sm" onclick="handleReopenThread()">Reopen thread</button>';
+    actionsEl.innerHTML = '<button class="btn-sm" onclick="handleReopenThread()">Reopen</button>';
   }
 
-  // Show/hide compose bar based on status
-  byId('composeBar').style.display = (thread && thread.status === 'closed') ? 'none' : '';
+  // Closed state
+  const isClosed = thread && thread.status === 'closed';
+  byId('closedBanner').style.display = isClosed ? '' : 'none';
+  byId('composeBar').style.display = isClosed ? 'none' : '';
 
   // Mobile: show convo pane
   byId('msgSplit').classList.add('convo-open');
 
   // Load messages
   const msgs = await getThreadMessages(threadId);
-  renderMessages(msgs);
+  renderMessages(msgs, thread);
 
   // Mark as read
   await markThreadRead(threadId, 'admin');
-
-  // Update unread state locally
   if (thread) thread._unread = false;
   renderThreadList();
 
   const container = byId('convoMessages');
   container.scrollTop = container.scrollHeight;
-
   byId('composeBox').focus();
+
+  setupRealtime(threadId);
 }
 
 function closeConvo() {
   activeThread = null;
+  activeData = null;
   byId('msgSplit').classList.remove('convo-open');
   byId('convoActive').style.display = 'none';
   byId('convoEmpty').style.display = '';
   renderThreadList();
+  teardownRealtime();
 }
 
-// ── Render messages ────────────────────────────────────
-function renderMessages(msgs) {
+// ── Render messages (flat feed with date dividers) ──────
+function renderMessages(msgs, thread) {
   const el = byId('convoMessages');
   if (!msgs.length) {
     el.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; padding:30px;">No messages yet.</div>';
     return;
   }
 
-  el.innerHTML = msgs.map(m => {
+  const u = thread && thread._user;
+  const studentName = u ? [u.forename, u.surname].filter(Boolean).join(' ') || u.name || 'Student' : 'Student';
+
+  let html = '';
+  let lastDate = '';
+
+  msgs.forEach(m => {
+    const msgDate = formatDateLabel(m.created_at);
+    if (msgDate !== lastDate) {
+      html += `<div class="date-divider"><span>${msgDate}</span></div>`;
+      lastDate = msgDate;
+    }
+
     const isAdmin = m.sender_role === 'admin';
-    return `<div class="bubble ${isAdmin ? 'admin' : 'student'}">
-      ${esc(m.body_text)}
-      <span class="b-time">${formatTime(m.created_at)}</span>
+    const senderName = isAdmin ? 'You (Admin)' : esc(studentName);
+    const avClass = isAdmin ? 'admin-av' : 'student-av';
+    const initial = isAdmin ? 'A' : studentName.charAt(0).toUpperCase();
+    const nameClass = isAdmin ? 'feed-name admin-name' : 'feed-name';
+
+    html += `<div class="feed-msg ${isAdmin ? 'is-admin' : ''}">
+      <div class="feed-header">
+        <div class="feed-avatar ${avClass}">${initial}</div>
+        <span class="${nameClass}">${senderName}</span>
+        <span class="feed-time">${formatTimeShort(m.created_at)}</span>
+      </div>
+      <div class="feed-body">${esc(m.body_text)}</div>
     </div>`;
-  }).join('');
+  });
+
+  el.innerHTML = html;
 }
 
-// ── Send reply ─────────────────────────────────────────
+// ── Send reply ──────────────────────────────────────────
 async function handleSend() {
   const box = byId('composeBox');
   const text = box.value.trim();
@@ -533,11 +677,11 @@ async function handleSend() {
     box.value = '';
     autoResizeTextarea(box);
     const msgs = await getThreadMessages(activeThread);
-    renderMessages(msgs);
+    const thread = allThreads.find(t => t.thread_id === activeThread);
+    renderMessages(msgs, thread);
     const container = byId('convoMessages');
     container.scrollTop = container.scrollHeight;
     await loadThreads();
-    // Re-select active thread in list
     renderThreadList();
   } else {
     showToast('Error', 'Could not send message.', 'error');
@@ -559,7 +703,7 @@ function autoResizeTextarea(el) {
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
-// ── Close / Reopen thread ──────────────────────────────
+// ── Close / Reopen thread ───────────────────────────────
 async function handleCloseThread() {
   if (!activeThread) return;
   await closeThread(activeThread);
@@ -576,80 +720,237 @@ async function handleReopenThread() {
   openThread(activeThread);
 }
 
-// ── Bulk send modal ────────────────────────────────────
-function populateBulkDropdowns(courses) {
-  // Courses
-  const courseSelect = byId('bulkCourse');
-  courseSelect.innerHTML = '<option value="">Select course</option>' +
-    (courses || []).map(c => `<option value="${c.course_id}">${esc(c.title)}</option>`).join('');
-
-  // Programmes
-  const progSelect = byId('bulkProgramme');
-  progSelect.innerHTML = '<option value="">All</option>' +
-    programs.map(p => `<option value="${p.program_id}">${esc(p.program_id)}</option>`).join('');
-
-  // Levels + cohorts — we'll fetch distinct values
-  fetchDistinctFilters();
-
-  // Context toggle
-  byId('bulkContext').addEventListener('change', () => {
-    byId('bulkCourseGroup').style.display = byId('bulkContext').value === 'course' ? '' : 'none';
-  });
+// ── Realtime ────────────────────────────────────────────
+function setupRealtime(threadId) {
+  teardownRealtime();
+  try {
+    realtimeSub = db.channel('admin-msg-' + threadId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `thread_id=eq.${threadId}`
+      }, async (payload) => {
+        const newMsg = payload.new;
+        if (newMsg && newMsg.sender_role === 'student' && activeThread === threadId) {
+          const msgs = await getThreadMessages(threadId);
+          const thread = allThreads.find(t => t.thread_id === threadId);
+          renderMessages(msgs, thread);
+          const container = byId('convoMessages');
+          container.scrollTop = container.scrollHeight;
+          await markThreadRead(threadId, 'admin');
+          await loadThreads();
+        }
+      })
+      .subscribe();
+  } catch (_) {}
 }
 
-async function fetchDistinctFilters() {
-  const { data: users } = await db.from('users').select('level, cohort').eq('active', true);
-
-  const levels = [...new Set((users || []).map(u => u.level).filter(Boolean))].sort();
-  const cohorts = [...new Set((users || []).map(u => String(u.cohort || '')).filter(Boolean))].sort();
-
-  byId('bulkLevel').innerHTML = '<option value="">All</option>' +
-    levels.map(l => `<option value="${l}">${l}</option>`).join('');
-
-  byId('bulkCohort').innerHTML = '<option value="">All</option>' +
-    cohorts.map(c => `<option value="${c}">${c}</option>`).join('');
+function teardownRealtime() {
+  if (realtimeSub) {
+    try { db.removeChannel(realtimeSub); } catch (_) {}
+    realtimeSub = null;
+  }
 }
+
+// ═══════════════════════════════════════════════════════
+// NEW THREAD MODAL
+// ═══════════════════════════════════════════════════════
+
+function openNewThreadModal() {
+  byId('newThreadModal').classList.add('open');
+  byId('ntSearch').value = '';
+  byId('ntResults').style.display = 'none';
+  byId('ntSelected').style.display = 'none';
+  byId('ntManualId').value = '';
+  byId('ntContext').value = 'general';
+  byId('ntCourseGroup').style.display = 'none';
+  byId('ntSubject').value = '';
+  byId('ntRefText').value = '';
+  byId('ntBody').value = '';
+  byId('btnNtSend').disabled = true;
+  ntSelectedUser = null;
+}
+
+function closeNewThreadModal() {
+  byId('newThreadModal').classList.remove('open');
+}
+
+function ntContextChanged() {
+  byId('ntCourseGroup').style.display = byId('ntContext').value === 'course' ? '' : 'none';
+}
+
+function ntSearchDebounced() {
+  clearTimeout(ntSearchTimer);
+  ntSearchTimer = setTimeout(ntSearchNow, 300);
+}
+
+async function ntSearchNow() {
+  const query = byId('ntSearch').value.trim();
+  if (query.length < 2) { byId('ntResults').style.display = 'none'; return; }
+
+  const results = await searchStudentsForMessaging(query);
+  const el = byId('ntResults');
+
+  if (!results.length) {
+    el.innerHTML = '<div class="student-result" style="cursor:default; color:var(--text-muted);">No students found</div>';
+    el.style.display = '';
+    return;
+  }
+
+  el.innerHTML = results.slice(0, 20).map(u => {
+    const name = [u.forename, u.surname].filter(Boolean).join(' ') || u.name || u.email;
+    return `<div class="student-result" onclick="ntSelectStudent('${u.user_id}', '${esc(name)}', '${esc(u.email || '')}', '${esc(u.program_id || '')}')">
+      <div class="sr-name">${esc(name)}</div>
+      <div class="sr-meta">${esc(u.email || '')} ${u.program_id ? '&middot; ' + esc(u.program_id) : ''}</div>
+    </div>`;
+  }).join('');
+  el.style.display = '';
+}
+
+function ntSelectStudent(userId, name, email, prog) {
+  ntSelectedUser = userId;
+  byId('ntResults').style.display = 'none';
+  byId('ntSelected').style.display = '';
+  byId('ntSelectedName').textContent = name + (email ? ' (' + email + ')' : '') + (prog ? ' \u00b7 ' + prog : '');
+  byId('ntManualId').value = '';
+  ntCheckReady();
+  byId('ntBody').focus();
+}
+
+function ntClearSelection() {
+  ntSelectedUser = null;
+  byId('ntSelected').style.display = 'none';
+  byId('ntSearch').value = '';
+  ntCheckReady();
+}
+
+function ntCheckReady() {
+  const userId = ntSelectedUser || byId('ntManualId').value.trim();
+  const body = byId('ntBody').value.trim();
+  byId('btnNtSend').disabled = !userId || !body;
+}
+
+// Listen for body changes
+document.addEventListener('DOMContentLoaded', () => {
+  const ntBody = byId('ntBody');
+  if (ntBody) ntBody.addEventListener('input', ntCheckReady);
+});
+// Also hook it immediately for non-DOMContentLoaded scenarios
+setTimeout(() => {
+  const ntBody = byId('ntBody');
+  if (ntBody) ntBody.addEventListener('input', ntCheckReady);
+}, 0);
+
+async function handleNewThread() {
+  const userId = ntSelectedUser || byId('ntManualId').value.trim();
+  if (!userId) return;
+  const body = byId('ntBody').value.trim();
+  if (!body) { showToast('Error', 'Message cannot be empty.', 'error'); return; }
+
+  const btn = byId('btnNtSend');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  const contextType = byId('ntContext').value;
+  const opts = {
+    admin_id: ADMIN.user_id,
+    sender_role: 'admin',
+    subject: byId('ntSubject').value.trim() || null,
+    course_id: contextType === 'course' ? byId('ntCourse').value || null : null
+  };
+
+  const result = await ensureThread(userId, contextType, opts);
+
+  if (!result) {
+    showToast('Error', 'Could not create thread.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Send';
+    return;
+  }
+
+  const subject = byId('ntSubject').value.trim();
+  const msgText = subject ? `[${subject}]\n${body}` : body;
+  await sendMessage(result.thread_id, ADMIN.user_id, 'admin', msgText);
+
+  btn.disabled = false;
+  btn.textContent = 'Send';
+
+  closeNewThreadModal();
+  showToast('Sent', 'Thread created.', 'success');
+  await loadThreads();
+  openThread(result.thread_id);
+}
+
+// ═══════════════════════════════════════════════════════
+// BULK SEND MODAL
+// ═══════════════════════════════════════════════════════
 
 function openBulkModal() {
   byId('bulkModal').classList.add('open');
   byId('bulkSubject').value = '';
   byId('bulkBody').value = '';
   byId('bulkPreview').style.display = 'none';
+  byId('bulkConfirm').style.display = 'none';
+  byId('btnBulkSend').textContent = 'Send to all';
+  byId('btnBulkSend').disabled = false;
+  bulkResolvedCount = null;
 }
 
 function closeBulkModal() {
   byId('bulkModal').classList.remove('open');
 }
 
-function buildScope() {
+function bulkContextChanged() {
+  byId('bulkCourseGroup').style.display = byId('bulkContext').value === 'course' ? '' : 'none';
+}
+
+function buildBulkScope() {
   const scope = {};
   const prog = byId('bulkProgramme').value;
   const level = byId('bulkLevel').value;
   const cohort = byId('bulkCohort').value;
   const subKind = byId('bulkSubKind').value;
-  const courseId = byId('bulkCourse').value;
+  const courseScope = byId('bulkCourseScope').value;
 
   if (prog) scope.program_ids = [prog];
   if (level) scope.level_ids = [level];
   if (cohort) scope.cohort_ids = [cohort];
   if (subKind) scope.subscription_kinds = [subKind];
-  if (courseId && byId('bulkContext').value === 'course') scope.course_ids = [courseId];
+  if (courseScope) scope.course_ids = [courseScope];
 
   return scope;
 }
 
 async function previewRecipients() {
-  const scope = buildScope();
+  const scope = buildBulkScope();
   const ids = await resolveRecipients(scope);
+  bulkResolvedCount = ids.length;
   const el = byId('bulkPreview');
   el.textContent = ids.length + ' recipient' + (ids.length !== 1 ? 's' : '') + ' will receive this message';
   el.style.display = '';
+
+  // Show/hide confirmation
+  if (ids.length > 0) {
+    byId('bulkConfirm').style.display = '';
+    byId('bulkConfirmCount').textContent = ids.length;
+  } else {
+    byId('bulkConfirm').style.display = 'none';
+  }
 }
 
 async function handleBulkSend() {
   const body = byId('bulkBody').value.trim();
-  if (!body) {
-    showToast('Error', 'Message cannot be empty.', 'error');
+  if (!body) { showToast('Error', 'Message cannot be empty.', 'error'); return; }
+
+  // Require preview first
+  if (bulkResolvedCount === null) {
+    showToast('Preview first', 'Click "Preview count" to see how many students will receive this.', 'error');
+    return;
+  }
+
+  if (bulkResolvedCount === 0) {
+    showToast('Error', 'No recipients match your filters.', 'error');
     return;
   }
 
@@ -658,7 +959,7 @@ async function handleBulkSend() {
   btn.textContent = 'Sending...';
 
   const subject = byId('bulkSubject').value.trim();
-  const scope = buildScope();
+  const scope = buildBulkScope();
   const contextType = byId('bulkContext').value;
 
   if (contextType === 'course') {
@@ -679,96 +980,10 @@ async function handleBulkSend() {
   }
 }
 
-// ── New thread modal ───────────────────────────────────
-function openNewThreadModal() {
-  byId('newThreadModal').classList.add('open');
-  byId('newThreadSearch').value = '';
-  byId('studentResults').style.display = 'none';
-  byId('selectedStudent').style.display = 'none';
-  byId('newThreadBody').value = '';
-  byId('btnNewThreadSend').disabled = true;
-  selectedUserId = null;
-}
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
 
-function closeNewThreadModal() {
-  byId('newThreadModal').classList.remove('open');
-}
-
-function searchStudentsDebounced() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(searchStudentsNow, 300);
-}
-
-async function searchStudentsNow() {
-  const query = byId('newThreadSearch').value.trim();
-  if (query.length < 2) {
-    byId('studentResults').style.display = 'none';
-    return;
-  }
-
-  const results = await searchStudentsForMessaging(query);
-  const el = byId('studentResults');
-
-  if (!results.length) {
-    el.innerHTML = '<div class="student-result" style="cursor:default; color:var(--text-muted);">No students found</div>';
-    el.style.display = '';
-    return;
-  }
-
-  el.innerHTML = results.slice(0, 20).map(u => {
-    const name = [u.forename, u.surname].filter(Boolean).join(' ') || u.name || u.email;
-    return `<div class="student-result" onclick="selectStudent('${u.user_id}', '${esc(name)}', '${esc(u.email || '')}')">
-      <div class="sr-name">${esc(name)}</div>
-      <div class="sr-meta">${esc(u.email || '')} ${u.program_id ? '&middot; ' + esc(u.program_id) : ''}</div>
-    </div>`;
-  }).join('');
-  el.style.display = '';
-}
-
-function selectStudent(userId, name, email) {
-  selectedUserId = userId;
-  byId('studentResults').style.display = 'none';
-  byId('selectedStudent').style.display = '';
-  byId('selectedStudentName').textContent = name + (email ? ' (' + email + ')' : '');
-  byId('btnNewThreadSend').disabled = false;
-  byId('newThreadBody').focus();
-}
-
-async function handleNewThread() {
-  if (!selectedUserId) return;
-  const body = byId('newThreadBody').value.trim();
-  if (!body) {
-    showToast('Error', 'Message cannot be empty.', 'error');
-    return;
-  }
-
-  byId('btnNewThreadSend').disabled = true;
-  byId('btnNewThreadSend').textContent = 'Sending...';
-
-  const result = await ensureThread(selectedUserId, 'general', {
-    admin_id: ADMIN.user_id,
-    sender_role: 'admin'
-  });
-
-  if (!result) {
-    showToast('Error', 'Could not create thread.', 'error');
-    byId('btnNewThreadSend').disabled = false;
-    byId('btnNewThreadSend').textContent = 'Send';
-    return;
-  }
-
-  await sendMessage(result.thread_id, ADMIN.user_id, 'admin', body);
-
-  byId('btnNewThreadSend').disabled = false;
-  byId('btnNewThreadSend').textContent = 'Send';
-
-  closeNewThreadModal();
-  showToast('Sent', 'Thread created.', 'success');
-  await loadThreads();
-  openThread(result.thread_id);
-}
-
-// ── Helpers ────────────────────────────────────────────
 function threadLabel(t) {
   if (!t) return 'Conversation';
   if (t.subject) return t.subject;
@@ -780,7 +995,7 @@ function threadLabel(t) {
 function truncate(s, n) {
   if (!s) return '';
   const clean = s.replace(/\s+/g, ' ').trim();
-  return clean.length <= n ? clean : clean.slice(0, n - 1) + '…';
+  return clean.length <= n ? clean : clean.slice(0, n - 1) + '\u2026';
 }
 
 function formatTime(iso) {
@@ -796,6 +1011,24 @@ function formatTime(iso) {
   const diffD = Math.floor(diffH / 24);
   if (diffD < 7) return diffD + 'd ago';
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function formatTimeShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDateLabel(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.floor((today - msgDay) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
 }
 
 function esc(s) {
