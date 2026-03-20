@@ -1230,6 +1230,44 @@ function buildShufCache() {
   });
 }
 
+function buildFriendlyRefText(item, globalIdx) {
+  const lines = [];
+  lines.push(`QAcademy \u2014 Question feedback (Instant quiz)`);
+  lines.push(`Course: ${ATT.display_label || ATT.course_id || ''}`);
+  lines.push(`Question: ${globalIdx + 1} of ${ITEMS.length}`);
+  const topic = [item.maintopic, item.subtopic].filter(Boolean).join(' \u203A ');
+  if (topic) lines.push(`Topic: ${topic}`);
+  lines.push('');
+  lines.push('Question:');
+  lines.push((item.stem || '').slice(0, 900));
+  lines.push('');
+  lines.push('Options (as shown):');
+  const opts = SHUF[item.item_id] || getShuffledOptions(item);
+  const labels = 'ABCDEFGH';
+  opts.forEach((opt, i) => {
+    lines.push(`${labels[i]}. ${(opt.text || '').slice(0, 360)}`);
+  });
+  lines.push('');
+  const chosen = ANSW[item.item_id];
+  if (chosen) {
+    if (Array.isArray(chosen)) {
+      const picks = chosen.map(letter => {
+        const match = opts.find(o => o.letter === letter);
+        return match ? match.text.slice(0, 120) : letter.toUpperCase();
+      });
+      lines.push(`My answer: ${picks.join(', ')}`);
+    } else {
+      const match = opts.find(o => o.letter === chosen);
+      const idx = opts.indexOf(match);
+      const label = idx >= 0 ? labels[idx] : chosen.toUpperCase();
+      lines.push(`My answer: ${label} - ${match ? match.text.slice(0, 120) : ''}`);
+    }
+  } else {
+    lines.push('My answer: (not answered yet)');
+  }
+  return lines.join('\n');
+}
+
 function getShuffledOptions(item) {
   const opts = [];
   ['a','b','c','d','e','f'].forEach(letter => {
@@ -1553,7 +1591,8 @@ flagBtn.addEventListener('click', () => {
   fbBtn.className = 'btn-sm-link';
   fbBtn.textContent = 'Send feedback';
   fbBtn.addEventListener('click', () => {
-    const url = `/student/messages.html?course_id=${ATT.course_id}&attempt_id=${ATT.attempt_id}&quiz_id=${ATT.quiz_id || ''}&item_id=${item.item_id}&ref=${encodeURIComponent(item.stem.slice(0, 60))}`;
+    const refText = buildFriendlyRefText(item, globalIdx);
+    const url = `/student/messages.html?course_id=${ATT.course_id}&attempt_id=${ATT.attempt_id}&quiz_id=${ATT.quiz_id || ''}&item_id=${item.item_id}&ref=${encodeURIComponent(refText)}`;
     if (LOCKED || REVIEW_MODE) {
       window.open(url, '_blank');
     } else {
