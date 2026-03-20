@@ -116,24 +116,37 @@ async function getClassById(classId) {
 // Returns the created row
 // Used by: myteacher/teacher/classes.html
 // ------------------------------------------------------------
-async function createClass(teacherId, title, customFieldsJson, { requireApproval = false } = {}) {
+async function createClass(teacherId, title, customFieldsJson, opts = {}) {
   const now     = new Date().toISOString();
   const classId = makeClassId();
   const joinCode = makeJoinCode();
 
+  const row = {
+    class_id          : classId,
+    teacher_id        : teacherId,
+    title             : title,
+    join_code         : joinCode,
+    custom_fields_json: customFieldsJson || '[]',
+    require_approval  : !!opts.requireApproval,
+    status            : 'ACTIVE',
+    created_at        : now,
+    updated_at        : now
+  };
+
+  // Optional class metadata
+  if (opts.description)   row.description   = opts.description;
+  if (opts.programme)     row.programme     = opts.programme;
+  if (opts.course)        row.course        = opts.course;
+  if (opts.academic_year) row.academic_year = opts.academic_year;
+  if (opts.semester)      row.semester      = opts.semester;
+  if (opts.max_capacity)  row.max_capacity  = parseInt(opts.max_capacity, 10) || null;
+  if (opts.start_date)    row.start_date    = opts.start_date;
+  if (opts.end_date)      row.end_date      = opts.end_date;
+  if (opts.colour)        row.colour        = opts.colour;
+
   const { data, error } = await db
     .from('teacher_classes')
-    .insert({
-      class_id          : classId,
-      teacher_id        : teacherId,
-      title             : title,
-      join_code         : joinCode,
-      custom_fields_json: customFieldsJson || '[]',
-      require_approval  : requireApproval,
-      status            : 'ACTIVE',
-      created_at        : now,
-      updated_at        : now
-    })
+    .insert(row)
     .select()
     .single();
 
@@ -334,15 +347,7 @@ async function getStudentClasses(userId) {
     .from('teacher_class_members')
     .select(`
       *,
-      teacher_classes (
-        class_id,
-        title,
-        join_code,
-        status,
-        custom_fields_json,
-        teacher_id,
-        created_at
-      )
+      teacher_classes (*)
     `)
     .eq('user_id', userId)
     .in('status', ['ACTIVE', 'PENDING'])
@@ -397,7 +402,19 @@ async function getExistingMembership(userId, classId) {
 // Returns { success, message }
 // Used by: myteacher/student/my-classes.html
 // ------------------------------------------------------------
-async function joinClass(userId, classId, teacherId, displayName, email, memberFieldsJson, { requireApproval = false } = {}) {
+async function joinClass(userId, classId, teacherId, displayName, email, memberFieldsJson, { requireApproval = false, maxCapacity = null } = {}) {
+  // Enforce max capacity if set
+  if (maxCapacity) {
+    const { data: countRows } = await db
+      .from('teacher_class_members')
+      .select('member_id')
+      .eq('class_id', classId)
+      .in('status', ['ACTIVE', 'PENDING']);
+    if (countRows && countRows.length >= maxCapacity) {
+      return { success: false, message: 'This class is full. Please contact your teacher.' };
+    }
+  }
+
   const now      = new Date().toISOString();
   const memberId = makeClassMemberId();
   const status   = requireApproval ? 'PENDING' : 'ACTIVE';

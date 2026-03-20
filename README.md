@@ -82,7 +82,7 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 
 ### Teacher Assess — MyTeacher ✅ (Slices 1–11)
 - **Slice 1–2: Foundation** — Teacher profiles, access request/approval, admin approval page
-- **Slice 3: Classes Manager** — Full CRUD, join codes, custom fields, member management
+- **Slice 3: Classes Manager** — Full CRUD, join codes, custom fields, member management, extended class metadata (programme, course, academic year, semester, description, dates, capacity, colour)
 - **Slice 4: Student My Classes** — Join by code, class detail, quizzes tab with attempts modal
 - **Slice 5: Question Bank** — Full CRUD, MCQ/TF/SATA support, image upload, CSV import, filters
 - **Slice 5b: CSV Import** — Standalone import page with validation, duplicate detection, AI help section with ready-made prompt
@@ -105,6 +105,15 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 - **Student UX** — Pending class cards (dashed border), appropriate messaging, blocked from class content until approved
 - **Org identity on join** — Join flow shows teacher name, org name, and logo when entering a class code
 - **Schema**: `teacher_classes.require_approval` (boolean), `teacher_class_members.status` supports `PENDING`/`REJECTED`
+
+### Extended Class Metadata ✅
+- **9 new optional fields** on `teacher_classes`: `description`, `programme`, `course`, `academic_year`, `semester`, `max_capacity`, `start_date`, `end_date`, `colour`
+- **Teacher modal** — grouped form (academic details, settings, colour picker with 8 presets)
+- **Teacher class cards** — colour accent border, programme/course subtitle, academic period chip, capacity counter, "Ended" badge
+- **Teacher detail panel** — description, info chips, date display, capacity slots
+- **Student class cards** — colour accent, programme/course subtitle, academic period chip
+- **Student join flow** — org card shows programme, course, description
+- **Max capacity** — enforced on join (counts ACTIVE + PENDING members), returns "class is full" message
 
 ### Next Up ⏭️
 1. Admin pages — payments, user management (shells scaffolded, need wiring)

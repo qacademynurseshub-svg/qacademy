@@ -332,6 +332,33 @@
       box-shadow: 0 0 0 3px rgba(45,125,114,0.10);
     }
     .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 5px; line-height: 1.45; }
+    .form-field textarea {
+      width: 100%; border: 1px solid var(--border, #e2e8f0);
+      border-radius: 10px; padding: 9px 11px;
+      font-size: 14px; outline: none; resize: vertical;
+      background: #fff; color: var(--text);
+      font-family: inherit; min-height: 60px;
+    }
+    .form-field textarea:focus {
+      border-color: var(--accent, #2d7d72);
+      box-shadow: 0 0 0 3px rgba(45,125,114,0.10);
+    }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-field { flex: 1; }
+    @media (max-width: 480px) { .form-row { flex-direction: column; gap: 0; } }
+    .form-section-label {
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin: 4px 0 10px;
+    }
+    .colour-picker { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .colour-dot {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px solid transparent; cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .colour-dot:hover { transform: scale(1.15); }
+    .colour-dot.active { border-color: var(--primary, #1e3a5f); transform: scale(1.15); }
 
     /* Custom field cards in modal */
     .cf-builder { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
@@ -485,11 +512,61 @@
       </div>
 
       <div class="form-field">
-        <label for="mStatus">Status</label>
-        <select id="mStatus">
-          <option value="ACTIVE">Active</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
+        <label for="mDesc">Description</label>
+        <textarea id="mDesc" placeholder="Brief description for students (optional)" maxlength="500" rows="2"></textarea>
+      </div>
+
+      <div class="divider"></div>
+      <div class="form-section-label">Academic details</div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="mProgramme">Programme</label>
+          <input type="text" id="mProgramme" placeholder="e.g. BSc Adult Nursing" maxlength="120" />
+        </div>
+        <div class="form-field">
+          <label for="mCourse">Course</label>
+          <input type="text" id="mCourse" placeholder="e.g. Pharmacology" maxlength="120" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="mAcademicYear">Academic year</label>
+          <input type="text" id="mAcademicYear" placeholder="e.g. 2025/2026" maxlength="20" />
+        </div>
+        <div class="form-field">
+          <label for="mSemester">Semester / Term</label>
+          <input type="text" id="mSemester" placeholder="e.g. Semester 1" maxlength="30" />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="form-section-label">Settings</div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="mStatus">Status</label>
+          <select id="mStatus">
+            <option value="ACTIVE">Active</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="mCapacity">Max capacity</label>
+          <input type="number" id="mCapacity" placeholder="Unlimited" min="1" max="9999" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="mStartDate">Start date</label>
+          <input type="date" id="mStartDate" />
+        </div>
+        <div class="form-field">
+          <label for="mEndDate">End date</label>
+          <input type="date" id="mEndDate" />
+        </div>
       </div>
 
       <div class="form-field">
@@ -498,6 +575,20 @@
           <span>Require approval to join</span>
         </label>
         <div class="form-hint">When enabled, students who enter the join code will be placed in a pending queue until you approve them.</div>
+      </div>
+
+      <div class="form-field">
+        <label>Class colour</label>
+        <div class="colour-picker" id="mColourPicker">
+          <div class="colour-dot" data-colour="" style="background:#fff;border-color:var(--border)" title="None"></div>
+          <div class="colour-dot" data-colour="#2d7d72" style="background:#2d7d72" title="Teal"></div>
+          <div class="colour-dot" data-colour="#2563eb" style="background:#2563eb" title="Blue"></div>
+          <div class="colour-dot" data-colour="#7c3aed" style="background:#7c3aed" title="Purple"></div>
+          <div class="colour-dot" data-colour="#dc2626" style="background:#dc2626" title="Red"></div>
+          <div class="colour-dot" data-colour="#ea580c" style="background:#ea580c" title="Orange"></div>
+          <div class="colour-dot" data-colour="#ca8a04" style="background:#ca8a04" title="Gold"></div>
+          <div class="colour-dot" data-colour="#16a34a" style="background:#16a34a" title="Green"></div>
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -656,14 +747,23 @@
       const count   = memberCounts[cls.class_id] || 0;
       const pending = pendingCounts[cls.class_id] || 0;
       const isActive = selectedClassId === cls.class_id;
+      const isEnded = cls.end_date && new Date(cls.end_date) < new Date();
+      const capacityChip = cls.max_capacity
+        ? `<span class="meta-chip">${count}/${cls.max_capacity}</span>`
+        : `<span class="meta-chip">👥 ${count}</span>`;
+      const subtitle = [cls.programme, cls.course].filter(Boolean).join(' · ');
+
       const div = document.createElement('div');
       div.className = 'class-card' + (isActive ? ' active' : '');
+      if (cls.colour) div.style.borderLeft = `4px solid ${cls.colour}`;
       div.innerHTML = `
         <div class="class-card-title">${esc(cls.title)}</div>
+        ${subtitle ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${esc(subtitle)}</div>` : ''}
         <div class="class-card-meta">
-          <span class="status-chip ${cls.status === 'ACTIVE' ? 'active' : 'archived'}">${esc(cls.status)}</span>
-          <span class="meta-chip">👥 ${count} member${count !== 1 ? 's' : ''}</span>
+          <span class="status-chip ${cls.status === 'ACTIVE' && !isEnded ? 'active' : 'archived'}">${isEnded ? 'ENDED' : esc(cls.status)}</span>
+          ${capacityChip}
           ${pending ? `<span class="meta-chip" style="color:#a16207;background:rgba(234,179,8,0.10);border-color:rgba(234,179,8,0.22);">⏳ ${pending} pending</span>` : ''}
+          ${cls.academic_year || cls.semester ? `<span class="meta-chip">${esc([cls.academic_year, cls.semester].filter(Boolean).join(' · '))}</span>` : ''}
           <span class="meta-chip">🔑 ${esc(cls.join_code)}</span>
           ${cls.require_approval ? '<span class="meta-chip" style="color:var(--accent);font-size:10px;">🔒 Approval</span>' : ''}
         </div>`;
@@ -700,7 +800,26 @@
 
     byId('detailTitle').textContent = cls.title;
 
+    // Build class info chips
+    const infoChips = [];
+    if (cls.programme) infoChips.push(esc(cls.programme));
+    if (cls.course)    infoChips.push(esc(cls.course));
+    if (cls.academic_year) infoChips.push(esc(cls.academic_year));
+    if (cls.semester)  infoChips.push(esc(cls.semester));
+    const isEnded = cls.end_date && new Date(cls.end_date) < new Date();
+    const count = memberCounts[cls.class_id] || 0;
+
     byId('detailBody').innerHTML = `
+
+      ${cls.description ? `<div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.5;">${esc(cls.description)}</div>` : ''}
+
+      ${infoChips.length || cls.start_date || cls.end_date || cls.max_capacity ? `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+        ${infoChips.map(c => `<span class="meta-chip">${c}</span>`).join('')}
+        ${cls.start_date ? `<span class="meta-chip">Starts ${formatDate(cls.start_date)}</span>` : ''}
+        ${cls.end_date ? `<span class="meta-chip${isEnded ? '" style="color:#dc2626;background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.18)' : ''}">${isEnded ? 'Ended' : 'Ends'} ${formatDate(cls.end_date)}</span>` : ''}
+        ${cls.max_capacity ? `<span class="meta-chip">${count}/${cls.max_capacity} slots</span>` : ''}
+      </div>` : ''}
 
       <!-- Join code -->
       <div class="section-block">
@@ -979,23 +1098,50 @@
   }
 
   // ── Modal: open ───────────────────────────────────────────
+  let selectedColour = '';
+
   function openModal(mode) {
     modalMode   = mode;
     modalFields = [];
     showModalAlert('', '');
 
+    const c = selectedClass || {};
+
     if (mode === 'create') {
       byId('modalTitle').textContent = 'New Class';
-      byId('mTitle').value   = '';
-      byId('mStatus').value  = 'ACTIVE';
+      byId('mTitle').value           = '';
+      byId('mDesc').value            = '';
+      byId('mProgramme').value       = '';
+      byId('mCourse').value          = '';
+      byId('mAcademicYear').value    = '';
+      byId('mSemester').value        = '';
+      byId('mStatus').value          = 'ACTIVE';
+      byId('mCapacity').value        = '';
+      byId('mStartDate').value       = '';
+      byId('mEndDate').value         = '';
       byId('mRequireApproval').checked = false;
+      selectedColour = '';
     } else {
       byId('modalTitle').textContent = 'Edit Class';
-      byId('mTitle').value   = selectedClass?.title || '';
-      byId('mStatus').value  = selectedClass?.status || 'ACTIVE';
-      byId('mRequireApproval').checked = !!selectedClass?.require_approval;
-      modalFields = parseCustomFields(selectedClass?.custom_fields_json).map(f => ({ ...f }));
+      byId('mTitle').value           = c.title || '';
+      byId('mDesc').value            = c.description || '';
+      byId('mProgramme').value       = c.programme || '';
+      byId('mCourse').value          = c.course || '';
+      byId('mAcademicYear').value    = c.academic_year || '';
+      byId('mSemester').value        = c.semester || '';
+      byId('mStatus').value          = c.status || 'ACTIVE';
+      byId('mCapacity').value        = c.max_capacity || '';
+      byId('mStartDate').value       = c.start_date || '';
+      byId('mEndDate').value         = c.end_date || '';
+      byId('mRequireApproval').checked = !!c.require_approval;
+      selectedColour = c.colour || '';
+      modalFields = parseCustomFields(c.custom_fields_json).map(f => ({ ...f }));
     }
+
+    // Update colour picker selection
+    byId('mColourPicker').querySelectorAll('.colour-dot').forEach(dot => {
+      dot.classList.toggle('active', dot.dataset.colour === selectedColour);
+    });
 
     renderModalFields();
     byId('modalSave').disabled = false;
@@ -1089,12 +1235,35 @@
 
     let result;
 
-    const requireApproval = byId('mRequireApproval').checked;
+    const opts = {
+      requireApproval : byId('mRequireApproval').checked,
+      description     : (byId('mDesc').value || '').trim() || null,
+      programme       : (byId('mProgramme').value || '').trim() || null,
+      course          : (byId('mCourse').value || '').trim() || null,
+      academic_year   : (byId('mAcademicYear').value || '').trim() || null,
+      semester        : (byId('mSemester').value || '').trim() || null,
+      max_capacity    : byId('mCapacity').value ? parseInt(byId('mCapacity').value, 10) : null,
+      start_date      : byId('mStartDate').value || null,
+      end_date        : byId('mEndDate').value || null,
+      colour          : selectedColour || null
+    };
 
     if (modalMode === 'create') {
-      result = await createClass(PROFILE.user_id, title, customFieldsJson, { requireApproval });
+      result = await createClass(PROFILE.user_id, title, customFieldsJson, opts);
     } else {
-      result = await updateClass(selectedClassId, { title, status, custom_fields_json: customFieldsJson, require_approval: requireApproval });
+      result = await updateClass(selectedClassId, {
+        title, status, custom_fields_json: customFieldsJson,
+        require_approval: opts.requireApproval,
+        description: opts.description,
+        programme: opts.programme,
+        course: opts.course,
+        academic_year: opts.academic_year,
+        semester: opts.semester,
+        max_capacity: opts.max_capacity,
+        start_date: opts.start_date,
+        end_date: opts.end_date,
+        colour: opts.colour
+      });
     }
 
     if (!result.success) {
@@ -1166,6 +1335,15 @@
     byId('modalCancel').addEventListener('click', closeModal);
     byId('modalSave').addEventListener('click',   saveClass);
     byId('btnAddField').addEventListener('click', addModalField);
+
+    // Colour picker
+    byId('mColourPicker').addEventListener('click', e => {
+      const dot = e.target.closest('.colour-dot');
+      if (!dot) return;
+      selectedColour = dot.dataset.colour || '';
+      byId('mColourPicker').querySelectorAll('.colour-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+    });
 
     byId('inviteClose').addEventListener('click', () => byId('inviteModal').classList.remove('show'));
     byId('inviteDone').addEventListener('click',  () => byId('inviteModal').classList.remove('show'));

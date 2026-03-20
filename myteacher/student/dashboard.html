@@ -416,6 +416,7 @@
 
     // Show org card
     const hasOrgInfo = tp && (tp.display_name || tp.organisation);
+    const classSubtitle = [cls.programme, cls.course].filter(Boolean).join(' · ');
     if (hasOrgInfo) {
       $('overlayOrgCard').innerHTML = `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(45,125,114,0.04);border:1px solid var(--border,#e2e8f0);border-radius:10px;margin-bottom:12px;text-align:left;">
@@ -423,8 +424,10 @@
           <div>
             <div style="font-size:13px;font-weight:700;color:var(--primary)">${esc(cls.title)}</div>
             <div style="font-size:12px;color:var(--text-muted)">${tp.display_name ? esc(tp.display_name) : ''}${tp.display_name && tp.organisation ? ' — ' : ''}${tp.organisation ? esc(tp.organisation) : ''}</div>
+            ${classSubtitle ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${esc(classSubtitle)}</div>` : ''}
           </div>
-        </div>`;
+        </div>
+        ${cls.description ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.45;text-align:left;">${esc(cls.description)}</div>` : ''}`;
       $('overlayOrgCard').style.display = 'block';
     }
 
@@ -498,7 +501,7 @@
     const result = await joinClass(
       PROFILE.user_id, pendingClass.class_id, pendingClass.teacher_id,
       displayName, PROFILE.email || '', JSON.stringify(fieldValues),
-      { requireApproval }
+      { requireApproval, maxCapacity: pendingClass.max_capacity || null }
     );
 
     btn.disabled = false; btn.textContent = 'Join Class';
