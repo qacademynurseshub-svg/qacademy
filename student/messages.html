@@ -235,23 +235,19 @@ async function handleDeepLink() {
   if (!courseId && !itemId) return;
 
   const contextType = itemId ? 'question' : 'course';
+  const decodedRef = ref ? decodeURIComponent(ref) : null;
   const opts = {
     course_id:   courseId || null,
     quiz_id:     quizId || null,
     question_id: itemId || null,
     attempt_id:  attemptId || null,
     subject:     itemId ? 'Question feedback' : null,
+    ref_text:    decodedRef,
     sender_role: 'student'
   };
 
   const result = await ensureThread(PROFILE.user_id, contextType, opts);
   if (!result) { showToast('Error', 'Could not create conversation.', 'error'); return; }
-
-  if (result.created && contextType === 'question' && ref) {
-    const courseName = courseTitles[courseId] || courseId || '';
-    const autoMsg = `Question feedback\nCourse: ${courseName}\nQuestion: ${decodeURIComponent(ref)}`;
-    await sendMessage(result.thread_id, PROFILE.user_id, 'student', autoMsg);
-  }
 
   await loadThreads();
   openThread(result.thread_id);
@@ -326,9 +322,16 @@ async function openThread(threadId) {
 
   // Ref card
   const refEl = byId('convoRef');
-  if (thread && thread.context_type === 'question' && thread.course_id) {
-    const courseName = courseTitles[thread.course_id] || thread.course_id;
-    refEl.innerHTML = `<strong>Course:</strong> ${esc(courseName)}${thread.question_id ? ` &mdash; <strong>Question:</strong> ${esc(thread.question_id)}` : ''}`;
+  if (thread && thread.context_type === 'question') {
+    const courseName = thread.course_id ? (courseTitles[thread.course_id] || thread.course_id) : '';
+    let refHtml = '';
+    if (courseName) refHtml += `<strong>Course:</strong> ${esc(courseName)}`;
+    if (thread.ref_text) {
+      if (refHtml) refHtml += '<br>';
+      refHtml += `<strong>Question:</strong> ${esc(thread.ref_text)}`;
+    }
+    refHtml += '<div style="margin-top:6px; font-size:11px; color:var(--text-muted);">Type your feedback below. Please mention what part (stem or option) you\'re referring to.</div>';
+    refEl.innerHTML = refHtml;
     refEl.style.display = '';
   } else if (thread && thread.context_type === 'course' && thread.course_id) {
     const courseName = courseTitles[thread.course_id] || thread.course_id;

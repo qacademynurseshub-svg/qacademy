@@ -2096,6 +2096,7 @@ async function ensureThread(userId, contextType, opts = {}) {
     question_id:      opts.question_id || null,
     attempt_id:       opts.attempt_id || null,
     bulk_batch_id:    opts.bulk_batch_id || null,
+    ref_text:         opts.ref_text || null,
     created_at:       now,
     last_message_at:  now,
     last_sender_role: opts.sender_role || 'student'
