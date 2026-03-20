@@ -520,11 +520,11 @@
         return;
       }
 
-      // Sync name to users table
-      if (newName !== PROFILE.name) {
-        await updateUserProfile(PROFILE.user_id, { name: newName });
-        PROFILE.name = newName;
-      }
+      // Sync name + avatar to users table
+      const userSync = { name: newName, avatar_url: avatarUrl };
+      await updateUserProfile(PROFILE.user_id, userSync);
+      PROFILE.name = newName;
+      PROFILE.avatar_url = avatarUrl;
 
       // Update local state
       teacherData.display_name = newName;
