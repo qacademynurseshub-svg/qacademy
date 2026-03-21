@@ -396,10 +396,11 @@ async function openThread(threadId) {
   const msgs = await getThreadMessages(threadId);
   renderMessages(msgs);
 
-  // Mark as read + update local state so badge refreshes
+  // Mark as read + update local state so badge + unread dot refresh
   await markThreadRead(threadId, 'student');
   if (thread && thread._latest) thread._latest.read_by_user = true;
   updateUnreadBadge();
+  renderThreadList();
 
   // Scroll to bottom
   const container = byId('convoMessages');
