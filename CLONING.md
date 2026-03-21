@@ -298,7 +298,7 @@ CREATE TABLE attempts (
   ts_iso            TIMESTAMPTZ DEFAULT NOW()
 );
 -- mode: instant | timed
--- source: fixed | builder | retake
+-- source: fixed | builder | retake | mock
 -- status: in_progress | completed | abandoned
 
 CREATE INDEX ON attempts (user_id);
@@ -309,6 +309,34 @@ CREATE INDEX ON attempts (user_id, quiz_id, mode, status);
 
 ALTER TABLE attempts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "dev_allow_all" ON attempts FOR ALL USING (true) WITH CHECK (true);
+```
+
+#### mock_quizzes
+```sql
+CREATE TABLE mock_quizzes (
+  quiz_id        TEXT PRIMARY KEY,
+  course_id      TEXT NOT NULL,
+  title          TEXT NOT NULL,
+  n              INTEGER NOT NULL,
+  item_ids       TEXT[] NOT NULL DEFAULT '{}',
+  allowed_modes  TEXT NOT NULL DEFAULT 'BOTH',
+  shuffle        BOOLEAN NOT NULL DEFAULT false,
+  time_limit_sec INTEGER,
+  status         TEXT NOT NULL DEFAULT 'draft',
+  published      BOOLEAN NOT NULL DEFAULT false,
+  visibility     TEXT NOT NULL DEFAULT 'ALL',
+  publish_at     TIMESTAMPTZ,
+  unpublish_at   TIMESTAMPTZ,
+  notes          TEXT,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ DEFAULT NOW()
+);
+-- allowed_modes: BOTH | INSTANT_ONLY | TIMED_ONLY
+-- status: draft | active | archived
+-- visibility: ALL | PAID | TRIAL
+
+ALTER TABLE mock_quizzes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dev_allow_all" ON mock_quizzes FOR ALL USING (true) WITH CHECK (true);
 ```
 
 ---

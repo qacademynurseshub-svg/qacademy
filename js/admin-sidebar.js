@@ -22,6 +22,7 @@
       <a href="/admin/courses.html">📚 Courses</a>
       <a href="/admin/announcements.html">📢 Announcements</a>
       <a href="/admin/fixed-quizzes.html">📝 Fixed Quizzes</a>
+      <a href="/admin/mock-exams.html">🎯 Mock Exams</a>
       <a href="/admin/question-bank.html">🗂️ Question Bank</a>
       <a href="/admin/messages.html">💬 Messages <span id="adminMsgBadge" class="admin-msg-badge" style="display:none;"></span></a>
       <a href="/admin/config.html">⚙️ Config</a>

@@ -179,6 +179,37 @@
     }
     .btn-message-course:hover { background: #daf0ed; }
 
+    /* Preview quiz cards */
+    .preview-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      gap: 12px;
+    }
+    .preview-card:last-child { margin-bottom: 0; }
+    .preview-card-title { font-size: 14px; font-weight: 600; color: var(--primary); }
+    .preview-card-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .preview-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; flex-shrink: 0; white-space: nowrap;
+    }
+    .preview-badge.ACTIVE   { background: #dcfce7; color: #15803d; }
+    .preview-badge.UPCOMING { background: #fef9c3; color: #854d0e; }
+    .preview-badge.CLOSED   { background: #f1f5f9; color: #64748b; }
+    .view-all-link {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .view-all-link:hover { text-decoration: underline; }
+
     /* No access state */
     .no-access-card {
       background: var(--white);
@@ -237,31 +268,40 @@
         </button>
       </div>
 
-      <!-- 2. Fixed Quizzes (shell) -->
+      <!-- 2. Fixed Quizzes -->
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">📝 Fixed Quizzes</span>
-          <span class="section-card-badge">Coming Soon</span>
+          <span class="section-card-badge" id="fixedQuizCount"></span>
         </div>
-        <div class="shell-placeholder">
-          <div class="shell-icon">📝</div>
-          <p>Fixed quizzes for this course will appear here.<br/>Quiz engine coming soon.</p>
+        <div id="courseFixedQuizzes">
+          <p style="color:var(--text-muted); font-size:14px;">Loading...</p>
         </div>
       </div>
 
-      <!-- 3. Quiz Builder Shortcut (shell) -->
+      <!-- 3. Mock Exams -->
+      <div class="section-card">
+        <div class="section-card-header">
+          <span class="section-card-title">🎯 Mock Exams</span>
+          <span class="section-card-badge" id="mockExamCount"></span>
+        </div>
+        <div id="courseMockExams">
+          <p style="color:var(--text-muted); font-size:14px;">Loading...</p>
+        </div>
+      </div>
+
+      <!-- 4. Quiz Builder Shortcut -->
       <div class="section-card">
         <div class="section-card-header">
           <span class="section-card-title">🔧 Quiz Builder</span>
-          <span class="section-card-badge">Coming Soon</span>
         </div>
-        <div class="builder-shortcut" id="builderShortcut">
+        <a href="#" id="builderShortcut" class="builder-shortcut" style="opacity:1; cursor:pointer; text-decoration:none; color:inherit;">
           <div class="builder-shortcut-icon">🔧</div>
           <div class="builder-shortcut-text">
             <div class="title">Build a Custom Quiz</div>
-            <div class="sub">Create a quiz filtered to this course — coming soon</div>
+            <div class="sub">Create a practice quiz filtered to this course</div>
           </div>
-        </div>
+        </a>
       </div>
 
       <!-- 4. Course Announcements -->
@@ -357,12 +397,15 @@
     if (access.totalDays <= 7) badgeEl.classList.add('warning');
     if (access.totalDays <= 0) badgeEl.classList.add('expired');
 
-    // 8. Wire quiz builder shortcut link (for when it's built)
-    document.getElementById('builderShortcut').setAttribute(
-      'data-href', `/student/quiz-builder.html?course=${courseId}`
-    );
+    // 8. Wire quiz builder shortcut link
+    document.getElementById('builderShortcut').href =
+      `/student/quiz-builder.html?course=${encodeURIComponent(courseId)}`;
 
-    // 9. Load course-scoped announcements
+    // 9. Load fixed quizzes + mock exams for this course
+    await loadCourseQuizzes(courseId);
+    await loadCourseMockExams(courseId);
+
+    // 10. Load course-scoped announcements
     const allAnnouncements = await getAnnouncements();
     const filtered = filterAnnouncementsForStudent(allAnnouncements, profile,
       Object.keys(courseAccessMap).length > 0 ? 'PAID' : null
@@ -383,12 +426,94 @@
       `).join('');
     }
 
-    // 10. Show message button
+    // 12. Show message button
     document.getElementById('btnMessageCourse').style.display = '';
     document.getElementById('btnMessageCourse').setAttribute('data-course-id', courseId);
 
-    // 11. Show page content
+    // 13. Show page content
     document.getElementById('pageContent').style.display = 'block';
+  }
+
+  // ── Fixed quizzes preview ──────────────────────────────
+  async function loadCourseQuizzes(courseId) {
+    const area = document.getElementById('courseFixedQuizzes');
+    const badge = document.getElementById('fixedQuizCount');
+    try {
+      const quizzes = await getQuizzes(courseId);
+      const visible = quizzes.filter(q => {
+        const a = getQuizAvailability(q);
+        return a === 'ACTIVE' || a === 'UPCOMING';
+      });
+      badge.textContent = visible.length ? `${visible.length} available` : '';
+      if (!visible.length) {
+        area.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">No fixed quizzes available for this course.</div>';
+        return;
+      }
+      area.innerHTML = visible.slice(0, 3).map(q => {
+        const avail = getQuizAvailability(q);
+        const badgeLabel = avail === 'ACTIVE' ? 'Active' : 'Upcoming';
+        return `<div class="preview-card">
+          <div>
+            <div class="preview-card-title">${esc(q.title)}</div>
+            <div class="preview-card-meta">${q.n} questions${q.time_limit_sec ? ' · ' + Math.round(q.time_limit_sec/60) + ' min' : ''}</div>
+          </div>
+          <span class="preview-badge ${avail}">${badgeLabel}</span>
+        </div>`;
+      }).join('') + `<a class="view-all-link" href="/student/fixed-quizzes.html?course=${encodeURIComponent(courseId)}">View all fixed quizzes →</a>`;
+    } catch (e) {
+      area.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Could not load fixed quizzes.</div>';
+    }
+  }
+
+  // ── Mock exams preview ────────────────────────────────
+  async function loadCourseMockExams(courseId) {
+    const area = document.getElementById('courseMockExams');
+    const badge = document.getElementById('mockExamCount');
+    try {
+      const mocks = await getMockQuizzes(courseId);
+      const visible = mocks.filter(q => {
+        const a = getQuizAvailability(q);
+        return a === 'ACTIVE' || a === 'UPCOMING';
+      });
+      badge.textContent = visible.length ? `${visible.length} available` : '';
+      if (!visible.length) {
+        area.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">No mock exams available right now.</div>';
+        return;
+      }
+      area.innerHTML = visible.map(q => {
+        const avail = getQuizAvailability(q);
+        const badgeLabel = avail === 'ACTIVE' ? 'Active' : 'Upcoming';
+        let schedule = '';
+        if (avail === 'UPCOMING' && q.publish_at) schedule = 'Opens ' + fmtDate(q.publish_at);
+        if (avail === 'ACTIVE' && q.unpublish_at) schedule = 'Closes ' + fmtDate(q.unpublish_at);
+        return `<div class="preview-card">
+          <div>
+            <div class="preview-card-title">${esc(q.title)}</div>
+            <div class="preview-card-meta">${q.n} questions${schedule ? ' · ' + schedule : ''}</div>
+          </div>
+          <span class="preview-badge ${avail}">${badgeLabel}</span>
+        </div>`;
+      }).join('') + `<a class="view-all-link" href="/student/mock-exams.html?course=${encodeURIComponent(courseId)}">View all mock exams →</a>`;
+    } catch (e) {
+      area.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Could not load mock exams.</div>';
+    }
+  }
+
+  function getQuizAvailability(quiz) {
+    if (quiz.status !== 'active')  return 'HIDDEN';
+    if (!quiz.published)           return 'HIDDEN';
+    const now = new Date();
+    if (quiz.publish_at   && new Date(quiz.publish_at)   > now) return 'UPCOMING';
+    if (quiz.unpublish_at && new Date(quiz.unpublish_at) < now) return 'CLOSED';
+    return 'ACTIVE';
+  }
+
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function messageCourse() {

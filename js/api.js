@@ -741,6 +741,128 @@ async function getQuizById(quizId) {
 }
 
 
+// ============================================================
+// MOCK EXAMS
+// Same shape as fixed quizzes but separate table (mock_quizzes)
+// for independent lifecycle management during exam periods.
+// ============================================================
+
+// ------------------------------------------------------------
+// GET MOCK QUIZZES FOR COURSE
+// Returns: published, active mock quizzes for a course
+//
+// Why: student/mock-exams.html and student/course.html need
+//      mock exams filtered to the student's enrolled courses.
+//      Admin mode returns all regardless of status.
+//
+// Used by: student/mock-exams.html, student/course.html,
+//          admin/mock-exams.html
+// ------------------------------------------------------------
+async function getMockQuizzes(courseId, adminMode = false) {
+  let query = db
+    .from('mock_quizzes')
+    .select('*')
+    .eq('course_id', courseId)
+    .order('title');
+
+  if (!adminMode) {
+    query = query.eq('published', true).eq('status', 'active');
+  }
+
+  const { data, error } = await query;
+  if (error) { console.error('getMockQuizzes:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET ALL MOCK QUIZZES (ADMIN — ALL COURSES)
+// Returns: all mock quiz rows regardless of course or status
+//
+// Used by: admin/mock-exams.html
+// ------------------------------------------------------------
+async function getAllMockQuizzes() {
+  const { data, error } = await db
+    .from('mock_quizzes')
+    .select('*')
+    .order('course_id')
+    .order('title');
+
+  if (error) { console.error('getAllMockQuizzes:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
+// GET SINGLE MOCK QUIZ BY ID
+// Returns: single mock quiz row or null
+//
+// Used by: admin/mock-exams.html (edit/preview)
+// ------------------------------------------------------------
+async function getMockQuizById(quizId) {
+  const { data, error } = await db
+    .from('mock_quizzes')
+    .select('*')
+    .eq('quiz_id', quizId)
+    .maybeSingle();
+
+  if (error) { console.error('getMockQuizById:', error); return null; }
+  return data;
+}
+
+
+// ------------------------------------------------------------
+// SPAWN MOCK EXAM ATTEMPT
+// Returns: { attempt, isResume } or null on error
+//
+// Identical to spawnFixedAttempt except source = 'mock'.
+// Reuses the shared attempts table.
+//
+// Used by: student/mock-exams.html
+// ------------------------------------------------------------
+async function spawnMockAttempt(userId, quiz, mode) {
+  const { data: existing } = await db
+    .from('attempts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('quiz_id', quiz.quiz_id)
+    .eq('mode', mode)
+    .eq('status', 'in_progress')
+    .maybeSingle();
+
+  if (existing) return { attempt: existing, isResume: true };
+
+  let orderedIds = [...(quiz.item_ids || [])];
+  if (quiz.shuffle) orderedIds = shuffleArray(orderedIds);
+
+  const attemptId = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const timeLimitSec = quiz.time_limit_sec || (quiz.n * 60);
+
+  const { data: newAttempt, error } = await db
+    .from('attempts')
+    .insert({
+      attempt_id:        attemptId,
+      user_id:           userId,
+      quiz_id:           quiz.quiz_id,
+      course_id:         quiz.course_id,
+      mode:              mode,
+      source:            'mock',
+      item_ids:          orderedIds.join(','),
+      n:                 orderedIds.length,
+      status:            'in_progress',
+      ts_iso:            new Date().toISOString(),
+      duration_min:      Math.ceil(timeLimitSec / 60),
+      answers_json:      JSON.stringify([]),
+      display_label:     quiz.title
+    })
+    .select()
+    .single();
+
+  if (error) { console.error('spawnMockAttempt:', error); return null; }
+  return { attempt: newAttempt, isResume: false };
+}
+
+
 // ------------------------------------------------------------
 // GET ITEMS BY IDS
 // Returns: array of question rows from the correct items table
