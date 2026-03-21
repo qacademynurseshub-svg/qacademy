@@ -117,6 +117,36 @@
   .msg-row { max-width: 85%; }
 }
 
+/* ── Reuse banner ────────────────────────────────────── */
+.reuse-banner {
+  padding: 10px 16px; background: #fef9e7; border-bottom: 1px solid #f9e79f;
+  font-size: 12px; color: #7d6608; display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0; animation: fadeInBanner 0.25s ease;
+}
+.reuse-banner .close-banner { background: none; border: none; cursor: pointer; font-size: 14px; color: #b7950b; margin-left: auto; padding: 0 4px; }
+@keyframes fadeInBanner { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── New thread form ─────────────────────────────────── */
+.new-thread-form {
+  padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0);
+  background: var(--primary-light, #edf6f5); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
+}
+.new-thread-form label { font-size: 12px; font-weight: 600; color: var(--primary); }
+.new-thread-form input {
+  border: 1px solid var(--border, #e2e8f0); border-radius: 8px; padding: 8px 12px;
+  font-size: 13px; font-family: 'Inter', sans-serif;
+}
+.new-thread-form input:focus { outline: none; border-color: var(--accent); }
+.new-thread-form .form-actions { display: flex; gap: 8px; }
+.new-thread-form .btn-start { padding: 6px 16px; border-radius: 6px; background: var(--accent); color: #fff; border: none; cursor: pointer; font-size: 12px; font-weight: 600; }
+.new-thread-form .btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
+.new-thread-form .btn-cancel { padding: 6px 12px; border-radius: 6px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); cursor: pointer; font-size: 12px; }
+
+/* ── Closed action ───────────────────────────────────── */
+.closed-action { text-align: center; padding: 0 16px 12px; background: #fef2f2; }
+.closed-action button { font-size: 12px; color: var(--accent); background: none; border: none; cursor: pointer; font-weight: 600; text-decoration: underline; }
+.closed-action button:hover { opacity: 0.8; }
+
 /* ── Toast ────────────────────────────────────────────── */
 .toast { position: fixed; bottom: 24px; right: 24px; background: var(--primary); color: #fff; padding: 14px 22px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.25s; pointer-events: none; max-width: 340px; }
 .toast.show { opacity: 1; pointer-events: auto; }
@@ -168,9 +198,11 @@
               <h3 id="convoTitle">Conversation</h3>
               <span class="context-chip" id="convoContext" style="display:none;"></span>
             </div>
+            <div id="reuseBanner" class="reuse-banner" style="display:none;"></div>
             <div id="convoRef" class="ref-card" style="display:none; margin:12px 16px 0;"></div>
             <div class="convo-messages" id="convoMessages"></div>
             <div id="closedBanner" class="closed-banner" style="display:none;">This conversation has been closed by support.</div>
+            <div id="closedAction" class="closed-action" style="display:none;"><button onclick="startNewThread()">Start a new conversation</button></div>
             <div class="compose-bar" id="composeBar">
               <textarea id="composeBox" placeholder="Type a message..." rows="1" oninput="handleComposeInput()" onkeydown="handleComposeKey(event)" maxlength="800"></textarea>
               <span class="char-count" id="charCount"></span>
@@ -251,6 +283,7 @@ async function handleDeepLink() {
 
   await loadThreads();
   openThread(result.thread_id);
+  if (!result.created) showReuseBanner();
   window.history.replaceState({}, '', '/student/messages.html');
 }
 
@@ -258,6 +291,15 @@ async function handleDeepLink() {
 async function loadThreads() {
   threads = await getStudentThreads(PROFILE.user_id);
   renderThreadList();
+  updateUnreadBadge();
+}
+
+function updateUnreadBadge() {
+  let count = 0;
+  for (const t of threads) {
+    if (t._latest && !t._latest.read_by_user && t._latest.sender_role === 'admin') count++;
+  }
+  if (typeof sidebarUpdateMsgBadge === 'function') sidebarUpdateMsgBadge(count);
 }
 
 // ── Render thread list ──────────────────────────────────
@@ -338,9 +380,13 @@ async function openThread(threadId) {
     refEl.style.display = 'none';
   }
 
+  // Reuse banner — hide on manual thread open
+  hideReuseBanner();
+
   // Closed state
   const isClosed = thread && thread.status === 'closed';
   byId('closedBanner').style.display = isClosed ? '' : 'none';
+  byId('closedAction').style.display = isClosed ? '' : 'none';
   byId('composeBar').style.display = isClosed ? 'none' : '';
 
   // Mobile: show convo pane
@@ -512,12 +558,69 @@ function updateCharCount() {
   btn.disabled = len > MAX_LEN || len === 0;
 }
 
-// ── New thread ──────────────────────────────────────────
-async function startNewThread() {
-  const result = await ensureThread(PROFILE.user_id, 'general', { sender_role: 'student' });
+// ── New thread (with subject prompt) ────────────────────
+function startNewThread() {
+  // Show inline subject form in the thread list header area
+  const container = byId('threadItems');
+  const existing = document.getElementById('newThreadForm');
+  if (existing) { existing.querySelector('input').focus(); return; }
+
+  const form = document.createElement('div');
+  form.id = 'newThreadForm';
+  form.className = 'new-thread-form';
+  form.innerHTML = `
+    <label>What's this about?</label>
+    <input type="text" id="newThreadSubject" placeholder="e.g. Help with dosage calculations" maxlength="80" autocomplete="off" />
+    <div class="form-actions">
+      <button class="btn-start" id="btnStartThread" onclick="confirmNewThread()" disabled>Start</button>
+      <button class="btn-cancel" onclick="cancelNewThread()">Cancel</button>
+    </div>`;
+  container.insertAdjacentElement('afterbegin', form);
+
+  const input = form.querySelector('input');
+  input.focus();
+  input.addEventListener('input', () => {
+    document.getElementById('btnStartThread').disabled = !input.value.trim();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && input.value.trim()) confirmNewThread();
+    if (e.key === 'Escape') cancelNewThread();
+  });
+}
+
+function cancelNewThread() {
+  const form = document.getElementById('newThreadForm');
+  if (form) form.remove();
+}
+
+async function confirmNewThread() {
+  const input = document.getElementById('newThreadSubject');
+  const subject = (input ? input.value.trim() : '') || null;
+  cancelNewThread();
+
+  const result = await ensureThread(PROFILE.user_id, 'general', { subject, sender_role: 'student' });
   if (!result) { showToast('Error', 'Could not create conversation.', 'error'); return; }
+
   await loadThreads();
   openThread(result.thread_id);
+
+  // Show reuse banner if we got an existing thread
+  if (!result.created) showReuseBanner();
+}
+
+// ── Reuse banner ────────────────────────────────────────
+function showReuseBanner() {
+  const el = byId('reuseBanner');
+  if (!el) return;
+  el.innerHTML = `<span>You already have an open conversation — we've opened it for you.</span>
+    <button class="close-banner" onclick="hideReuseBanner()" title="Dismiss">&times;</button>`;
+  el.style.display = '';
+  setTimeout(hideReuseBanner, 6000);
+}
+
+function hideReuseBanner() {
+  const el = byId('reuseBanner');
+  if (el) el.style.display = 'none';
 }
 
 // ── Realtime ────────────────────────────────────────────
