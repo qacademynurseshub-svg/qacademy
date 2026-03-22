@@ -1,5 +1,5 @@
 // ============================================================
-// teacher-api.js
+// myteacher-api.js
 // Teacher Assess data layer — loaded only by /myteacher/* pages
 // Requires: db from js/config.js (loaded before this file)
 //

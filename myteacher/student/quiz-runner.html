@@ -543,7 +543,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
-<script src="/js/teacher-api.js"></script>
+<script src="/js/paths.js"></script>
+<script src="/js/myteacher-api.js"></script>
 <script>
 
   // ── State ─────────────────────────────────────────────────
@@ -858,7 +859,7 @@
     if (confirm('Quit? Your progress is saved but the attempt remains open. You can resume later.')) {
       backupToLocalStorage();
       autoSave().then(() => {
-        window.location.href = '/myteacher/student/my-classes.html';
+        window.location.href = MYTEACHER.student + '/my-classes.html';
       });
     }
   }
@@ -1333,13 +1334,13 @@
         </div>
       </div>
       <div class="completion-links">
-        <a class="nav-btn primary" href="/myteacher/student/my-classes.html">← Back to My Classes</a>`;
+        <a class="nav-btn primary" href="${MYTEACHER.student}/my-classes.html">← Back to My Classes</a>`;
 
     if (resultsAvailable) {
-      html += `<a class="nav-btn" href="/myteacher/student/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}">📊 View Results</a>`;
+      html += `<a class="nav-btn" href="${MYTEACHER.student}/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}">📊 View Results</a>`;
     }
     if (reviewAvailable) {
-      html += `<a class="nav-btn" href="/myteacher/student/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}&tab=review">📝 Review Questions</a>`;
+      html += `<a class="nav-btn" href="${MYTEACHER.student}/my-results.html?attempt_id=${esc(ATTEMPT.attempt_id)}&tab=review">📝 Review Questions</a>`;
     }
 
     html += '</div>';
