@@ -230,11 +230,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
+<script src="/js/paths.js"></script>
 <script>
 
   const DEST = {
-    studentLicensure : '/student/dashboard.html',
-    adminLicensure   : '/admin/dashboard.html',
+    studentLicensure : LICENSURE.student + '/dashboard.html',
+    adminLicensure   : LICENSURE.admin + '/dashboard.html',
     teacherDashboard : '/myteacher/teacher/dashboard.html',
     teacherRequest   : '/myteacher/teacher/access-request.html',
     studentMyTeacher : '/myteacher/student/dashboard.html',

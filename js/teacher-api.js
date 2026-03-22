@@ -3311,3 +3311,106 @@ function _gradeLabelFromBands(bandsJson, pct) {
   }
   return sorted[sorted.length - 1]?.label || null;
 }
+
+
+// ── Shared helpers (copied from api.js for myteacher independence) ──
+
+async function getPrograms() {
+    const { data, error } = await db
+        .from('programs')
+        .select('program_id, program_name, trial_product_id')
+        .order('program_name');
+
+    if (error) { console.error('getPrograms:', error); return []; }
+    return data || [];
+}
+
+async function getUserById(userId) {
+  const { data: user, error: userError } = await db
+    .from('users')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (userError || !user) {
+    console.error('getUserById - user not found:', userError);
+    return null;
+  }
+
+  const { data: activeSubscription } = await db
+    .from('subscriptions')
+    .select(`
+      *,
+      products (
+        product_id,
+        name,
+        kind,
+        duration_days,
+        price_minor,
+        currency,
+        courses_included,
+        telegram_group_keys
+      )
+    `)
+    .eq('user_id', userId)
+    .eq('status', 'ACTIVE')
+    .order('expires_utc', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: subscriptionHistory } = await db
+    .from('subscriptions')
+    .select(`
+      *,
+      products ( name, kind )
+    `)
+    .eq('user_id', userId)
+    .order('start_utc', { ascending: false });
+
+  return {
+    ...user,
+    activeSubscription: activeSubscription || null,
+    subscriptionHistory: subscriptionHistory || []
+  };
+}
+
+async function updateUserProfile(userId, fields) {
+  const { error } = await db
+    .from('users')
+    .update(fields)
+    .eq('user_id', userId);
+
+  if (error) { console.error('updateUserProfile:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+async function uploadProfileImage(userId, file, prefix = 'user') {
+  if (!file) return null;
+
+  const MAX_SIZE = 2 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    console.error('uploadProfileImage: file too large', file.size);
+    return null;
+  }
+
+  const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowed.includes(file.type)) {
+    console.error('uploadProfileImage: invalid type', file.type);
+    return null;
+  }
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const fileName = `${prefix}_${userId}.${ext}`;
+
+  const { data, error } = await db.storage
+    .from('profile-images')
+    .upload(fileName, file, { upsert: true, contentType: file.type });
+
+  if (error) {
+    console.error('uploadProfileImage:', error);
+    return null;
+  }
+
+  const { data: urlData } = db.storage.from('profile-images').getPublicUrl(fileName);
+  return urlData.publicUrl;
+}

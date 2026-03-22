@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Messages — QAcademy Nurses Hub</title>
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+
+/* ── Layout ──────────────────────────────────────────── */
+.dashboard-wrapper { display: flex; min-height: 100vh; background: var(--bg, #f4f6f8); }
+.main-content { flex: 1; min-width: 0; padding: 24px 20px 40px; }
+.msg-container { max-width: 960px; margin: 0 auto; }
+
+.page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.page-header h1 { font-size: 22px; font-weight: 800; color: var(--primary); margin: 0; }
+
+/* ── Split pane ──────────────────────────────────────── */
+.msg-split {
+  display: flex; gap: 0;
+  border: 1px solid var(--border, #e2e8f0); border-radius: 14px;
+  overflow: hidden; background: var(--white, #fff);
+  height: calc(100vh - 140px); min-height: 480px;
+  box-shadow: 0 2px 12px rgba(30,58,95,0.06);
+}
+
+/* ── Thread list ─────────────────────────────────────── */
+.thread-list { width: 320px; min-width: 260px; border-right: 1px solid var(--border, #e2e8f0); display: flex; flex-direction: column; }
+.thread-list-header { padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
+.thread-list-header h2 { font-size: 14px; font-weight: 700; color: var(--primary); margin: 0; }
+.btn-new-msg { font-size: 12px; padding: 5px 12px; border-radius: 6px; background: var(--accent, #2d7d72); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+.btn-new-msg:hover { opacity: 0.9; }
+
+.thread-items { flex: 1; overflow-y: auto; }
+.thread-item { padding: 12px 16px; border-bottom: 1px solid var(--border, #e2e8f0); cursor: pointer; transition: background 0.12s; }
+.thread-item:hover { background: rgba(45,125,114,0.04); }
+.thread-item.active { background: rgba(45,125,114,0.08); border-left: 3px solid var(--accent); }
+.thread-item.unread .t-subject { font-weight: 700; color: var(--text); }
+.thread-item .t-subject { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread-item .t-preview { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread-item .t-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+.thread-item .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; flex-shrink: 0; }
+.context-chip { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--primary-light, #edf6f5); color: var(--primary); font-weight: 600; text-transform: uppercase; }
+.status-chip { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+.status-chip.closed { background: #ffeaea; color: #c0392b; }
+
+.thread-empty { padding: 40px 16px; text-align: center; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+.thread-empty h3 { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+.thread-empty p { margin-bottom: 14px; }
+
+/* ── Conversation pane ───────────────────────────────── */
+.convo-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.convo-header { padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
+.convo-header h3 { font-size: 14px; font-weight: 700; color: var(--primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.convo-header .back-btn { display: none; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--primary); padding: 0; flex-shrink: 0; }
+
+.convo-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; text-align: center; padding: 40px; flex-direction: column; gap: 12px; }
+.convo-empty .empty-icon { font-size: 36px; opacity: 0.3; }
+
+/* ── Message area (scrollable) ───────────────────────── */
+.convo-messages { flex: 1; overflow-y: auto; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 2px; }
+
+/* ── Date dividers ───────────────────────────────────── */
+.date-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0 12px; }
+.date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.date-divider span { font-size: 11px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+
+/* ── Ref card (pinned at top of convo for question context) ── */
+.ref-card { font-size: 12px; color: var(--text-muted); background: var(--primary-light, #edf6f5); padding: 10px 14px; border-radius: 10px; margin: 0 0 8px 0; flex-shrink: 0; line-height: 1.5; }
+.ref-card strong { color: var(--primary); }
+
+/* ── Bubbles ─────────────────────────────────────────── */
+.msg-group { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+.msg-group.student { align-items: flex-end; }
+.msg-group.admin { align-items: flex-start; }
+
+.msg-row { display: flex; gap: 8px; align-items: flex-end; max-width: 72%; }
+.msg-group.student .msg-row { flex-direction: row-reverse; margin-left: auto; }
+.msg-group.admin .msg-row { margin-right: auto; }
+
+.msg-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; color: #fff; }
+.msg-avatar.student-av { background: var(--accent); }
+.msg-avatar.admin-av { background: var(--primary); }
+/* Only show avatar on last message in group */
+.msg-group .msg-row:not(:last-child) .msg-avatar { visibility: hidden; }
+
+.bubble { padding: 8px 12px; border-radius: 14px; font-size: 13px; line-height: 1.45; word-wrap: break-word; white-space: pre-wrap; }
+.bubble.student { background: var(--accent, #2d7d72); color: #fff; border-bottom-right-radius: 4px; }
+.bubble.admin { background: var(--primary-light, #edf6f5); color: var(--primary); border-bottom-left-radius: 4px; }
+
+.msg-time { font-size: 10px; color: var(--text-muted); margin-top: 2px; padding: 0 36px; }
+.msg-group.student .msg-time { text-align: right; }
+
+/* ── Closed banner ───────────────────────────────────── */
+.closed-banner { padding: 10px 16px; background: #fef2f2; border-top: 1px solid #fecaca; color: #c0392b; font-size: 12px; font-weight: 600; text-align: center; flex-shrink: 0; }
+
+/* ── Compose ─────────────────────────────────────────── */
+.compose-bar { padding: 12px 16px; border-top: 1px solid var(--border, #e2e8f0); display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; background: var(--white); }
+.compose-bar textarea { flex: 1; resize: none; border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 10px 14px; font-size: 13px; font-family: 'Inter', sans-serif; min-height: 40px; max-height: 120px; line-height: 1.4; }
+.compose-bar textarea:focus { outline: none; border-color: var(--accent); }
+.compose-bar textarea:disabled { background: var(--bg); cursor: not-allowed; }
+.btn-send { padding: 8px 18px; border-radius: 8px; background: var(--accent, #2d7d72); color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.btn-send:hover { opacity: 0.9; }
+.btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+.char-count { font-size: 10px; color: var(--text-muted); margin-right: 4px; align-self: flex-end; padding-bottom: 4px; white-space: nowrap; }
+.char-count.warn { color: var(--warning); }
+.char-count.over { color: var(--danger); font-weight: 600; }
+
+/* ── Mobile ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .msg-split { flex-direction: column; height: auto; min-height: auto; border-radius: 10px; }
+  .thread-list { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--border, #e2e8f0); max-height: 45vh; }
+  .convo-pane { min-height: 55vh; }
+  .msg-split.convo-open .thread-list { display: none; }
+  .msg-split.convo-open .convo-pane { min-height: 75vh; }
+  .msg-split.convo-open .convo-pane .back-btn { display: inline-block; }
+  .msg-row { max-width: 85%; }
+}
+
+/* ── Reuse banner ────────────────────────────────────── */
+.reuse-banner {
+  padding: 10px 16px; background: #fef9e7; border-bottom: 1px solid #f9e79f;
+  font-size: 12px; color: #7d6608; display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0; animation: fadeInBanner 0.25s ease;
+}
+.reuse-banner .close-banner { background: none; border: none; cursor: pointer; font-size: 14px; color: #b7950b; margin-left: auto; padding: 0 4px; }
+@keyframes fadeInBanner { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── New thread form ─────────────────────────────────── */
+.new-thread-form {
+  padding: 14px 16px; border-bottom: 1px solid var(--border, #e2e8f0);
+  background: var(--primary-light, #edf6f5); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
+}
+.new-thread-form label { font-size: 12px; font-weight: 600; color: var(--primary); }
+.new-thread-form input {
+  border: 1px solid var(--border, #e2e8f0); border-radius: 8px; padding: 8px 12px;
+  font-size: 13px; font-family: 'Inter', sans-serif;
+}
+.new-thread-form input:focus { outline: none; border-color: var(--accent); }
+.new-thread-form .form-actions { display: flex; gap: 8px; }
+.new-thread-form .btn-start { padding: 6px 16px; border-radius: 6px; background: var(--accent); color: #fff; border: none; cursor: pointer; font-size: 12px; font-weight: 600; }
+.new-thread-form .btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
+.new-thread-form .btn-cancel { padding: 6px 12px; border-radius: 6px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); cursor: pointer; font-size: 12px; }
+
+/* ── Closed action ───────────────────────────────────── */
+.closed-action { text-align: center; padding: 0 16px 12px; background: #fef2f2; }
+.closed-action button { font-size: 12px; color: var(--accent); background: none; border: none; cursor: pointer; font-weight: 600; text-decoration: underline; }
+.closed-action button:hover { opacity: 0.8; }
+
+/* ── Toast ────────────────────────────────────────────── */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--primary); color: #fff; padding: 14px 22px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.25s; pointer-events: none; max-width: 340px; }
+.toast.show { opacity: 1; pointer-events: auto; }
+.toast-title { font-weight: 700; margin-bottom: 2px; }
+.toast-msg { font-size: 12px; opacity: 0.9; }
+.toast.error { background: #c0392b; }
+
+/* ── Loading ──────────────────────────────────────────── */
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.1); border-left-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+</style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+  <div id="sidebar"></div>
+
+  <div class="main-content">
+    <div class="msg-container">
+
+      <div class="page-header">
+        <h1>Messages</h1>
+      </div>
+
+      <div class="msg-split" id="msgSplit">
+
+        <!-- Thread list -->
+        <div class="thread-list">
+          <div class="thread-list-header">
+            <h2>Inbox</h2>
+            <button class="btn-new-msg" onclick="startNewThread()">+ New</button>
+          </div>
+          <div class="thread-items" id="threadItems">
+            <div class="thread-empty"><span class="spinner"></span> Loading...</div>
+          </div>
+        </div>
+
+        <!-- Conversation pane -->
+        <div class="convo-pane">
+          <div class="convo-empty" id="convoEmpty">
+            <div class="empty-icon">&#9993;</div>
+            <div><strong>Select a conversation</strong></div>
+            <div>or click <strong>+ New</strong> to start one</div>
+          </div>
+          <div id="convoActive" style="display:none; flex-direction:column; flex:1;">
+            <div class="convo-header">
+              <button class="back-btn" onclick="closeConvo()">&#8592;</button>
+              <h3 id="convoTitle">Conversation</h3>
+              <span class="context-chip" id="convoContext" style="display:none;"></span>
+            </div>
+            <div id="reuseBanner" class="reuse-banner" style="display:none;"></div>
+            <div id="convoRef" class="ref-card" style="display:none; margin:12px 16px 0;"></div>
+            <div class="convo-messages" id="convoMessages"></div>
+            <div id="closedBanner" class="closed-banner" style="display:none;">This conversation has been closed by support.</div>
+            <div id="closedAction" class="closed-action" style="display:none;"><button onclick="startNewThread()">Start a new conversation</button></div>
+            <div class="compose-bar" id="composeBar">
+              <textarea id="composeBox" placeholder="Type a message..." rows="1" oninput="handleComposeInput()" onkeydown="handleComposeKey(event)" maxlength="800"></textarea>
+              <span class="char-count" id="charCount"></span>
+              <button class="btn-send" id="btnSend" onclick="handleSend()" disabled>Send</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-title" id="toastTitle"></div>
+  <div class="toast-msg" id="toastMsg"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/paths.js"></script>
+<script src="/js/mynmclicensure-student-sidebar.js"></script>
+<script src="/js/mynmclicensure-api.js"></script>
+<script>
+
+// ── Constants ───────────────────────────────────────────
+const MAX_LEN = 800;
+
+// ── State ───────────────────────────────────────────────
+let PROFILE      = null;
+let threads      = [];
+let activeThread = null;   // thread_id currently viewing
+let activeData   = null;   // full thread object
+let courseTitles = {};
+let toastTimer   = null;
+let realtimeSub  = null;
+
+const byId = id => document.getElementById(id);
+
+// ── Boot ────────────────────────────────────────────────
+async function boot() {
+  PROFILE = await guardPage('STUDENT');
+  if (!PROFILE) return;
+
+  const courses = await getCourses();
+  (courses || []).forEach(c => { courseTitles[c.course_id] = c.title; });
+
+  await loadThreads();
+  handleDeepLink();
+}
+boot();
+
+// ── Deep link ───────────────────────────────────────────
+async function handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const courseId  = params.get('course_id');
+  const itemId   = params.get('item_id');
+  const quizId   = params.get('quiz_id');
+  const attemptId = params.get('attempt_id');
+  const ref      = params.get('ref');
+
+  if (!courseId && !itemId) return;
+
+  const contextType = itemId ? 'question' : 'course';
+  const decodedRef = ref ? decodeURIComponent(ref) : null;
+  const opts = {
+    course_id:   courseId || null,
+    quiz_id:     quizId || null,
+    question_id: itemId || null,
+    attempt_id:  attemptId || null,
+    subject:     itemId ? 'Question feedback' : null,
+    ref_text:    decodedRef,
+    sender_role: 'student'
+  };
+
+  const result = await ensureThread(PROFILE.user_id, contextType, opts);
+  if (!result) { showToast('Error', 'Could not create conversation.', 'error'); return; }
+
+  await loadThreads();
+  openThread(result.thread_id);
+  if (!result.created) showReuseBanner();
+  window.history.replaceState({}, '', `${LICENSURE.student}/messages.html`);
+}
+
+// ── Load threads ────────────────────────────────────────
+async function loadThreads() {
+  threads = await getStudentThreads(PROFILE.user_id);
+  renderThreadList();
+  updateUnreadBadge();
+}
+
+function updateUnreadBadge() {
+  let count = 0;
+  for (const t of threads) {
+    if (t._latest && !t._latest.read_by_user && t._latest.sender_role === 'admin') count++;
+  }
+  if (typeof sidebarUpdateMsgBadge === 'function') sidebarUpdateMsgBadge(count);
+}
+
+// ── Render thread list ──────────────────────────────────
+function renderThreadList() {
+  const el = byId('threadItems');
+
+  if (!threads.length) {
+    el.innerHTML = `<div class="thread-empty">
+      <h3>No messages yet</h3>
+      <p>If you need help or want to send feedback, start a conversation.</p>
+      <button class="btn-new-msg" onclick="startNewThread()">Start a message</button>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = threads.map(t => {
+    const latest = t._latest;
+    const preview = latest ? truncate(latest.body_text, 60) : 'No messages';
+    const time    = latest ? formatTime(latest.created_at) : '';
+    const label   = threadLabel(t);
+    const isActive = t.thread_id === activeThread;
+    const hasUnread = latest && !latest.read_by_user && latest.sender_role === 'admin';
+    const isClosed = t.status === 'closed';
+
+    return `
+      <div class="thread-item ${isActive ? 'active' : ''} ${hasUnread ? 'unread' : ''}"
+           onclick="openThread('${t.thread_id}')">
+        <div class="t-subject">${esc(label)}</div>
+        <div class="t-preview">${esc(preview)}</div>
+        <div class="t-meta">
+          ${hasUnread ? '<span class="unread-dot"></span>' : ''}
+          <span>${time}</span>
+          ${t.context_type !== 'general' ? `<span class="context-chip">${t.context_type}</span>` : ''}
+          ${isClosed ? '<span class="status-chip closed">Closed</span>' : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Open thread ─────────────────────────────────────────
+async function openThread(threadId) {
+  activeThread = threadId;
+  renderThreadList();
+
+  const thread = threads.find(t => t.thread_id === threadId);
+  activeData = thread;
+
+  byId('convoEmpty').style.display = 'none';
+  const active = byId('convoActive');
+  active.style.display = 'flex';
+
+  byId('convoTitle').textContent = threadLabel(thread);
+
+  // Context chip
+  const ctxChip = byId('convoContext');
+  if (thread && thread.context_type !== 'general') {
+    ctxChip.textContent = thread.context_type;
+    ctxChip.style.display = '';
+  } else {
+    ctxChip.style.display = 'none';
+  }
+
+  // Ref card
+  const refEl = byId('convoRef');
+  if (thread && thread.context_type === 'question') {
+    let refHtml = thread.ref_text ? formatRefText(thread.ref_text) : '';
+    if (!refHtml && thread.course_id) {
+      refHtml = `<strong>Course:</strong> ${esc(courseTitles[thread.course_id] || thread.course_id)}`;
+    }
+    refHtml += '<div style="margin-top:8px; font-size:11px; color:var(--text-muted); font-style:italic;">Type your feedback below. Please mention what part (stem or option) you\'re referring to.</div>';
+    refEl.innerHTML = refHtml;
+    refEl.style.display = '';
+  } else if (thread && thread.context_type === 'course' && thread.course_id) {
+    const courseName = courseTitles[thread.course_id] || thread.course_id;
+    refEl.innerHTML = `<strong>Course:</strong> ${esc(courseName)}`;
+    refEl.style.display = '';
+  } else {
+    refEl.style.display = 'none';
+  }
+
+  // Reuse banner — hide on manual thread open
+  hideReuseBanner();
+
+  // Closed state
+  const isClosed = thread && thread.status === 'closed';
+  byId('closedBanner').style.display = isClosed ? '' : 'none';
+  byId('closedAction').style.display = isClosed ? '' : 'none';
+  byId('composeBar').style.display = isClosed ? 'none' : '';
+
+  // Mobile: show convo pane
+  byId('msgSplit').classList.add('convo-open');
+
+  // Load messages
+  const msgs = await getThreadMessages(threadId);
+  renderMessages(msgs);
+
+  // Mark as read + update local state so badge + unread dot refresh
+  await markThreadRead(threadId, 'student');
+  if (thread && thread._latest) thread._latest.read_by_user = true;
+  updateUnreadBadge();
+  renderThreadList();
+
+  // Scroll to bottom
+  const container = byId('convoMessages');
+  container.scrollTop = container.scrollHeight;
+
+  byId('composeBox').focus();
+
+  // Setup realtime
+  setupRealtime(threadId);
+}
+
+// ── Close convo (mobile) ────────────────────────────────
+function closeConvo() {
+  activeThread = null;
+  activeData = null;
+  byId('msgSplit').classList.remove('convo-open');
+  byId('convoActive').style.display = 'none';
+  byId('convoEmpty').style.display = '';
+  renderThreadList();
+  teardownRealtime();
+}
+
+// ── Render messages with date dividers + grouped bubbles ─
+function renderMessages(msgs) {
+  const el = byId('convoMessages');
+  if (!msgs.length) {
+    el.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; padding:30px;">No messages yet. Send a message below.</div>';
+    return;
+  }
+
+  let html = '';
+  let lastDate = '';
+  let lastSender = '';
+  let groupHtml = '';
+
+  function flushGroup() {
+    if (!groupHtml) return;
+    html += `<div class="msg-group ${lastSender}">${groupHtml}</div>`;
+    groupHtml = '';
+  }
+
+  msgs.forEach((m, i) => {
+    const msgDate = formatDateLabel(m.created_at);
+    const sender = m.sender_role === 'student' ? 'student' : 'admin';
+
+    // Date divider
+    if (msgDate !== lastDate) {
+      flushGroup();
+      html += `<div class="date-divider"><span>${msgDate}</span></div>`;
+      lastDate = msgDate;
+      lastSender = '';
+    }
+
+    // New sender group
+    if (sender !== lastSender) {
+      flushGroup();
+      lastSender = sender;
+    }
+
+    const initial = sender === 'student'
+      ? (PROFILE.name || PROFILE.forename || 'S').charAt(0).toUpperCase()
+      : 'QA';
+    const avClass = sender === 'student' ? 'student-av' : 'admin-av';
+
+    groupHtml += `<div class="msg-row">
+      <div class="msg-avatar ${avClass}">${initial}</div>
+      <div class="bubble ${sender}">${esc(m.body_text)}</div>
+    </div>`;
+
+    // Show timestamp on last message in group or if next message is different sender/date
+    const next = msgs[i + 1];
+    const nextSender = next ? (next.sender_role === 'student' ? 'student' : 'admin') : null;
+    const nextDate = next ? formatDateLabel(next.created_at) : null;
+
+    if (!next || nextSender !== sender || nextDate !== msgDate) {
+      groupHtml += `<div class="msg-time">${formatTimeShort(m.created_at)}</div>`;
+    }
+  });
+
+  flushGroup();
+  el.innerHTML = html;
+}
+
+// ── Send message ────────────────────────────────────────
+async function handleSend() {
+  const box = byId('composeBox');
+  const text = box.value.trim();
+  if (!text || !activeThread) return;
+  if (text.length > MAX_LEN) return;
+
+  byId('btnSend').disabled = true;
+
+  // Optimistic: append bubble immediately
+  const container = byId('convoMessages');
+  const tempId = 'temp-' + Date.now();
+  const initial = (PROFILE.name || PROFILE.forename || 'S').charAt(0).toUpperCase();
+  const optimisticHtml = `<div class="msg-group student" id="${tempId}">
+    <div class="msg-row">
+      <div class="msg-avatar student-av">${initial}</div>
+      <div class="bubble student" style="opacity:0.7;">${esc(text)}</div>
+    </div>
+    <div class="msg-time">${formatTimeShort(new Date().toISOString())}</div>
+  </div>`;
+  container.insertAdjacentHTML('beforeend', optimisticHtml);
+  container.scrollTop = container.scrollHeight;
+  box.value = '';
+  updateCharCount();
+
+  const result = await sendMessage(activeThread, PROFILE.user_id, 'student', text);
+
+  if (result.success) {
+    // Reload full messages to get correct state
+    const msgs = await getThreadMessages(activeThread);
+    renderMessages(msgs);
+    container.scrollTop = container.scrollHeight;
+    await loadThreads();
+  } else {
+    // Remove optimistic bubble and show error
+    const temp = document.getElementById(tempId);
+    if (temp) temp.remove();
+    showToast('Error', 'Could not send message.', 'error');
+  }
+
+  byId('btnSend').disabled = false;
+}
+
+function handleComposeKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
+  }
+  autoResizeTextarea(e.target);
+}
+
+function handleComposeInput() {
+  autoResizeTextarea(byId('composeBox'));
+  updateCharCount();
+}
+
+function autoResizeTextarea(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function updateCharCount() {
+  const len = byId('composeBox').value.length;
+  const el = byId('charCount');
+  const btn = byId('btnSend');
+
+  if (len === 0) {
+    el.textContent = '';
+    btn.disabled = true;
+    return;
+  }
+
+  el.textContent = `${len}/${MAX_LEN}`;
+  el.className = 'char-count' + (len > MAX_LEN ? ' over' : len > MAX_LEN * 0.9 ? ' warn' : '');
+  btn.disabled = len > MAX_LEN || len === 0;
+}
+
+// ── New thread (with subject prompt) ────────────────────
+function startNewThread() {
+  // Show inline subject form in the thread list header area
+  const container = byId('threadItems');
+  const existing = document.getElementById('newThreadForm');
+  if (existing) { existing.querySelector('input').focus(); return; }
+
+  const form = document.createElement('div');
+  form.id = 'newThreadForm';
+  form.className = 'new-thread-form';
+  form.innerHTML = `
+    <label>What's this about?</label>
+    <input type="text" id="newThreadSubject" placeholder="e.g. Help with dosage calculations" maxlength="80" autocomplete="off" />
+    <div class="form-actions">
+      <button class="btn-start" id="btnStartThread" onclick="confirmNewThread()" disabled>Start</button>
+      <button class="btn-cancel" onclick="cancelNewThread()">Cancel</button>
+    </div>`;
+  container.insertAdjacentElement('afterbegin', form);
+
+  const input = form.querySelector('input');
+  input.focus();
+  input.addEventListener('input', () => {
+    document.getElementById('btnStartThread').disabled = !input.value.trim();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && input.value.trim()) confirmNewThread();
+    if (e.key === 'Escape') cancelNewThread();
+  });
+}
+
+function cancelNewThread() {
+  const form = document.getElementById('newThreadForm');
+  if (form) form.remove();
+}
+
+async function confirmNewThread() {
+  const input = document.getElementById('newThreadSubject');
+  const subject = (input ? input.value.trim() : '') || null;
+  cancelNewThread();
+
+  const result = await ensureThread(PROFILE.user_id, 'general', { subject, sender_role: 'student' });
+  if (!result) { showToast('Error', 'Could not create conversation.', 'error'); return; }
+
+  await loadThreads();
+  openThread(result.thread_id);
+
+  // Show reuse banner if we got an existing thread
+  if (!result.created) showReuseBanner();
+}
+
+// ── Reuse banner ────────────────────────────────────────
+function showReuseBanner() {
+  const el = byId('reuseBanner');
+  if (!el) return;
+  el.innerHTML = `<span>You already have an open conversation — we've opened it for you.</span>
+    <button class="close-banner" onclick="hideReuseBanner()" title="Dismiss">&times;</button>`;
+  el.style.display = '';
+  setTimeout(hideReuseBanner, 6000);
+}
+
+function hideReuseBanner() {
+  const el = byId('reuseBanner');
+  if (el) el.style.display = 'none';
+}
+
+// ── Realtime ────────────────────────────────────────────
+function setupRealtime(threadId) {
+  teardownRealtime();
+  try {
+    realtimeSub = db.channel('msg-' + threadId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `thread_id=eq.${threadId}`
+      }, async (payload) => {
+        const newMsg = payload.new;
+        // Only react to admin messages (our own are already shown optimistically)
+        if (newMsg && newMsg.sender_role === 'admin' && activeThread === threadId) {
+          const msgs = await getThreadMessages(threadId);
+          renderMessages(msgs);
+          const container = byId('convoMessages');
+          container.scrollTop = container.scrollHeight;
+          await markThreadRead(threadId, 'student');
+          await loadThreads();
+        }
+      })
+      .subscribe();
+  } catch (_) { /* realtime not critical */ }
+}
+
+function teardownRealtime() {
+  if (realtimeSub) {
+    try { db.removeChannel(realtimeSub); } catch (_) {}
+    realtimeSub = null;
+  }
+}
+
+// ── Helpers ─────────────────────────────────────────────
+function threadLabel(t) {
+  if (!t) return 'Conversation';
+  if (t.subject) return t.subject;
+  if (t.context_type === 'course' && t.course_id) return courseTitles[t.course_id] || t.course_id;
+  if (t.context_type === 'question') return 'Question feedback';
+  return 'General';
+}
+
+function truncate(s, n) {
+  if (!s) return '';
+  const clean = s.replace(/\s+/g, ' ').trim();
+  return clean.length <= n ? clean : clean.slice(0, n - 1) + '\u2026';
+}
+
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return diffMin + 'm ago';
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return diffH + 'h ago';
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 7) return diffD + 'd ago';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function formatTimeShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDateLabel(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.floor((today - msgDay) / 86400000);
+
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function formatRefText(raw) {
+  if (!raw) return '';
+  const lines = raw.split('\n');
+  let html = '';
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Header line
+    if (trimmed.startsWith('QAcademy')) {
+      html += `<div style="font-weight:700; color:var(--primary); margin-bottom:4px;">${esc(trimmed)}</div>`;
+    }
+    // Section headers (exact match — must come before meta regex)
+    else if (trimmed === 'Question:' || trimmed === 'Options (as shown):') {
+      html += `<div style="margin-top:8px; font-weight:600; color:var(--primary);">${esc(trimmed)}</div>`;
+    }
+    // Meta lines (Course: ..., Question: 1 of 10, Topic: ...)
+    else if (/^(Course|Question|Topic):/.test(trimmed)) {
+      const [label, ...rest] = trimmed.split(':');
+      html += `<div><strong>${esc(label)}:</strong> ${esc(rest.join(':').trim())}</div>`;
+    }
+    // Option lines (A. B. C. etc)
+    else if (/^[A-H]\.\s/.test(trimmed)) {
+      html += `<div style="padding-left:12px; font-size:11.5px;">${esc(trimmed)}</div>`;
+    }
+    // My answer
+    else if (trimmed.startsWith('My answer:')) {
+      const answer = trimmed.replace('My answer:', '').trim();
+      html += `<div style="margin-top:8px; font-weight:600;"><strong>My answer:</strong> ${esc(answer)}</div>`;
+    }
+    // Question stem or other text
+    else {
+      html += `<div style="padding-left:4px;">${esc(trimmed)}</div>`;
+    }
+  }
+  return html;
+}
+
+function showToast(title, msg, type) {
+  clearTimeout(toastTimer);
+  const t = byId('toast');
+  byId('toastTitle').textContent = title;
+  byId('toastMsg').textContent = msg;
+  t.className = 'toast show' + (type === 'error' ? ' error' : '');
+  toastTimer = setTimeout(() => { t.className = 'toast'; }, 4000);
+}
+
+</script>
+</body>
+</html>
