@@ -1,7 +1,9 @@
 // ============================================================
 // QAcademy — myteacher-teacher-nav.js
 // Injects the topbar into all /myteacher/teacher/* pages.
+// Requires: /js/paths.js (MYTEACHER constant)
 // Usage: <div id="myteacher-nav"></div>
+//        <script src="/js/paths.js"></script>
 //        <script src="/js/myteacher-teacher-nav.js"></script>
 // ============================================================
 
@@ -16,7 +18,7 @@
 
         <!-- Brand -->
         <div class="mt-brand">
-          <a href="/myteacher/teacher/dashboard.html" class="mt-brand-link">
+          <a href="${MYTEACHER.teacher}/dashboard.html" class="mt-brand-link">
             <img src="/images/QAcademy_Logo.png" alt="QAcademy" class="mt-brand-logo" />
             <div class="mt-brand-text">
               <span class="mt-brand-title">QAcademy</span>
@@ -27,13 +29,13 @@
 
         <!-- Desktop nav links -->
         <div class="mt-nav-links" id="mtNavLinks">
-          <a href="/myteacher/teacher/dashboard.html" class="mt-nav-link">Dashboard</a>
-          <a href="/myteacher/teacher/classes.html"   class="mt-nav-link">Classes</a>
-          <a href="/myteacher/teacher/bank.html"      class="mt-nav-link">Bank</a>
-          <a href="/myteacher/teacher/quizzes.html"   class="mt-nav-link">Quizzes</a>
-          <a href="/myteacher/teacher/library.html"   class="mt-nav-link">Library</a>
-          <a href="/myteacher/teacher/results.html"   class="mt-nav-link">Results</a>
-          <a href="/myteacher/teacher/profile.html"   class="mt-nav-link">Profile</a>
+          <a href="${MYTEACHER.teacher}/dashboard.html" class="mt-nav-link">Dashboard</a>
+          <a href="${MYTEACHER.teacher}/classes.html"   class="mt-nav-link">Classes</a>
+          <a href="${MYTEACHER.teacher}/bank.html"      class="mt-nav-link">Bank</a>
+          <a href="${MYTEACHER.teacher}/quizzes.html"   class="mt-nav-link">Quizzes</a>
+          <a href="${MYTEACHER.teacher}/library.html"   class="mt-nav-link">Library</a>
+          <a href="${MYTEACHER.teacher}/results.html"   class="mt-nav-link">Results</a>
+          <a href="${MYTEACHER.teacher}/profile.html"   class="mt-nav-link">Profile</a>
         </div>
 
         <!-- Right side -->
@@ -59,13 +61,13 @@
         <button class="mt-drawer-close" id="mtDrawerClose">✕</button>
       </div>
       <nav class="mt-drawer-nav">
-        <a href="/myteacher/teacher/dashboard.html" class="mt-drawer-link">🏠 Dashboard</a>
-        <a href="/myteacher/teacher/classes.html"   class="mt-drawer-link">👥 Classes</a>
-        <a href="/myteacher/teacher/bank.html"      class="mt-drawer-link">📚 Question Bank</a>
-        <a href="/myteacher/teacher/quizzes.html"   class="mt-drawer-link">📝 Quizzes</a>
-        <a href="/myteacher/teacher/library.html"   class="mt-drawer-link">🔍 Library</a>
-        <a href="/myteacher/teacher/results.html"   class="mt-drawer-link">📊 Results</a>
-        <a href="/myteacher/teacher/profile.html"   class="mt-drawer-link">👤 Profile</a>
+        <a href="${MYTEACHER.teacher}/dashboard.html" class="mt-drawer-link">🏠 Dashboard</a>
+        <a href="${MYTEACHER.teacher}/classes.html"   class="mt-drawer-link">👥 Classes</a>
+        <a href="${MYTEACHER.teacher}/bank.html"      class="mt-drawer-link">📚 Question Bank</a>
+        <a href="${MYTEACHER.teacher}/quizzes.html"   class="mt-drawer-link">📝 Quizzes</a>
+        <a href="${MYTEACHER.teacher}/library.html"   class="mt-drawer-link">🔍 Library</a>
+        <a href="${MYTEACHER.teacher}/results.html"   class="mt-drawer-link">📊 Results</a>
+        <a href="${MYTEACHER.teacher}/profile.html"   class="mt-drawer-link">👤 Profile</a>
         <div class="mt-drawer-divider"></div>
         <button class="mt-drawer-link mt-drawer-signout" id="mtDrawerSignOut">↩ Sign out</button>
       </nav>

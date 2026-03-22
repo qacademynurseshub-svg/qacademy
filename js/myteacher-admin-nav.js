@@ -1,7 +1,9 @@
 // ============================================================
 // QAcademy — myteacher-admin-nav.js
 // Injects the topbar into all /myteacher/admin/* pages.
+// Requires: /js/paths.js (MYTEACHER, LICENSURE constants)
 // Usage: <div id="myteacher-nav"></div>
+//        <script src="/js/paths.js"></script>
 //        <script src="/js/myteacher-admin-nav.js"></script>
 // ============================================================
 
@@ -15,7 +17,7 @@
 
         <!-- Brand -->
         <div class="mt-brand">
-          <a href="/myteacher/admin/dashboard.html" class="mt-brand-link">
+          <a href="${MYTEACHER.admin}/dashboard.html" class="mt-brand-link">
             <img src="/images/QAcademy_Logo.png" alt="QAcademy" class="mt-brand-logo" />
             <div class="mt-brand-text">
               <span class="mt-brand-title">QAcademy</span>
@@ -26,14 +28,14 @@
 
         <!-- Desktop nav links -->
         <div class="mt-nav-links" id="mtNavLinks">
-          <a href="/myteacher/admin/dashboard.html" class="mt-nav-link">Dashboard</a>
-          <a href="/myteacher/admin/teachers.html"  class="mt-nav-link">Teachers</a>
+          <a href="${MYTEACHER.admin}/dashboard.html" class="mt-nav-link">Dashboard</a>
+          <a href="${MYTEACHER.admin}/teachers.html"  class="mt-nav-link">Teachers</a>
         </div>
 
         <!-- Right side -->
         <div class="mt-topbar-right">
           <span class="mt-user-chip" id="mtUserChip"></span>
-          <a href="/mynmclicensure/admin/dashboard.html" class="mt-btn-switch">⇄ Licensure Admin</a>
+          <a href="${LICENSURE.admin}/dashboard.html" class="mt-btn-switch">⇄ Licensure Admin</a>
           <button class="mt-btn-signout" id="mtSignOut">Sign out</button>
           <button class="mt-hamburger" id="mtHamburger" aria-label="Menu">
             <span></span><span></span><span></span>
@@ -53,10 +55,10 @@
         <button class="mt-drawer-close" id="mtDrawerClose">✕</button>
       </div>
       <nav class="mt-drawer-nav">
-        <a href="/myteacher/admin/dashboard.html" class="mt-drawer-link">🏠 Dashboard</a>
-        <a href="/myteacher/admin/teachers.html"  class="mt-drawer-link">👨‍🏫 Teachers</a>
+        <a href="${MYTEACHER.admin}/dashboard.html" class="mt-drawer-link">🏠 Dashboard</a>
+        <a href="${MYTEACHER.admin}/teachers.html"  class="mt-drawer-link">👨‍🏫 Teachers</a>
         <div class="mt-drawer-divider"></div>
-        <a href="/mynmclicensure/admin/dashboard.html" class="mt-drawer-link">⇄ Switch to Licensure Admin</a>
+        <a href="${LICENSURE.admin}/dashboard.html" class="mt-drawer-link">⇄ Switch to Licensure Admin</a>
         <div class="mt-drawer-divider"></div>
         <button class="mt-drawer-link mt-drawer-signout" id="mtDrawerSignOut">↩ Sign out</button>
       </nav>

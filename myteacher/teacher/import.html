@@ -376,8 +376,9 @@ IMPORTANT:
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
+<script src="/js/paths.js"></script>
 <script src="/js/myteacher-teacher-nav.js"></script>
-<script src="/js/teacher-api.js"></script>
+<script src="/js/myteacher-api.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
@@ -720,7 +721,7 @@ async function boot() {
   const params = new URLSearchParams(location.search);
   const returnTo = params.get('return_to');
   $('btnBack').addEventListener('click', () => {
-    location.href = returnTo ? decodeURIComponent(returnTo) : '/myteacher/teacher/bank.html';
+    location.href = returnTo ? decodeURIComponent(returnTo) : MYTEACHER.teacher + '/bank.html';
   });
 
   // Template download, instructions & AI prompt copy
@@ -785,7 +786,7 @@ async function boot() {
   });
 
   $('btnGoToBank').addEventListener('click', () => {
-    location.href = '/myteacher/teacher/bank.html';
+    location.href = MYTEACHER.teacher + '/bank.html';
   });
 }
 

@@ -287,8 +287,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
+<script src="/js/paths.js"></script>
 <script src="/js/myteacher-student-nav.js"></script>
-<script src="/js/teacher-api.js"></script>
+<script src="/js/myteacher-api.js"></script>
 <script>
   const $ = id => document.getElementById(id);
   function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -515,7 +516,7 @@
       showToast('Request sent', `Your request to join ${pendingClass.title} has been sent for approval.`, 'ok');
       pendingClass = null;
       // Redirect to My Classes where they can see the pending card
-      window.location.href = '/myteacher/student/my-classes.html';
+      window.location.href = MYTEACHER.student + '/my-classes.html';
       return;
     }
 
