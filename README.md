@@ -18,12 +18,69 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 
 ---
 
+## Project Structure
+
+The project is organised into two independent products under a shared root:
+
+```
+qacademy-gamma/
+  mynmclicensure/          ← NMC Licensure product
+    admin/                 ← 12 admin pages
+    student/               ← 14 student pages
+    runner/                ← 2 quiz runner pages
+  myteacher/               ← Teacher Assess product
+    admin/                 ← 2 admin pages
+    teacher/               ← 8 teacher pages
+    student/               ← 5 student pages
+  js/
+    paths.js               ← CENTRAL PATH CONFIG — edit this to clone
+    config.js              ← Supabase credentials
+    guard.js               ← Auth & role guards
+    mynmclicensure-api.js  ← Licensure data layer
+    myteacher-api.js       ← Teacher Assess data layer
+    mynmclicensure-admin-sidebar.js
+    mynmclicensure-student-sidebar.js
+    myteacher-admin-nav.js
+    myteacher-teacher-nav.js
+    myteacher-student-nav.js
+  payments-worker/         ← Cloudflare Worker (separate deployment)
+  docs/                    ← Reference documentation
+  (root HTML)              ← login, register, router, subscribe, etc.
+```
+
+### Path Configuration — `js/paths.js`
+
+All dynamic URLs are driven by a central config. **Never hardcode product paths in JS.** Always use the constants:
+
+```js
+const LICENSURE = {
+  admin:   '/mynmclicensure/admin',
+  student: '/mynmclicensure/student',
+  runner:  '/mynmclicensure/runner',
+};
+
+const MYTEACHER = {
+  admin:   '/myteacher/admin',
+  teacher: '/myteacher/teacher',
+  student: '/myteacher/student',
+};
+```
+
+**Usage in JS:** `LICENSURE.student + '/dashboard.html'` or `` `${MYTEACHER.teacher}/classes.html` ``
+
+**In static HTML `href` attributes** (where JS variables can't be used), use the full path: `href="/mynmclicensure/student/dashboard.html"`.
+
+> **Why this matters:** Hardcoded paths break cloning. If you add a new page or link, use the config constants in any JS context. This ensures a new product can be created by changing 3 lines in `paths.js` instead of hunting through 60+ files. See `docs/cloning-guide.md` for full cloning instructions.
+
+---
+
 ## Key Conventions
 - Supabase JS CDN uses `supabase` as global variable. Project uses `const db = supabase.createClient(...)` in `js/config.js`. All files reference `db`, never `supabase`.
 - `.maybeSingle()` instead of `.single()` on queries where result might be empty.
-- `js/api.js` is the shared data layer. Shared reads go here. Page-specific logic stays in the page file.
-- When adding to `api.js`, provide only the new function block — never a full rewrite.
+- `js/mynmclicensure-api.js` is the licensure data layer. `js/myteacher-api.js` is the teacher assess data layer. Shared reads go in the relevant API file. Page-specific logic stays in the page file.
+- When adding to an API file, provide only the new function block — never a full rewrite.
 - Item IDs are globally unique and course-prefixed: `GP_001`, `RN_MED_001`, etc.
+- **Never hardcode `/mynmclicensure/...` or `/myteacher/...` paths in JavaScript.** Always use `LICENSURE.x` or `MYTEACHER.x` from `js/paths.js`.
 
 ---
 
@@ -56,7 +113,7 @@ No separate backend server. Everything is JAMstack. The Cloudflare Worker is iso
 - `admin/config.html` — edit values, add new keys, delete with warning
 - Mobile hamburger menu — fixed top-left, slide-in, injected via sidebar JS files
 - Programme-specific TRIAL products, auto-assigned on registration
-- Shared sidebar: `js/admin-sidebar.js` + `js/student-sidebar.js`
+- Shared sidebar: `js/mynmclicensure-admin-sidebar.js` + `js/mynmclicensure-student-sidebar.js`
 - `student/announcements.html` — 4 tabs, Mark as Read, Dismiss
 - `student/course.html` — dynamic course page, access check
 - `student/fixed-quizzes.html` — card state machine
@@ -170,34 +227,39 @@ Thread-based messaging system between admin and students.
 
 ## Page Reference
 
-### Admin Pages
+### Licensure Admin Pages (`mynmclicensure/admin/`)
 | Page | Status | Notes |
 |---|---|---|
-| admin/dashboard.html | ✅ Done | Stats, recent users, quick links |
-| admin/users.html | ✅ Done | Full CRUD, side panel, assign subscription |
-| admin/subscriptions.html | ✅ Done | Full CRUD, 7 stat cards, 6 filters, Sync Status, Grant from panel |
-| admin/products.html | ✅ Done | Full CRUD, course picker, Telegram keys |
-| admin/courses.html | ✅ Done | Two tabs: Programmes + Courses |
-| admin/announcements.html | ✅ Done | Full CRUD, 8 scopes, audience summary |
-| admin/fixed-quizzes.html | ✅ Done | 4-pane: List → Details → Picker → Review |
-| admin/question-bank.html | ✅ Done | Browse, edit, create, image upload, CSV import |
-| admin/config.html | ✅ Done | Edit values, add keys, delete with warning |
-| admin/messages.html | ✅ Done | Thread-based messaging — admin inbox, bulk send, recipient scoping |
-| admin/payments.html | ⏳ Later | Worker done, admin page not yet built |
+| dashboard.html | ✅ Done | Stats, recent users, quick links |
+| users.html | ✅ Done | Full CRUD, side panel, assign subscription |
+| subscriptions.html | ✅ Done | Full CRUD, 7 stat cards, 6 filters, Sync Status, Grant from panel |
+| products.html | ✅ Done | Full CRUD, course picker, Telegram keys |
+| courses.html | ✅ Done | Two tabs: Programmes + Courses |
+| announcements.html | ✅ Done | Full CRUD, 8 scopes, audience summary |
+| fixed-quizzes.html | ✅ Done | 4-pane: List → Details → Picker → Review |
+| mock-exams.html | ✅ Done | Mock exam management |
+| question-bank.html | ✅ Done | Browse, edit, create, image upload, CSV import |
+| config.html | ✅ Done | Edit values, add keys, delete with warning |
+| messages.html | ✅ Done | Thread-based messaging — admin inbox, bulk send, recipient scoping |
+| payments.html | ⏳ Later | Worker done, admin page not yet built |
 
-### Student Pages
+### Licensure Student Pages (`mynmclicensure/student/`)
 | Page | Status | Notes |
 |---|---|---|
-| student/dashboard.html | ✅ Done | Courses, announcements, recent attempts |
-| student/announcements.html | ✅ Done | 4 tabs, Mark as Read, Dismiss |
-| student/course.html | ✅ Done | Dynamic, access check |
-| student/fixed-quizzes.html | ✅ Done | Card state machine |
-| student/learning-history.html | ✅ Done | Filters, paginated, Resume/Review/Retake |
-| student/quiz-builder.html | ✅ Done | 5 steps, topic + concept modes |
-| student/upgrade.html | ✅ Done | Upgrade payment flow for logged-in students |
-| student/profile.html | ✅ Done | Personal details, academic details, subscription, avatar upload |
-| student/downloads.html | ⏳ Later | Offline packs / PDF downloads |
-| student/messages.html | ✅ Done | Thread-based messaging — inbox, reply, context-aware from quiz runners |
+| dashboard.html | ✅ Done | Courses, announcements, recent attempts |
+| announcements.html | ✅ Done | 4 tabs, Mark as Read, Dismiss |
+| course.html | ✅ Done | Dynamic, access check |
+| fixed-quizzes.html | ✅ Done | Card state machine |
+| mock-exams.html | ✅ Done | Mock exam card list |
+| learning-history.html | ✅ Done | Filters, paginated, Resume/Review/Retake |
+| quiz-builder.html | ✅ Done | 5 steps, topic + concept modes |
+| upgrade.html | ✅ Done | Upgrade payment flow for logged-in students |
+| profile.html | ✅ Done | Personal details, academic details, subscription, avatar upload |
+| messages.html | ✅ Done | Thread-based messaging — inbox, reply, context-aware from quiz runners |
+| offline-pack-builder.html | ✅ Done | Build offline study packs |
+| my-offline-packs.html | ✅ Done | View downloaded packs |
+| offline-pack-renderer.html | ✅ Done | Render offline packs |
+| telegram.html | ✅ Done | Telegram integration |
 
 ### Teacher Assess — Teacher Pages
 | Page | Status | Notes |
@@ -226,11 +288,11 @@ Thread-based messaging system between admin and students.
 | subscribe.html | ✅ Done | Public payment page for new students |
 | payment-confirmation.html | ✅ Done | Post-payment redirect, calls verify |
 
-### Runners
+### Licensure Runners (`mynmclicensure/runner/`)
 | Runner | Status | Notes |
 |---|---|---|
-| runner/instant.html | ✅ Done | Practice mode, 3 feedback modes |
-| runner/timed.html | ✅ Done | Exam mode, countdown, auto-submit |
+| instant.html | ✅ Done | Practice mode, 3 feedback modes |
+| timed.html | ✅ Done | Exam mode, countdown, auto-submit |
 
 URL patterns:
 - `?attempt_id=ATT_xxx` — normal play
@@ -279,7 +341,7 @@ Every key is a system key referenced by platform code. Never rename or delete un
 
 ---
 
-## api.js Functions
+## mynmclicensure-api.js Functions
 
 ### Core
 - `getPrograms()`, `getProducts()`, `getAllProducts()`
@@ -299,7 +361,7 @@ Every key is a system key referenced by platform code. Never rename or delete un
 - `finishAttempt()`, `retakeAttempt()`
 - `getAttemptForReview()`, `getStudentAttempts()`, `getAttemptById()`
 
-### Teacher Assess (teacher-api.js)
+### Teacher Assess (myteacher-api.js)
 - **Quiz CRUD:** `createTeacherQuiz()`, `getTeacherQuiz()`, `getTeacherQuizzes()`, `updateTeacherQuiz()`
 - **Quiz Lifecycle:** `publishTeacherQuiz()`, `archiveTeacherQuiz()`, `cloneTeacherQuiz()`, `releaseQuizResults()`
 - **Quiz Relations:** `setQuizClasses()`, `getQuizClasses()`, `removeFromDraftItems()`
@@ -378,10 +440,10 @@ These values are captured from the live quiz onto each attempt's `score_json` at
 ---
 
 ## Role Guards
-- Admin pages (`admin/*`) — guarded by `guardPage('ADMIN')`
+- Licensure admin pages (`mynmclicensure/admin/*`) — guarded by `guardPage('ADMIN')`
 - Teacher pages (`myteacher/teacher/*`) — guarded by `guardPage('TEACHER')`
-- Student pages (`myteacher/student/*`) — guarded by `guardPage('STUDENT')`
-- Original student pages (`student/*`) — guarded by sidebar auth check
+- Teacher student pages (`myteacher/student/*`) — guarded by `guardPage('STUDENT')`
+- Licensure student pages (`mynmclicensure/student/*`) — guarded by sidebar auth check
 - Wrong role → redirected to `/router.html`; no session → redirected to `/login`
 
 ## RLS
