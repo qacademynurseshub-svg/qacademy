@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — QAcademy Nurses Hub</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .admin-quick-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .admin-quick-link {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: box-shadow 0.2s, border-color 0.2s;
+      text-decoration: none;
+      color: var(--text);
+      display: block;
+    }
+
+    .admin-quick-link:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+      text-decoration: none;
+      color: var(--primary);
+    }
+
+    .admin-quick-link-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .admin-quick-link-label {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .recent-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .recent-table th {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .recent-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .recent-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .role-chip {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .role-chip.STUDENT {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .role-chip.TEACHER {
+      background: #f0fdf4;
+      color: var(--success);
+    }
+
+    .role-chip.ADMIN {
+      background: #fef2f2;
+      color: var(--danger);
+    }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logout-btn {
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .logout-btn:hover {
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+
+  <!-- Sidebar -->
+  <div id="sidebar"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Admin Dashboard</h1>
+        <p id="welcomeMsg">Welcome back!</p>
+      </div>
+      <div class="user-menu">
+        <span style="font-size:14px; font-weight:500;" id="adminName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value" id="statTotalUsers">—</div>
+        <div class="stat-sub">All registered accounts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Subscriptions</div>
+        <div class="stat-value" id="statActiveSubs">—</div>
+        <div class="stat-sub">Currently active</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Students</div>
+        <div class="stat-value" id="statStudents">—</div>
+        <div class="stat-sub">Registered students</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Expiring Soon</div>
+        <div class="stat-value" id="statExpiring">—</div>
+        <div class="stat-sub">Within 7 days</div>
+      </div>
+    </div>
+
+    <!-- Quick Links -->
+    <p class="section-title" style="font-size:16px; font-weight:600; margin-bottom:16px;">Quick Actions</p>
+    <div class="admin-quick-links">
+      <a href="/mynmclicensure/admin/users.html" class="admin-quick-link">
+        <div class="admin-quick-link-icon">👥</div>
+        <div class="admin-quick-link-label">Manage Users</div>
+      </a>
+      <a href="/mynmclicensure/admin/subscriptions.html" class="admin-quick-link">
+        <div class="admin-quick-link-icon">💳</div>
+        <div class="admin-quick-link-label">Subscriptions</div>
+      </a>
+      <a href="/mynmclicensure/admin/payments.html" class="admin-quick-link">
+        <div class="admin-quick-link-icon">💰</div>
+        <div class="admin-quick-link-label">Payments</div>
+      </a>
+      <a href="/mynmclicensure/admin/products.html" class="admin-quick-link">
+        <div class="admin-quick-link-icon">📦</div>
+        <div class="admin-quick-link-label">Products</div>
+      </a>
+      <a href="/mynmclicensure/admin/courses.html" class="admin-quick-link">
+        <div class="admin-quick-link-icon">📚</div>
+        <div class="admin-quick-link-label">Courses</div>
+      </a>
+      <a href="/mynmclicensure/admin/announcements.html" class="admin-quick-link">
+        <div class="admin-quick-link-icon">📢</div>
+        <div class="admin-quick-link-label">Announcements</div>
+      </a>
+      <a href="/mynmclicensure/admin/fixed-quizzes.html" class="admin-quick-link">
+        <div class="admin-quick-link-icon">📝</div>
+        <div class="admin-quick-link-label">Fixed Quizzes</div>
+      </a>
+      <a href="/mynmclicensure/admin/config.html" class="admin-quick-link">
+        <div class="admin-quick-link-icon">⚙️</div>
+        <div class="admin-quick-link-label">Config</div>
+      </a>
+    </div>
+
+    <!-- Recent Registrations -->
+    <p class="section-title" style="font-size:16px; font-weight:600; margin-bottom:16px;">Recent Registrations</p>
+    <div class="card">
+      <div id="recentUsers">
+        <p style="color:var(--text-muted); font-size:14px;">Loading...</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/paths.js"></script>
+<script src="/js/mynmclicensure-admin-sidebar.js"></script>
+<script>
+
+  // Initialize admin dashboard
+  async function initDashboard() {
+    // Guard — must be ADMIN
+    const profile = await guardPage('ADMIN');
+    if (!profile) return;
+
+    // Set admin name
+    document.getElementById('adminName').textContent = profile.forename || profile.name || profile.email;
+    document.getElementById('welcomeMsg').textContent = `Welcome back, ${profile.forename || 'Admin'}!`;
+
+    // Load all sections
+    await Promise.all([
+      loadStats(),
+      loadRecentUsers()
+    ]);
+  }
+
+  // Load platform stats
+  async function loadStats() {
+    // Total users
+    const { count: totalUsers } = await db
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+
+    // Students only
+    const { count: totalStudents } = await db
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'STUDENT');
+
+    // Active subscriptions
+    const { count: activeSubs } = await db
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'ACTIVE');
+
+    // Expiring within 7 days
+    const now = new Date().toISOString();
+    const in7days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { count: expiringSoon } = await db
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'ACTIVE')
+      .gte('expires_utc', now)
+      .lte('expires_utc', in7days);
+
+    document.getElementById('statTotalUsers').textContent = totalUsers || 0;
+    document.getElementById('statStudents').textContent = totalStudents || 0;
+    document.getElementById('statActiveSubs').textContent = activeSubs || 0;
+    document.getElementById('statExpiring').textContent = expiringSoon || 0;
+  }
+
+  // Load recent registrations
+  async function loadRecentUsers() {
+    const { data: users } = await db
+      .from('users')
+      .select('*')
+      .order('created_utc', { ascending: false })
+      .limit(10);
+
+    const area = document.getElementById('recentUsers');
+
+    if (!users || users.length === 0) {
+      area.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No users yet.</p>';
+      return;
+    }
+
+    let rows = '';
+    users.forEach(u => {
+      const date = u.created_utc
+        ? new Date(u.created_utc).toLocaleDateString('en-GB', {
+            day: 'numeric', month: 'short', year: 'numeric'
+          })
+        : '—';
+
+      rows += `
+        <tr>
+          <td>${u.name || '—'}</td>
+          <td>${u.email}</td>
+          <td>${u.program_id || '—'}</td>
+          <td><span class="role-chip ${u.role}">${u.role}</span></td>
+          <td>${date}</td>
+          <td><a href="${LICENSURE.admin}/users.html?id=${u.user_id}" style="font-size:13px;">View</a></td>
+        </tr>`;
+    });
+
+    area.innerHTML = `
+      <table class="recent-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Programme</th>
+            <th>Role</th>
+            <th>Registered</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // Start dashboard
+  initDashboard();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Config — QAcademy Nurses Hub</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .logout-btn {
+      font-size: 13px; color: var(--text-muted);
+      cursor: pointer; background: none; border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── Page intro ──────────────────────────────────────── */
+    .config-intro {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .config-intro-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .config-intro-text { font-size: 13px; color: #78350f; line-height: 1.6; }
+    .config-intro-text strong { font-weight: 700; }
+
+    /* ── Toolbar ─────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .result-count { font-size: 13px; color: var(--text-muted); }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-ghost   { background: transparent; border: 1px solid var(--border); color: var(--primary); }
+    .btn-danger  { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .btn-sm      { padding: 5px 10px; font-size: 12px; }
+
+    /* ── Alert ───────────────────────────────────────────── */
+    .alert { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .alert-error   { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+    .alert.show { display: block; }
+
+    /* ── Config cards ────────────────────────────────────── */
+    .config-list { display: flex; flex-direction: column; gap: 14px; }
+
+    .config-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .config-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .config-card-left { min-width: 0; }
+
+    .config-key {
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--primary-light);
+      padding: 3px 10px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .config-warning {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #92400e;
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 4px;
+      padding: 3px 8px;
+      margin-top: 4px;
+      width: fit-content;
+    }
+
+    .config-updated {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ── Form fields inside card ─────────────────────────── */
+    .config-fields {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    @media (max-width: 600px) {
+      .config-fields { grid-template-columns: 1fr; }
+    }
+
+    .config-field { display: flex; flex-direction: column; gap: 4px; }
+    .config-field label {
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .config-field input,
+    .config-field textarea {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--primary);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .config-field textarea { resize: vertical; min-height: 60px; }
+
+    .config-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+    .config-save-status {
+      font-size: 12px;
+      color: #166534;
+      display: none;
+      margin-left: 4px;
+    }
+    .config-save-status.show { display: inline; }
+
+    /* ── Add new row modal ───────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.55);
+      display: none; align-items: center; justify-content: center;
+      z-index: 9999; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: white; border-radius: 12px;
+      max-width: 480px; width: 100%;
+      padding: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+    }
+    .modal-card h3 { margin: 0 0 6px; font-size: 18px; color: var(--primary); }
+    .modal-card p  { margin: 0 0 18px; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+    .modal-warning {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #78350f;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 5px; }
+    .form-group input,
+    .form-group textarea {
+      width: 100%; padding: 8px 10px;
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 13px; font-family: 'Inter', sans-serif;
+      color: var(--primary); box-sizing: border-box;
+    }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .modal-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+    /* ── Empty state ─────────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 48px 24px;
+      color: var(--text-muted);
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+  <div id="sidebar"></div>
+
+  <main class="main-content">
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Platform Config</h1>
+        <p>Manage platform-wide settings and feature controls</p>
+      </div>
+      <div class="user-menu">
+        <span style="font-size:14px; font-weight:500;" id="adminName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Warning banner -->
+    <div class="config-intro">
+      <div class="config-intro-icon">⚠️</div>
+      <div class="config-intro-text">
+        <strong>Handle with care.</strong> Every key in this table is referenced by the platform's code.
+        Editing a value takes effect immediately. Deleting or renaming a key will cause any code that
+        references it to break silently — only do so if you are certain nothing depends on it.
+      </div>
+    </div>
+
+    <!-- Page alert -->
+    <div class="alert alert-error"   id="pageError"></div>
+    <div class="alert alert-success" id="pageSuccess"></div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <span class="result-count" id="resultCount"></span>
+      <button class="btn btn-primary" onclick="openAddModal()">+ Add Config Key</button>
+    </div>
+
+    <!-- Config list -->
+    <div class="config-list" id="configList">
+      <div class="empty-state">Loading config…</div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Add New Key Modal ──────────────────────────────────── -->
+<div class="modal-backdrop" id="addModal">
+  <div class="modal-card">
+    <h3>Add Config Key</h3>
+    <p>Add a new key-value pair to the config table. Use this to prepare settings for code you are about to write.</p>
+
+    <div class="modal-warning">
+      ⚠️ Choose the key name carefully — once code references it, renaming or deleting it will break that feature.
+    </div>
+
+    <div class="alert alert-error" id="modalError"></div>
+
+    <div class="form-group">
+      <label>Key *</label>
+      <input type="text" id="newKey" placeholder="e.g. runner_feedback_mode" />
+      <p class="form-hint">Lowercase, underscores only. This is what the code will reference.</p>
+    </div>
+    <div class="form-group">
+      <label>Value *</label>
+      <input type="text" id="newValue" placeholder="e.g. inline" />
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="newDescription" rows="2" placeholder="What does this setting control?"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveNewKey()">Add Key</button>
+      <button class="btn btn-ghost"   onclick="closeAddModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/paths.js"></script>
+<script src="/js/mynmclicensure-admin-sidebar.js"></script>
+<script src="/js/mynmclicensure-api.js"></script>
+<script>
+
+// ── State ──────────────────────────────────────────────────────
+let PROFILE     = null;
+let configRows  = [];
+
+// ── Init ───────────────────────────────────────────────────────
+async function initPage() {
+  PROFILE = await guardPage('ADMIN');
+  if (!PROFILE) return;
+  document.getElementById('adminName').textContent = PROFILE.forename || PROFILE.name || PROFILE.email;
+  await loadConfig();
+}
+
+// ── Load ───────────────────────────────────────────────────────
+async function loadConfig() {
+  const { data, error } = await db
+    .from('config')
+    .select('*')
+    .order('key');
+
+  if (error) {
+    showAlert('pageError', 'Failed to load config: ' + error.message);
+    return;
+  }
+
+  configRows = data || [];
+  document.getElementById('resultCount').textContent =
+    `${configRows.length} key${configRows.length !== 1 ? 's' : ''}`;
+  renderList();
+}
+
+// ── Render ─────────────────────────────────────────────────────
+function renderList() {
+  const container = document.getElementById('configList');
+
+  if (!configRows.length) {
+    container.innerHTML = '<div class="empty-state">No config keys found.</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+  configRows.forEach(row => container.appendChild(buildCard(row)));
+}
+
+function buildCard(row) {
+  const div = document.createElement('div');
+  div.className = 'config-card';
+  div.id = 'card-' + row.key;
+
+  const updatedAt = row.updated_at
+    ? new Date(row.updated_at).toLocaleString('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      })
+    : '—';
+
+  div.innerHTML = `
+    <div class="config-card-header">
+      <div class="config-card-left">
+        <div class="config-key">${escHtml(row.key)}</div>
+        <div class="config-warning">
+          ⚠️ Key is read-only — referenced by platform code
+        </div>
+        <div class="config-updated">Last updated: ${updatedAt}</div>
+      </div>
+    </div>
+
+    <div class="config-fields">
+      <div class="config-field">
+        <label>Value *</label>
+        <input type="text" id="val-${escHtml(row.key)}" value="${escHtml(row.value)}" />
+      </div>
+      <div class="config-field">
+        <label>Description</label>
+        <textarea id="desc-${escHtml(row.key)}">${escHtml(row.description || '')}</textarea>
+      </div>
+    </div>
+
+    <div class="config-card-actions">
+      <button class="btn btn-primary btn-sm" onclick="saveRow('${escHtml(row.key)}')">💾 Save</button>
+      <button class="btn btn-danger  btn-sm" onclick="deleteRow('${escHtml(row.key)}')">🗑 Delete</button>
+      <span class="config-save-status" id="status-${escHtml(row.key)}">✓ Saved</span>
+    </div>`;
+
+  return div;
+}
+
+// ── Save a row ─────────────────────────────────────────────────
+async function saveRow(key) {
+  const value = document.getElementById('val-'  + key).value.trim();
+  const desc  = document.getElementById('desc-' + key).value.trim();
+
+  if (!value) {
+    showAlert('pageError', `Value for "${key}" cannot be empty.`);
+    return;
+  }
+
+  const { error } = await db
+    .from('config')
+    .update({
+      value:       value,
+      description: desc || null,
+      updated_at:  new Date().toISOString()
+    })
+    .eq('key', key);
+
+  if (error) {
+    showAlert('pageError', `Failed to save "${key}": ` + error.message);
+    return;
+  }
+
+  // Update local state
+  const row = configRows.find(r => r.key === key);
+  if (row) { row.value = value; row.description = desc; row.updated_at = new Date().toISOString(); }
+
+  // Flash saved indicator
+  const statusEl = document.getElementById('status-' + key);
+  if (statusEl) {
+    statusEl.classList.add('show');
+    setTimeout(() => statusEl.classList.remove('show'), 2500);
+  }
+
+  // Refresh updated_at display
+  const card = document.getElementById('card-' + key);
+  if (card) {
+    const updEl = card.querySelector('.config-updated');
+    if (updEl) updEl.textContent = 'Last updated: ' + new Date().toLocaleString('en-GB', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+}
+
+// ── Delete a row ───────────────────────────────────────────────
+async function deleteRow(key) {
+  const confirmed = confirm(
+    `Delete config key "${key}"?\n\n` +
+    `⚠️ WARNING: If any part of the platform code references this key it will break silently.\n\n` +
+    `Only proceed if you are certain nothing depends on this key.`
+  );
+  if (!confirmed) return;
+
+  const { error } = await db
+    .from('config')
+    .delete()
+    .eq('key', key);
+
+  if (error) {
+    showAlert('pageError', `Failed to delete "${key}": ` + error.message);
+    return;
+  }
+
+  configRows = configRows.filter(r => r.key !== key);
+  document.getElementById('resultCount').textContent =
+    `${configRows.length} key${configRows.length !== 1 ? 's' : ''}`;
+
+  const card = document.getElementById('card-' + key);
+  if (card) card.remove();
+
+  showAlert('pageSuccess', `Key "${key}" deleted.`);
+}
+
+// ── Add new key modal ──────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('newKey').value         = '';
+  document.getElementById('newValue').value       = '';
+  document.getElementById('newDescription').value = '';
+  hideAlert('modalError');
+  document.getElementById('addModal').classList.add('open');
+  setTimeout(() => document.getElementById('newKey').focus(), 100);
+}
+
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('open');
+}
+
+async function saveNewKey() {
+  const key   = document.getElementById('newKey').value.trim().toLowerCase();
+  const value = document.getElementById('newValue').value.trim();
+  const desc  = document.getElementById('newDescription').value.trim();
+
+  if (!key)   { showAlert('modalError', 'Key is required.'); return; }
+  if (!value) { showAlert('modalError', 'Value is required.'); return; }
+
+  // Check for duplicate
+  if (configRows.find(r => r.key === key)) {
+    showAlert('modalError', `Key "${key}" already exists.`);
+    return;
+  }
+
+  // Validate key format: lowercase letters, numbers, underscores only
+  if (!/^[a-z0-9_]+$/.test(key)) {
+    showAlert('modalError', 'Key must be lowercase letters, numbers and underscores only.');
+    return;
+  }
+
+  const { error } = await db
+    .from('config')
+    .insert({
+      key:         key,
+      value:       value,
+      description: desc || null,
+      updated_at:  new Date().toISOString()
+    });
+
+  if (error) {
+    showAlert('modalError', 'Failed to add key: ' + error.message);
+    return;
+  }
+
+  closeAddModal();
+  await loadConfig();
+  showAlert('pageSuccess', `Key "${key}" added successfully.`);
+}
+
+// ── Alert helpers ──────────────────────────────────────────────
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  if (id !== 'modalError') setTimeout(() => el.classList.remove('show'), 4000);
+}
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = ''; el.classList.remove('show'); }
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ───────────────────────────────────────────────────────
+initPage();
+
+</script>
+</body>
+</html>

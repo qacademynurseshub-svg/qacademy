@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fixed Quizzes — QAcademy</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+
+    /* ── Top Nav ─────────────────────────────────────────── */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .user-name { font-size: 14px; font-weight: 500; color: var(--primary); }
+    .logout-btn {
+      font-size: 13px; color: var(--text-muted);
+      cursor: pointer; background: none; border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── Filter chip ─────────────────────────────────────── */
+    .filter-chip-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .filter-chip-bar.show { display: flex; }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .filter-chip-clear {
+      background: none; border: none; cursor: pointer;
+      color: var(--primary); font-size: 14px; line-height: 1; padding: 0;
+    }
+
+    /* ── Filters bar ─────────────────────────────────────── */
+    .filters-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .filter-group select {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--primary);
+      min-width: 150px;
+    }
+    .filter-actions { display: flex; gap: 8px; align-items: flex-end; margin-left: auto; }
+    .btn-ghost-sm {
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-ghost-sm:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ── Accordion ───────────────────────────────────────── */
+    .accordion {
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--white);
+    }
+    .accordion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      background: var(--white);
+      transition: background 0.15s;
+    }
+    .accordion-header:hover { background: var(--primary-light); }
+    .accordion-header.open { background: var(--primary-light); }
+    .accordion-title { font-size: 15px; font-weight: 700; color: var(--primary); }
+    .accordion-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .accordion-right { display: flex; align-items: center; gap: 10px; }
+    .accordion-count { font-size: 12px; color: var(--text-muted); }
+    .accordion-arrow { font-size: 12px; color: var(--text-muted); transition: transform 0.2s; }
+    .accordion-header.open .accordion-arrow { transform: rotate(180deg); }
+    .accordion-body { display: none; padding: 20px; border-top: 1px solid var(--border); }
+    .accordion-body.open { display: block; }
+
+    /* ── Quiz Card ───────────────────────────────────────── */
+    .quiz-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--white);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .quiz-card:last-child { margin-bottom: 0; }
+    .quiz-card.upcoming { border-left: 3px solid #f59e0b; }
+    .quiz-card.closed   { border-left: 3px solid #94a3b8; opacity: 0.7; }
+    .quiz-card.active   { border-left: 3px solid var(--accent); }
+
+    .quiz-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      gap: 12px;
+    }
+    .quiz-card-title { font-size: 15px; font-weight: 700; color: var(--primary); }
+    .quiz-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+      align-items: center;
+    }
+    .quiz-meta-item {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Availability badge */
+    .avail-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .avail-badge.ACTIVE   { background: #dcfce7; color: #15803d; }
+    .avail-badge.UPCOMING { background: #fef9c3; color: #854d0e; }
+    .avail-badge.CLOSED   { background: #f1f5f9; color: #64748b; }
+
+    /* ── Mode Sections ───────────────────────────────────── */
+    .mode-sections {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border-top: 1px solid var(--border);
+    }
+    .mode-sections.single { grid-template-columns: 1fr; }
+    .mode-section {
+      padding: 14px 20px;
+      border-right: 1px solid var(--border);
+    }
+    .mode-section:last-child { border-right: none; }
+    .mode-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .mode-stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .mode-stat { font-size: 12px; color: var(--text-muted); }
+    .mode-stat strong { color: var(--primary); font-weight: 600; }
+    .mode-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    /* Buttons */
+    .btn-start {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      transition: opacity 0.15s;
+    }
+    .btn-start:hover { opacity: 0.88; }
+    .btn-start.practice { background: var(--accent); color: white; }
+    .btn-start.exam     { background: var(--primary); color: white; }
+    .btn-start.resume   { background: #f59e0b; color: white; }
+    .btn-start:disabled {
+      background: #e2e8f0;
+      color: #94a3b8;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+    .btn-link {
+      background: none;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      padding: 0;
+      text-decoration: underline;
+    }
+    .btn-link:hover { color: var(--primary); }
+    .btn-link.danger { color: var(--danger); }
+
+    /* ── In-progress bar ─────────────────────────────────── */
+    .inprogress-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: #fff7ed;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #92400e;
+      margin-bottom: 8px;
+    }
+    .inprogress-bar .dot {
+      width: 8px; height: 8px;
+      background: #f59e0b;
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Schedule info ───────────────────────────────────── */
+    .schedule-info {
+      padding: 8px 12px;
+      background: #f8fafc;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* ── Empty states ────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+    .no-quizzes {
+      text-align: center;
+      padding: 28px 20px;
+      color: var(--text-muted);
+      font-size: 13px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+  <div id="sidebar"></div>
+
+  <main class="main-content">
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Fixed Quizzes</h1>
+        <p>Pre-built quizzes organised by course</p>
+      </div>
+      <div class="user-menu">
+        <span class="user-name" id="userName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Filter chip (shows when ?course= is active) -->
+    <div class="filter-chip-bar" id="filterChipBar">
+      Filtering by:
+      <span class="filter-chip">
+        <span id="filterChipLabel"></span>
+        <button class="filter-chip-clear" onclick="clearCourseFilter()">✕</button>
+      </span>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <div class="filter-group">
+        <label>Status</label>
+        <select id="filterStatus" onchange="applyFilters()">
+          <option value="">All quizzes</option>
+          <option value="ACTIVE">Active</option>
+          <option value="UPCOMING">Upcoming</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Mode</label>
+        <select id="filterMode" onchange="applyFilters()">
+          <option value="">All modes</option>
+          <option value="INSTANT_ONLY">Practice only</option>
+          <option value="TIMED_ONLY">Exam only</option>
+          <option value="BOTH">Both</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Attempt State</label>
+        <select id="filterAttemptState" onchange="applyFilters()">
+          <option value="">All</option>
+          <option value="not_started">Not started</option>
+          <option value="in_progress">In progress</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button class="btn-ghost-sm" onclick="clearFilters()">Clear filters</button>
+      </div>
+    </div>
+
+    <!-- Accordion area -->
+    <div id="accordionArea">
+      <p style="color:var(--text-muted); font-size:14px; padding:20px 0;">Loading…</p>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/mynmclicensure-api.js"></script>
+<script src="/js/paths.js"></script>
+<script src="/js/mynmclicensure-student-sidebar.js"></script>
+<script>
+
+// ── State ──────────────────────────────────────────────────────
+let currentProfile     = null;
+let activeCourseFilter = null;
+let enrolledCourses    = [];
+let allQuizzesByCoruse = {}; // { course_id: [quiz, ...] }
+let allAttempts        = {}; // { course_id: [attempt, ...] }
+
+// ── Init ───────────────────────────────────────────────────────
+async function initPage() {
+  currentProfile = await guardPage('STUDENT');
+  if (!currentProfile) return;
+
+  document.getElementById('userName').textContent =
+    currentProfile.forename || currentProfile.name || currentProfile.email;
+
+  // Read ?course= from URL
+  const params = new URLSearchParams(window.location.search);
+  activeCourseFilter = params.get('course') || null;
+
+  // Load enrolled courses
+  const [courseAccessMap, allCourses] = await Promise.all([
+    getStudentCourseAccess(currentProfile.user_id),
+    getCourses()
+  ]);
+
+  populateCourseDropdown(courseAccessMap, allCourses);
+
+  enrolledCourses = allCourses.filter(c => courseAccessMap[c.course_id]);
+
+  if (!enrolledCourses.length) {
+    document.getElementById('accordionArea').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <p>You are not enrolled in any courses yet.</p>
+      </div>`;
+    return;
+  }
+
+  // Show filter chip if ?course= is active
+  if (activeCourseFilter) {
+    const fc = enrolledCourses.find(c => c.course_id === activeCourseFilter);
+    if (fc) {
+      document.getElementById('filterChipLabel').textContent = fc.title;
+      document.getElementById('filterChipBar').classList.add('show');
+    }
+  }
+
+  // Load quizzes and attempts for all enrolled courses in parallel
+  await Promise.all(enrolledCourses.map(async c => {
+    const [quizzes, attempts] = await Promise.all([
+      getQuizzes(c.course_id),
+      getStudentAttempts(currentProfile.user_id, c.course_id)
+    ]);
+    allQuizzesByCoruse[c.course_id] = quizzes;
+    allAttempts[c.course_id]        = attempts;
+  }));
+
+  applyFilters();
+}
+
+// ── Filters ────────────────────────────────────────────────────
+function applyFilters() {
+  const statusFilter  = document.getElementById('filterStatus').value;
+  const modeFilter    = document.getElementById('filterMode').value;
+  const attemptFilter = document.getElementById('filterAttemptState').value;
+
+  // Determine which courses to show
+  const coursesToShow = activeCourseFilter
+    ? enrolledCourses.filter(c => c.course_id === activeCourseFilter)
+    : enrolledCourses;
+
+  renderAccordions(coursesToShow, statusFilter, modeFilter, attemptFilter);
+}
+
+function clearFilters() {
+  document.getElementById('filterStatus').value       = '';
+  document.getElementById('filterMode').value         = '';
+  document.getElementById('filterAttemptState').value = '';
+  applyFilters();
+}
+
+function clearCourseFilter() {
+  window.location.href = `${LICENSURE.student}/fixed-quizzes.html`;
+}
+
+// ── Render Accordions ──────────────────────────────────────────
+function renderAccordions(courses, statusFilter, modeFilter, attemptFilter) {
+  const area = document.getElementById('accordionArea');
+  area.innerHTML = '';
+
+  courses.forEach(course => {
+    const quizzes  = allQuizzesByCoruse[course.course_id] || [];
+    const attempts = allAttempts[course.course_id] || [];
+    const isTarget = activeCourseFilter === course.course_id;
+
+    // Filter quizzes
+    let filtered = quizzes.map(q => ({
+      quiz: q,
+      avail: getQuizAvailability(q)
+    })).filter(({ avail }) => avail !== 'HIDDEN');
+
+    if (statusFilter) filtered = filtered.filter(({ avail }) => avail === statusFilter);
+    if (modeFilter)   filtered = filtered.filter(({ quiz }) => quiz.allowed_modes === modeFilter);
+
+    if (attemptFilter) {
+      filtered = filtered.filter(({ quiz }) => {
+        const state = getOverallAttemptState(quiz.quiz_id, attempts);
+        return state === attemptFilter;
+      });
+    }
+
+    const accordion = document.createElement('div');
+    accordion.className = 'accordion';
+    accordion.innerHTML = `
+      <div class="accordion-header ${isTarget ? 'open' : ''}" onclick="toggleAccordion(this)">
+        <div>
+          <div class="accordion-title">${escapeHtml(course.title)}</div>
+          <div class="accordion-meta">${course.course_id}</div>
+        </div>
+        <div class="accordion-right">
+          <span class="accordion-count">${filtered.length} quiz${filtered.length !== 1 ? 'zes' : ''}</span>
+          <span class="accordion-arrow">▾</span>
+        </div>
+      </div>
+      <div class="accordion-body ${isTarget ? 'open' : ''}">
+        ${filtered.length === 0
+          ? `<div class="no-quizzes">No quizzes available for this course yet.</div>`
+          : filtered.map(({ quiz, avail }) => renderQuizCard(quiz, avail, attempts)).join('')
+        }
+      </div>`;
+
+    area.appendChild(accordion);
+  });
+}
+
+function toggleAccordion(header) {
+  const body   = header.nextElementSibling;
+  const isOpen = header.classList.contains('open');
+  header.classList.toggle('open', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+
+// ── Quiz Card ──────────────────────────────────────────────────
+function renderQuizCard(quiz, avail, attempts) {
+
+  // Build availability badge
+  const badgeMap = {
+    ACTIVE:   '🟢 Active',
+    UPCOMING: '🕐 Upcoming',
+    CLOSED:   '🔒 Closed'
+  };
+  const badge = `<span class="avail-badge ${avail}">${badgeMap[avail]}</span>`;
+
+  // Schedule info
+  let scheduleInfo = '';
+  const now = new Date();
+  if (avail === 'UPCOMING' && quiz.publish_at) {
+    scheduleInfo = `<div class="schedule-info">📅 Opens on ${formatDate(quiz.publish_at)}</div>`;
+  }
+  if (avail === 'CLOSED' && quiz.unpublish_at) {
+    scheduleInfo = `<div class="schedule-info">🔒 Closed on ${formatDate(quiz.unpublish_at)}</div>`;
+  }
+
+  // Time limit display
+  const timeLimitSec = quiz.time_limit_sec || (quiz.n * 60);
+  const timeLimitMin = Math.round(timeLimitSec / 60);
+
+  // Meta row
+  const meta = `
+    <div class="quiz-card-meta">
+      <span class="quiz-meta-item">📝 ${quiz.n} questions</span>
+      <span class="quiz-meta-item">⏱ ${timeLimitMin} min</span>
+      ${quiz.shuffle ? '<span class="quiz-meta-item">🔀 Shuffled</span>' : ''}
+    </div>`;
+
+  // Mode sections
+  const showPractice = quiz.allowed_modes === 'BOTH' || quiz.allowed_modes === 'INSTANT_ONLY';
+  const showExam     = quiz.allowed_modes === 'BOTH' || quiz.allowed_modes === 'TIMED_ONLY';
+  const isSingle     = !showPractice || !showExam;
+
+  const practiceSection = showPractice
+    ? renderModeSection(quiz, 'instant', 'Practice Mode', avail, attempts) : '';
+  const examSection = showExam
+    ? renderModeSection(quiz, 'timed', 'Exam Mode', avail, attempts) : '';
+
+  return `
+    <div class="quiz-card ${avail.toLowerCase()}">
+      <div class="quiz-card-header">
+        <div>
+          <div class="quiz-card-title">${escapeHtml(quiz.title)}</div>
+          ${meta}
+        </div>
+        ${badge}
+      </div>
+      ${scheduleInfo}
+      <div class="mode-sections ${isSingle ? 'single' : ''}">
+        ${practiceSection}
+        ${examSection}
+      </div>
+    </div>`;
+}
+
+// ── Mode Section ───────────────────────────────────────────────
+function renderModeSection(quiz, mode, label, avail, attempts) {
+  const modeAttempts = attempts.filter(a => a.quiz_id === quiz.quiz_id && a.mode === mode);
+  const completed    = modeAttempts.filter(a => a.status === 'completed');
+  const inProgress   = modeAttempts.find(a => a.status === 'in_progress');
+
+  const attemptCount = completed.length;
+  const bestScore    = completed.length > 0
+    ? Math.max(...completed.map(a => a.score_pct || 0))
+    : null;
+  const lastScore    = completed.length > 0
+    ? completed[0].score_pct
+    : null;
+
+  // Stats row
+  const stats = `
+    <div class="mode-stats">
+      <span class="mode-stat">Attempts: <strong>${attemptCount}</strong></span>
+      ${bestScore !== null ? `<span class="mode-stat">Best: <strong>${Math.round(bestScore)}%</strong></span>` : ''}
+      ${lastScore !== null ? `<span class="mode-stat">Last: <strong>${Math.round(lastScore)}%</strong></span>` : ''}
+    </div>`;
+
+  // Buttons depend on availability and attempt state
+  let actions = '';
+
+  if (avail === 'UPCOMING') {
+    actions = `<button class="btn-start" disabled>Not yet open</button>`;
+
+  } else if (avail === 'CLOSED') {
+    actions = `<button class="btn-start" disabled>Closed</button>`;
+    // Still allow review if completed
+    if (completed.length > 0) {
+      actions += `<button class="btn-link" onclick="reviewAttempt('${completed[0].attempt_id}', '${mode}')">Review last</button>`;
+    }
+
+  } else {
+    // ACTIVE
+    if (inProgress) {
+      // In progress — show pulsing bar + resume
+      actions = `
+        <div class="inprogress-bar">
+          <span class="dot"></span>
+          In progress — ${countAnswered(inProgress)} of ${quiz.n} answered
+        </div>
+        <div class="mode-actions">
+          <button class="btn-start resume" onclick="launchQuiz('${quiz.quiz_id}', '${mode}', 'resume')">
+            ▶ Resume ${label.split(' ')[0]}
+          </button>
+          <button class="btn-link danger" onclick="abandonAttempt('${inProgress.attempt_id}')">Abandon</button>
+        </div>`;
+    } else if (completed.length > 0) {
+      // Completed — retake + review
+      actions = `
+        <div class="mode-actions">
+          <button class="btn-start ${mode === 'instant' ? 'practice' : 'exam'}" onclick="launchQuiz('${quiz.quiz_id}', '${mode}', 'retake')">
+            🔁 Retake
+          </button>
+          <button class="btn-link" onclick="reviewAttempt('${completed[0].attempt_id}', '${mode}')">Review last</button>
+        </div>`;
+    } else {
+      // Not started
+      actions = `
+        <div class="mode-actions">
+          <button class="btn-start ${mode === 'instant' ? 'practice' : 'exam'}" onclick="launchQuiz('${quiz.quiz_id}', '${mode}', 'start')">
+            ${mode === 'instant' ? '▶ Start Practice' : '🎯 Start Exam'}
+          </button>
+        </div>`;
+    }
+  }
+
+  return `
+    <div class="mode-section">
+      <div class="mode-section-title">${label}</div>
+      ${stats}
+      ${actions}
+    </div>`;
+}
+
+// ── Launch Quiz ────────────────────────────────────────────────
+async function launchQuiz(quizId, mode, action) {
+  const quiz = (Object.values(allQuizzesByCoruse).flat()).find(q => q.quiz_id === quizId);
+  if (!quiz) return;
+
+  if (action === 'retake') {
+    // Find the most recent completed attempt for this quiz + mode
+    const attempts   = allAttempts[quiz.course_id] || [];
+    const originAttempt = attempts.find(a =>
+      a.quiz_id === quizId && a.mode === mode && a.status === 'completed'
+    );
+    if (!originAttempt) return;
+    const newAttempt = await retakeAttempt(originAttempt, currentProfile.user_id);
+    if (!newAttempt) { alert('Could not create retake. Please try again.'); return; }
+    redirectToRunner(newAttempt.attempt_id, mode);
+    return;
+  }
+
+  // Start or Resume — use spawnFixedAttempt (handles both)
+  const result = await spawnFixedAttempt(currentProfile.user_id, quiz, mode);
+  if (!result) { alert('Could not start quiz. Please try again.'); return; }
+  redirectToRunner(result.attempt.attempt_id, mode);
+}
+
+function redirectToRunner(attemptId, mode) {
+  const runner = mode === 'instant'
+    ? `${LICENSURE.runner}/instant.html?attempt_id=${attemptId}`
+    : `${LICENSURE.runner}/timed.html?attempt_id=${attemptId}`;
+  window.location.href = runner;
+}
+
+// ── Review ─────────────────────────────────────────────────────
+function reviewAttempt(attemptId, mode) {
+  const runner = mode === 'instant'
+    ? `${LICENSURE.runner}/instant.html?attempt_id=${attemptId}&review=1`
+    : `${LICENSURE.runner}/timed.html?attempt_id=${attemptId}&review=1`;
+  window.location.href = runner;
+}
+
+// ── Abandon ────────────────────────────────────────────────────
+async function abandonAttempt(attemptId) {
+  if (!confirm('Are you sure you want to abandon this attempt? Your progress will be lost.')) return;
+
+  const { error } = await db
+    .from('attempts')
+    .update({ status: 'abandoned' })
+    .eq('attempt_id', attemptId);
+
+  if (error) { alert('Error abandoning attempt: ' + error.message); return; }
+
+  // Reload attempts for affected course and re-render
+  const attempt = Object.values(allAttempts).flat().find(a => a.attempt_id === attemptId);
+  if (attempt) {
+    allAttempts[attempt.course_id] = await getStudentAttempts(currentProfile.user_id, attempt.course_id);
+  }
+  applyFilters();
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+
+// getQuizAvailability — the full state machine
+// 1. status !== active → HIDDEN
+// 2. published !== true → HIDDEN
+// 3. now < publish_at  → UPCOMING
+// 4. now > unpublish_at → CLOSED
+// 5. all clear → ACTIVE
+function getQuizAvailability(quiz) {
+  if (quiz.status !== 'active')  return 'HIDDEN';
+  if (!quiz.published)           return 'HIDDEN';
+
+  const now = new Date();
+  if (quiz.publish_at   && new Date(quiz.publish_at)   > now) return 'UPCOMING';
+  if (quiz.unpublish_at && new Date(quiz.unpublish_at) < now) return 'CLOSED';
+
+  return 'ACTIVE';
+}
+
+// Overall attempt state for a quiz (across both modes) — used for filter
+function getOverallAttemptState(quizId, attempts) {
+  const quizAttempts = attempts.filter(a => a.quiz_id === quizId);
+  if (!quizAttempts.length) return 'not_started';
+  if (quizAttempts.some(a => a.status === 'in_progress'))  return 'in_progress';
+  if (quizAttempts.some(a => a.status === 'completed'))    return 'completed';
+  return 'not_started';
+}
+
+// Count answered questions in an in-progress attempt
+function countAnswered(attempt) {
+  try {
+    const answers = JSON.parse(attempt.answers_json || '[]');
+    return answers.filter(a => a.chosen !== null && a.chosen !== undefined && a.chosen !== '').length;
+  } catch { return 0; }
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Start ──────────────────────────────────────────────────────
+initPage();
+
+</script>
+</body>
+</html>

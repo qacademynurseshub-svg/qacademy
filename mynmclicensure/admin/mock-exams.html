@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mock Exams — QAcademy Admin</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+
+    /* ── Top Nav ─────────────────────────────────────────── */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .logout-btn {
+      font-size: 13px; color: var(--text-muted);
+      cursor: pointer; background: none; border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* ── Breadcrumb ──────────────────────────────────────── */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .breadcrumb span { cursor: pointer; }
+    .breadcrumb span:hover { color: var(--accent); text-decoration: underline; }
+    .breadcrumb span.current { color: var(--primary); font-weight: 600; cursor: default; text-decoration: none; }
+    .breadcrumb .sep { color: var(--border); }
+
+    /* ── Panes ───────────────────────────────────────────── */
+    .pane { display: none; }
+    .pane.active { display: block; }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn { padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.88; }
+    .btn-primary { background: var(--accent); color: var(--white); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-danger { background: var(--danger); color: var(--white); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    /* ── Filters Bar ─────────────────────────────────────── */
+    .filters-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+      margin-bottom: 20px;
+      padding: 16px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .filter-group input,
+    .filter-group select {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      color: var(--primary);
+      min-width: 140px;
+    }
+    .filter-actions { display: flex; gap: 8px; align-items: flex-end; margin-left: auto; }
+
+    /* ── Table ───────────────────────────────────────────── */
+    .table-wrapper {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-header h3 { font-size: 15px; font-weight: 700; color: var(--primary); }
+    .result-count { font-size: 13px; color: var(--text-muted); }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; cursor: pointer; }
+    tbody tr.archived-row { opacity: 0.55; }
+
+    /* ── Chips ───────────────────────────────────────────── */
+    .chip {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .chip.active    { background: #dcfce7; color: #15803d; }
+    .chip.draft     { background: #fef9c3; color: #854d0e; }
+    .chip.archived  { background: #f1f5f9; color: #64748b; }
+    .chip.BOTH         { background: var(--primary-light); color: var(--primary); }
+    .chip.INSTANT_ONLY { background: #f0fdf4; color: #15803d; }
+    .chip.TIMED_ONLY   { background: #fef2f2; color: #dc2626; }
+
+    /* ── Publish Toggle ──────────────────────────────────── */
+    .toggle {
+      position: relative;
+      width: 36px; height: 20px;
+      cursor: pointer;
+      display: inline-block;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #cbd5e1;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+
+    /* ── Pane 2: Quiz Details ────────────────────────────── */
+    .pane-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      max-width: 760px;
+    }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: var(--primary);
+      box-sizing: border-box;
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .form-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 24px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .quiz-id-display {
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--primary-light);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      display: inline-block;
+    }
+
+    /* ── Pane 3: Question Picker ─────────────────────────── */
+    .picker-layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      align-items: start;
+    }
+    .picker-left { min-width: 0; }
+    .picker-right {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      position: sticky;
+      top: 20px;
+    }
+    .picker-right-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .picker-right-header h4 { font-size: 14px; font-weight: 700; color: var(--primary); }
+    .picker-right-body { padding: 12px; max-height: 520px; overflow-y: auto; }
+    .picker-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .picker-filters select,
+    .picker-filters input {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+    }
+    .picker-table-wrap {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .picker-table-scroll { max-height: 520px; overflow-y: auto; }
+    .picker-table { width: 100%; border-collapse: collapse; }
+    .picker-table th {
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      padding: 9px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      z-index: 1;
+    }
+    .picker-table td {
+      padding: 9px 12px;
+      font-size: 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .picker-table tr:last-child td { border-bottom: none; }
+    .picker-table tr.selected-row td { background: #ecfdf5; }
+    .picker-table tr:hover td { background: #f0fdf4; cursor: pointer; }
+    .item-stem-short {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 380px;
+    }
+    .picker-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+      background: #f8fafc;
+    }
+    .selected-count { font-weight: 700; color: var(--accent); }
+
+    /* Selected item in right panel */
+    .sel-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 6px;
+      background: #f8fafc;
+    }
+    .sel-item-id { font-family: monospace; font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+    .sel-item-stem { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--primary); }
+    .sel-item-remove { background: none; border: none; cursor: pointer; color: var(--danger); font-size: 15px; line-height: 1; flex-shrink: 0; padding: 0; }
+
+    /* ── Pane 4: Review ──────────────────────────────────── */
+    .review-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .review-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .review-card h4 { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
+    .detail-row { display: flex; gap: 8px; margin-bottom: 9px; font-size: 13px; }
+    .detail-label { font-weight: 600; color: var(--text-muted); min-width: 120px; flex-shrink: 0; }
+    .detail-value { color: var(--primary); }
+    .review-items-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .review-items-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .review-items-header h4 { font-size: 14px; font-weight: 700; color: var(--primary); }
+    .review-item-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .review-item-row:last-child { border-bottom: none; }
+    .review-item-num { color: var(--text-muted); min-width: 24px; font-size: 12px; }
+    .review-item-id { font-family: monospace; font-size: 11px; color: var(--text-muted); min-width: 100px; }
+    .review-item-stem { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .review-item-remove { background: none; border: none; cursor: pointer; color: var(--danger); font-size: 15px; padding: 0; }
+
+    /* ── Stats Row ───────────────────────────────────────── */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+    .stat-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; text-align: center; }
+    .stat-box .stat-val { font-size: 24px; font-weight: 700; color: var(--primary); }
+    .stat-box .stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Pane Actions Bar ────────────────────────────────── */
+    .pane-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .pane-actions .spacer { flex: 1; }
+
+    /* ── Alert ───────────────────────────────────────────── */
+    .alert { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .alert.show { display: block; }
+    .alert-error { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+    .empty-state { padding: 48px 24px; text-align: center; color: var(--text-muted); font-size: 14px; }
+
+    /* ── Schedule helper text ────────────────────────────── */
+    .schedule-helper {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+  <div id="sidebar"></div>
+
+  <main class="main-content">
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Mock Exams</h1>
+        <p>Create and manage mock exams for exam periods</p>
+      </div>
+      <div class="user-menu">
+        <span style="font-size:14px; font-weight:500;" id="adminName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb" id="breadcrumb">
+      <span class="current">Mock Exams</span>
+    </div>
+
+    <!-- ══ PANE 1: QUIZ LIST ══════════════════════════════ -->
+    <div class="pane active" id="pane1">
+
+      <div class="filters-bar">
+        <div class="filter-group">
+          <label>Search</label>
+          <input type="text" id="qFilterSearch" placeholder="Title or Exam ID…" oninput="applyQuizFilters()" />
+        </div>
+        <div class="filter-group">
+          <label>Course</label>
+          <select id="qFilterCourse" onchange="applyQuizFilters()">
+            <option value="">All courses</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="qFilterStatus" onchange="applyQuizFilters()">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="draft">Draft</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Mode</label>
+          <select id="qFilterMode" onchange="applyQuizFilters()">
+            <option value="">All modes</option>
+            <option value="BOTH">Both</option>
+            <option value="INSTANT_ONLY">Practice only</option>
+            <option value="TIMED_ONLY">Exam only</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Published</label>
+          <select id="qFilterPublished" onchange="applyQuizFilters()">
+            <option value="">All</option>
+            <option value="true">Published</option>
+            <option value="false">Unpublished</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn btn-ghost" onclick="clearQuizFilters()">Clear</button>
+          <button class="btn btn-primary" onclick="startNewQuiz()">+ New Mock Exam</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <div class="table-header">
+          <h3>All Mock Exams</h3>
+          <span class="result-count" id="qResultCount">Loading…</span>
+        </div>
+        <div id="qTableArea"><div class="empty-state">Loading mock exams…</div></div>
+      </div>
+    </div>
+
+    <!-- ══ PANE 2: QUIZ DETAILS ═══════════════════════════ -->
+    <div class="pane" id="pane2">
+
+      <div class="alert alert-error" id="p2Error"></div>
+      <div class="alert alert-success" id="p2Success"></div>
+
+      <div class="pane-card">
+
+        <!-- Quiz ID display -->
+        <div class="form-group">
+          <label>Mock Exam ID</label>
+          <div class="quiz-id-display" id="quizIdDisplay">—</div>
+          <p class="form-hint">Auto-generated. Cannot be changed.</p>
+        </div>
+
+        <div class="form-section-title">Basic Info</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Course *</label>
+            <select id="fieldCourse" onchange="onCourseChange()">
+              <option value="">Select course…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mock Exam Title *</label>
+            <input type="text" id="fieldTitle" placeholder="e.g. Mock Exam — Paper 1 March 2026" />
+          </div>
+        </div>
+
+        <div class="form-section-title">Scheduling</div>
+
+        <div class="schedule-helper">Mock exams should have both publish and unpublish dates to create a timed exam window.</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Publish At</label>
+            <input type="datetime-local" id="fieldPublishAt" />
+            <p class="form-hint">Leave blank to publish manually.</p>
+          </div>
+          <div class="form-group">
+            <label>Unpublish At</label>
+            <input type="datetime-local" id="fieldUnpublishAt" />
+            <p class="form-hint">Leave blank to keep open indefinitely.</p>
+          </div>
+        </div>
+
+        <div class="form-section-title">Quiz Settings</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Allowed Modes</label>
+            <select id="fieldModes">
+              <option value="BOTH">Both Practice and Exam</option>
+              <option value="INSTANT_ONLY">Practice only</option>
+              <option value="TIMED_ONLY">Exam only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="fieldStatus">
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Time Limit (seconds)</label>
+            <input type="number" id="fieldTimeLimit" placeholder="Leave blank = 1 min per question" min="60" />
+            <p class="form-hint">e.g. 3600 = 1 hour. Leave blank for auto.</p>
+          </div>
+          <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="fieldShuffle" />
+              Shuffle question order
+            </label>
+            <p class="form-hint" style="margin-top:10px;">Questions appear in random order for each student.</p>
+          </div>
+        </div>
+
+        <div class="form-section-title">Other</div>
+
+        <div class="form-group">
+          <label>Notes (admin only)</label>
+          <textarea id="fieldNotes" placeholder="Internal notes. Students never see this."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="fieldPublished" />
+            Published — visible to students
+          </label>
+        </div>
+
+        <!-- Attempt stats (edit mode only) -->
+        <div id="p2Stats" style="display:none;">
+          <div class="form-section-title">Attempt Stats</div>
+          <div class="stats-row" id="p2StatsRow"></div>
+        </div>
+
+      </div>
+
+      <div class="pane-actions">
+        <button class="btn btn-ghost" onclick="goToPane(1)">← Back to Mock Exams</button>
+        <div class="spacer"></div>
+        <button class="btn btn-ghost" id="p2ArchiveBtn" style="display:none;" onclick="archiveCurrentQuiz()">Archive</button>
+        <button class="btn btn-ghost" id="p2PreviewBtn" style="display:none;" onclick="previewCurrentQuiz()">Preview</button>
+        <button class="btn btn-primary" onclick="validateDetailsAndNext()">Next: Pick Questions →</button>
+      </div>
+    </div>
+
+    <!-- ══ PANE 3: QUESTION PICKER ════════════════════════ -->
+    <div class="pane" id="pane3">
+
+      <div class="alert alert-error" id="p3Error"></div>
+
+      <div class="picker-layout">
+
+        <!-- Left: Filtered question list -->
+        <div class="picker-left">
+
+          <div class="picker-filters">
+            <select id="pickerMaintopic" onchange="applyPickerFilters()">
+              <option value="">All topics</option>
+            </select>
+            <select id="pickerSubtopic" onchange="applyPickerFilters()">
+              <option value="">All subtopics</option>
+            </select>
+            <select id="pickerDifficulty" onchange="applyPickerFilters()">
+              <option value="">All difficulties</option>
+              <option value="Easy">Easy</option>
+              <option value="Moderate">Moderate</option>
+              <option value="Hard">Hard</option>
+            </select>
+            <select id="pickerType" onchange="applyPickerFilters()">
+              <option value="">All types</option>
+              <option value="MCQ">MCQ</option>
+              <option value="TF">True/False</option>
+              <option value="SATA">SATA</option>
+            </select>
+            <select id="pickerBatch" onchange="applyPickerFilters()">
+              <option value="">All batches</option>
+            </select>
+            <input type="text" id="pickerKeyword" placeholder="Keyword search…" oninput="applyPickerFilters()" style="min-width:160px;" />
+            <button class="btn btn-ghost btn-sm" onclick="clearPickerFilters()">Clear</button>
+            <button class="btn btn-primary btn-sm" onclick="selectAllVisible()">+ Select all visible</button>
+          </div>
+
+          <div class="picker-table-wrap">
+            <div class="picker-table-scroll">
+              <table class="picker-table">
+                <thead>
+                  <tr>
+                    <th style="width:36px;"></th>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Stem</th>
+                    <th>Topic</th>
+                    <th>Diff</th>
+                  </tr>
+                </thead>
+                <tbody id="pickerBody">
+                  <tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">Loading questions…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="picker-footer">
+              <span>Showing <strong id="pickerVisibleCount">0</strong> questions</span>
+              <span class="selected-count"><span id="pickerSelectedCount">0</span> selected</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Selected questions panel -->
+        <div class="picker-right">
+          <div class="picker-right-header">
+            <h4>Selected Questions</h4>
+            <span class="selected-count" id="pickerRightCount">0</span>
+          </div>
+          <div class="picker-right-body" id="pickerRightBody">
+            <p style="font-size:12px; color:var(--text-muted); text-align:center; padding:24px 0;">
+              Tick questions from the list to add them here.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="pane-actions">
+        <button class="btn btn-ghost" onclick="goToPane(2)">← Back to Details</button>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" onclick="validatePickerAndNext()">Next: Review & Save →</button>
+      </div>
+    </div>
+
+    <!-- ══ PANE 4: REVIEW & SAVE ══════════════════════════ -->
+    <div class="pane" id="pane4">
+
+      <div class="alert alert-error" id="p4Error"></div>
+      <div class="alert alert-success" id="p4Success"></div>
+
+      <div class="review-grid">
+        <div class="review-card">
+          <h4>Mock Exam Details</h4>
+          <div id="reviewDetails"></div>
+        </div>
+        <div class="review-card">
+          <h4>Settings</h4>
+          <div id="reviewSettings"></div>
+        </div>
+      </div>
+
+      <div class="review-items-card">
+        <div class="review-items-header">
+          <h4>Questions in this Mock Exam</h4>
+          <span class="result-count"><span id="reviewCount">0</span> questions</span>
+        </div>
+        <div id="reviewItemsList"></div>
+      </div>
+
+      <div class="pane-actions">
+        <button class="btn btn-ghost" onclick="goToPane(3)">← Back to Questions</button>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveQuiz()">💾 Save Mock Exam</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/paths.js"></script>
+<script src="/js/mynmclicensure-admin-sidebar.js"></script>
+<script src="/js/mynmclicensure-api.js"></script>
+<script>
+
+// ── State ──────────────────────────────────────────────────────
+let allQuizzes     = [];
+let allCourses     = [];
+let currentQuizId  = null;   // null = new quiz, string = editing existing
+let isEditMode     = false;
+let generatedQuizId = null;  // auto-generated ID for new quiz
+
+let pickerAllItems = [];
+let pickerFiltered = [];
+let pickerSelected = {};     // { item_id: item }
+
+// ── Init ───────────────────────────────────────────────────────
+async function initPage() {
+  const profile = await guardPage('ADMIN');
+  if (!profile) return;
+  document.getElementById('adminName').textContent = profile.forename || profile.name || profile.email;
+
+  allCourses = await getAllCourses();
+  populateCourseDropdowns();
+
+  allQuizzes = await getAllMockQuizzes();
+  applyQuizFilters();
+}
+
+function populateCourseDropdowns() {
+  const filterSel = document.getElementById('qFilterCourse');
+  const modalSel  = document.getElementById('fieldCourse');
+  allCourses.forEach(c => {
+    filterSel.innerHTML += `<option value="${c.course_id}">${c.title}</option>`;
+    modalSel.innerHTML  += `<option value="${c.course_id}">${c.title} (${c.course_id})</option>`;
+  });
+}
+
+// ── Breadcrumb ─────────────────────────────────────────────────
+function setBreadcrumb(steps) {
+  // steps = array of { label, pane (optional) }
+  const bc = document.getElementById('breadcrumb');
+  bc.innerHTML = steps.map((s, i) => {
+    const isLast = i === steps.length - 1;
+    if (isLast) return `<span class="current">${s.label}</span>`;
+    return `<span onclick="goToPane(${s.pane})">${s.label}</span><span class="sep">›</span>`;
+  }).join('');
+}
+
+// ── Pane Navigation ────────────────────────────────────────────
+function goToPane(n) {
+  [1,2,3,4].forEach(i => {
+    document.getElementById('pane' + i).classList.toggle('active', i === n);
+  });
+
+  const quizLabel = isEditMode
+    ? (allQuizzes.find(q => q.quiz_id === currentQuizId)?.title || 'Edit Mock Exam')
+    : 'New Mock Exam';
+
+  const crumbs = [{ label: 'Mock Exams', pane: 1 }];
+  if (n >= 2) crumbs.push({ label: quizLabel, pane: 2 });
+  if (n >= 3) crumbs.push({ label: 'Pick Questions', pane: 3 });
+  if (n >= 4) crumbs.push({ label: 'Review & Save', pane: 4 });
+  setBreadcrumb(crumbs);
+
+  window.scrollTo(0, 0);
+}
+
+// ══ PANE 1 ════════════════════════════════════════════════════
+
+function applyQuizFilters() {
+  const search    = document.getElementById('qFilterSearch').value.toLowerCase().trim();
+  const course    = document.getElementById('qFilterCourse').value;
+  const status    = document.getElementById('qFilterStatus').value;
+  const mode      = document.getElementById('qFilterMode').value;
+  const published = document.getElementById('qFilterPublished').value;
+
+  const filtered = allQuizzes.filter(q => {
+    if (search && !q.title.toLowerCase().includes(search) && !q.quiz_id.toLowerCase().includes(search)) return false;
+    if (course && q.course_id !== course) return false;
+    if (status && q.status !== status) return false;
+    if (mode && q.allowed_modes !== mode) return false;
+    if (published !== '' && String(q.published) !== published) return false;
+    return true;
+  });
+
+  document.getElementById('qResultCount').textContent = `${filtered.length} mock exam${filtered.length !== 1 ? 's' : ''}`;
+  renderQuizTable(filtered);
+}
+
+function clearQuizFilters() {
+  ['qFilterSearch','qFilterCourse','qFilterStatus','qFilterMode','qFilterPublished'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  applyQuizFilters();
+}
+
+function formatSchedule(q) {
+  if (!q.publish_at && !q.unpublish_at) return 'Not scheduled';
+  const fmt = (d) => {
+    const dt = new Date(d);
+    const day = dt.getDate();
+    const mon = dt.toLocaleString('en-GB', { month: 'short' });
+    return `${day} ${mon}`;
+  };
+  if (q.publish_at && q.unpublish_at) return `${fmt(q.publish_at)} — ${fmt(q.unpublish_at)}`;
+  if (q.publish_at) return `From ${fmt(q.publish_at)}`;
+  return `Until ${fmt(q.unpublish_at)}`;
+}
+
+function renderQuizTable(quizzes) {
+  const area = document.getElementById('qTableArea');
+
+  if (!quizzes.length) {
+    area.innerHTML = `<div class="empty-state">No mock exams found. Click <strong>+ New Mock Exam</strong> to create one.</div>`;
+    return;
+  }
+
+  const rows = quizzes.map(q => {
+    const course = allCourses.find(c => c.course_id === q.course_id);
+    return `
+      <tr class="${q.status === 'archived' ? 'archived-row' : ''}" onclick="openEditQuiz('${q.quiz_id}')">
+        <td>
+          <div style="font-weight:600;">${escapeHtml(q.title)}</div>
+          <div style="font-size:11px; color:var(--text-muted); font-family:monospace; margin-top:2px;">${q.quiz_id}</div>
+        </td>
+        <td>${course ? course.title : q.course_id}</td>
+        <td><span class="chip ${q.allowed_modes}">${formatMode(q.allowed_modes)}</span></td>
+        <td style="font-weight:600;">${q.n}</td>
+        <td style="font-size:12px; color:var(--text-muted);">${formatSchedule(q)}</td>
+        <td><span class="chip ${q.status}">${q.status}</span></td>
+        <td onclick="event.stopPropagation()">
+          <label class="toggle">
+            <input type="checkbox" ${q.published ? 'checked' : ''} onchange="togglePublish('${q.quiz_id}', this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </td>
+      </tr>`;
+  }).join('');
+
+  area.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Mock Exam</th>
+          <th>Course</th>
+          <th>Modes</th>
+          <th>Questions</th>
+          <th>Schedule</th>
+          <th>Status</th>
+          <th>Published</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+async function togglePublish(quizId, published) {
+  const { error } = await db.from('mock_quizzes')
+    .update({ published, updated_at: new Date().toISOString() })
+    .eq('quiz_id', quizId);
+  if (error) { alert('Failed to update: ' + error.message); return; }
+  const q = allQuizzes.find(x => x.quiz_id === quizId);
+  if (q) q.published = published;
+}
+
+// ══ PANE 2 ════════════════════════════════════════════════════
+
+function startNewQuiz() {
+  isEditMode     = false;
+  currentQuizId  = null;
+  generatedQuizId = null;
+  pickerSelected  = {};
+  pickerAllItems  = [];
+  clearPane2Fields();
+  document.getElementById('p2ArchiveBtn').style.display = 'none';
+  document.getElementById('p2PreviewBtn').style.display = 'none';
+  document.getElementById('p2Stats').style.display = 'none';
+  document.getElementById('quizIdDisplay').textContent = 'Will be generated when you select a course';
+  goToPane(2);
+}
+
+async function openEditQuiz(quizId) {
+  const q = allQuizzes.find(x => x.quiz_id === quizId);
+  if (!q) return;
+
+  isEditMode    = true;
+  currentQuizId = quizId;
+  generatedQuizId = quizId;
+  pickerSelected  = {};
+
+  // Fill fields
+  document.getElementById('quizIdDisplay').textContent = q.quiz_id;
+  document.getElementById('fieldCourse').value    = q.course_id;
+  document.getElementById('fieldTitle').value     = q.title;
+  document.getElementById('fieldModes').value     = q.allowed_modes;
+  document.getElementById('fieldStatus').value    = q.status;
+  document.getElementById('fieldTimeLimit').value = q.time_limit_sec || '';
+  document.getElementById('fieldShuffle').checked = q.shuffle;
+  document.getElementById('fieldPublished').checked = q.published;
+  document.getElementById('fieldNotes').value     = q.notes || '';
+  document.getElementById('fieldPublishAt').value   = q.publish_at   ? q.publish_at.slice(0,16)   : '';
+  document.getElementById('fieldUnpublishAt').value = q.unpublish_at ? q.unpublish_at.slice(0,16) : '';
+
+  // Show archive / preview buttons
+  document.getElementById('p2ArchiveBtn').style.display = 'inline-block';
+  document.getElementById('p2ArchiveBtn').textContent = q.status === 'archived' ? 'Restore' : 'Archive';
+  document.getElementById('p2PreviewBtn').style.display = 'inline-block';
+
+  // Load attempt stats
+  const { data: attempts } = await db
+    .from('attempts')
+    .select('attempt_id, status, score_pct')
+    .eq('quiz_id', quizId);
+
+  const total     = (attempts || []).length;
+  const completed = (attempts || []).filter(a => a.status === 'completed').length;
+  const avgScore  = completed > 0
+    ? Math.round((attempts || []).filter(a => a.status === 'completed').reduce((s, a) => s + (a.score_pct || 0), 0) / completed)
+    : 0;
+
+  document.getElementById('p2Stats').style.display = 'block';
+  document.getElementById('p2StatsRow').innerHTML = `
+    <div class="stat-box"><div class="stat-val">${total}</div><div class="stat-lbl">Total Attempts</div></div>
+    <div class="stat-box"><div class="stat-val">${completed}</div><div class="stat-lbl">Completed</div></div>
+    <div class="stat-box"><div class="stat-val">${completed > 0 ? avgScore + '%' : '—'}</div><div class="stat-lbl">Avg Score</div></div>`;
+
+  // Pre-load picker items and pre-select existing
+  await loadPickerItems(q.course_id);
+  (q.item_ids || []).forEach(id => {
+    const item = pickerAllItems.find(i => i.item_id === id);
+    if (item) pickerSelected[id] = item;
+  });
+
+  clearAlert('p2Error');
+  clearAlert('p2Success');
+  goToPane(2);
+}
+
+function onCourseChange() {
+  const courseId = document.getElementById('fieldCourse').value;
+  if (!courseId) {
+    document.getElementById('quizIdDisplay').textContent = 'Will be generated when you select a course';
+    generatedQuizId = null;
+    return;
+  }
+  if (!isEditMode) {
+    // Auto-generate mock exam ID
+    generatedQuizId = 'MOCK_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    document.getElementById('quizIdDisplay').textContent = generatedQuizId;
+  }
+  // Reset picker when course changes
+  if (!isEditMode) {
+    pickerAllItems = [];
+    pickerSelected = {};
+  }
+}
+
+function clearPane2Fields() {
+  document.getElementById('fieldCourse').value    = '';
+  document.getElementById('fieldTitle').value     = '';
+  document.getElementById('fieldModes').value     = 'BOTH';
+  document.getElementById('fieldStatus').value    = 'draft';
+  document.getElementById('fieldTimeLimit').value = '';
+  document.getElementById('fieldShuffle').checked = false;
+  document.getElementById('fieldPublished').checked = false;
+  document.getElementById('fieldNotes').value     = '';
+  document.getElementById('fieldPublishAt').value   = '';
+  document.getElementById('fieldUnpublishAt').value = '';
+  clearAlert('p2Error');
+  clearAlert('p2Success');
+}
+
+async function validateDetailsAndNext() {
+  clearAlert('p2Error');
+  const courseId = document.getElementById('fieldCourse').value;
+  const title    = document.getElementById('fieldTitle').value.trim();
+
+  if (!courseId) return showAlert('p2Error', 'Please select a course.');
+  if (!title)    return showAlert('p2Error', 'Please enter a mock exam title.');
+  if (!generatedQuizId) return showAlert('p2Error', 'Mock Exam ID could not be generated. Please re-select the course.');
+
+  // Load picker items if not already loaded for this course
+  if (pickerAllItems.length === 0 || pickerAllItems[0]?.item_id?.split('_')[0] !== courseId.split('_')[0]) {
+    await loadPickerItems(courseId);
+  }
+
+  populatePickerDropdowns();
+  applyPickerFilters();
+  goToPane(3);
+}
+
+async function archiveCurrentQuiz() {
+  if (!currentQuizId) return;
+  const q = allQuizzes.find(x => x.quiz_id === currentQuizId);
+  if (!q) return;
+  const newStatus = q.status === 'archived' ? 'active' : 'archived';
+  if (!confirm(`${newStatus === 'archived' ? 'Archive' : 'Restore'} this mock exam?`)) return;
+  const { error } = await db.from('mock_quizzes').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('quiz_id', currentQuizId);
+  if (error) { showAlert('p2Error', 'Error: ' + error.message); return; }
+  q.status = newStatus;
+  document.getElementById('fieldStatus').value = newStatus;
+  document.getElementById('p2ArchiveBtn').textContent = newStatus === 'archived' ? 'Restore' : 'Archive';
+  allQuizzes = await getAllMockQuizzes();
+  showAlert('p2Success', `Mock exam ${newStatus === 'archived' ? 'archived' : 'restored'} successfully.`);
+}
+
+function previewCurrentQuiz() {
+  if (currentQuizId) window.open(`${LICENSURE.runner}/instant.html?quiz_id=${currentQuizId}&preview=1`, '_blank');
+}
+
+// ══ PANE 3 ════════════════════════════════════════════════════
+
+async function loadPickerItems(courseId) {
+  pickerAllItems = await getItemsByFilters(courseId, {});
+}
+
+function populatePickerDropdowns() {
+  const maintopics = [...new Set(pickerAllItems.map(i => i.maintopic).filter(Boolean))].sort();
+  const batches    = [...new Set(pickerAllItems.map(i => i.batch_id).filter(Boolean))].sort();
+
+  const mtSel = document.getElementById('pickerMaintopic');
+  const btSel = document.getElementById('pickerBatch');
+  mtSel.innerHTML = '<option value="">All topics</option>';
+  btSel.innerHTML = '<option value="">All batches</option>';
+  maintopics.forEach(m => mtSel.innerHTML += `<option value="${m}">${m}</option>`);
+  batches.forEach(b => btSel.innerHTML += `<option value="${b}">${b}</option>`);
+  refreshSubtopicDropdown();
+}
+
+function refreshSubtopicDropdown() {
+  const mt = document.getElementById('pickerMaintopic').value;
+  const subtopics = [...new Set(
+    pickerAllItems.filter(i => !mt || i.maintopic === mt).map(i => i.subtopic).filter(Boolean)
+  )].sort();
+  const stSel = document.getElementById('pickerSubtopic');
+  stSel.innerHTML = '<option value="">All subtopics</option>';
+  subtopics.forEach(s => stSel.innerHTML += `<option value="${s}">${s}</option>`);
+}
+
+function applyPickerFilters() {
+  refreshSubtopicDropdown();
+  const mt   = document.getElementById('pickerMaintopic').value;
+  const st   = document.getElementById('pickerSubtopic').value;
+  const diff = document.getElementById('pickerDifficulty').value;
+  const type = document.getElementById('pickerType').value;
+  const batch= document.getElementById('pickerBatch').value;
+  const kw   = document.getElementById('pickerKeyword').value.toLowerCase().trim();
+
+  pickerFiltered = pickerAllItems.filter(i => {
+    if (mt    && i.maintopic     !== mt)   return false;
+    if (st    && i.subtopic      !== st)   return false;
+    if (diff  && i.difficulty    !== diff) return false;
+    if (type  && i.question_type !== type) return false;
+    if (batch && i.batch_id      !== batch)return false;
+    if (kw && !JSON.stringify(i).toLowerCase().includes(kw)) return false;
+    return true;
+  });
+
+  renderPickerTable();
+}
+
+function clearPickerFilters() {
+  ['pickerMaintopic','pickerSubtopic','pickerDifficulty','pickerType','pickerBatch'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('pickerKeyword').value = '';
+  applyPickerFilters();
+}
+
+function selectAllVisible() {
+  pickerFiltered.forEach(i => { pickerSelected[i.item_id] = i; });
+  renderPickerTable();
+  renderPickerRight();
+}
+
+function renderPickerTable() {
+  const body = document.getElementById('pickerBody');
+  document.getElementById('pickerVisibleCount').textContent  = pickerFiltered.length;
+  document.getElementById('pickerSelectedCount').textContent = Object.keys(pickerSelected).length;
+  document.getElementById('pickerRightCount').textContent    = Object.keys(pickerSelected).length;
+
+  if (!pickerFiltered.length) {
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">No questions match your filters.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = pickerFiltered.map(i => {
+    const sel = !!pickerSelected[i.item_id];
+    return `
+      <tr class="${sel ? 'selected-row' : ''}" onclick="togglePickerItem('${i.item_id}')">
+        <td><input type="checkbox" ${sel ? 'checked' : ''} onclick="event.stopPropagation(); togglePickerItem('${i.item_id}')" /></td>
+        <td style="font-family:monospace; font-size:11px;">${i.item_id}</td>
+        <td><span class="chip" style="background:#f1f5f9; color:var(--primary); font-size:10px;">${i.question_type}</span></td>
+        <td><span class="item-stem-short" title="${escapeHtml(i.stem)}">${escapeHtml(i.stem)}</span></td>
+        <td style="font-size:11px; color:var(--text-muted);">${i.maintopic || '—'}</td>
+        <td><span class="chip" style="background:#f1f5f9; color:var(--primary); font-size:10px;">${i.difficulty || '—'}</span></td>
+      </tr>`;
+  }).join('');
+}
+
+function renderPickerRight() {
+  const body  = document.getElementById('pickerRightBody');
+  const items = Object.values(pickerSelected);
+  document.getElementById('pickerRightCount').textContent    = items.length;
+  document.getElementById('pickerSelectedCount').textContent = items.length;
+
+  if (!items.length) {
+    body.innerHTML = `<p style="font-size:12px; color:var(--text-muted); text-align:center; padding:24px 0;">Tick questions from the list to add them here.</p>`;
+    return;
+  }
+
+  body.innerHTML = items.map(i => `
+    <div class="sel-item">
+      <span class="sel-item-id">${i.item_id}</span>
+      <span class="sel-item-stem" title="${escapeHtml(i.stem)}">${escapeHtml(i.stem)}</span>
+      <button class="sel-item-remove" onclick="removeFromSelected('${i.item_id}')" title="Remove">×</button>
+    </div>`).join('');
+}
+
+function togglePickerItem(itemId) {
+  const item = pickerAllItems.find(i => i.item_id === itemId);
+  if (!item) return;
+  if (pickerSelected[itemId]) delete pickerSelected[itemId];
+  else pickerSelected[itemId] = item;
+  renderPickerTable();
+  renderPickerRight();
+}
+
+function removeFromSelected(itemId) {
+  delete pickerSelected[itemId];
+  renderPickerTable();
+  renderPickerRight();
+}
+
+function validatePickerAndNext() {
+  clearAlert('p3Error');
+  if (Object.keys(pickerSelected).length === 0) {
+    return showAlert('p3Error', 'Please select at least one question before continuing.');
+  }
+  buildReviewPane();
+  goToPane(4);
+}
+
+// ══ PANE 4 ════════════════════════════════════════════════════
+
+function buildReviewPane() {
+  const courseId  = document.getElementById('fieldCourse').value;
+  const title     = document.getElementById('fieldTitle').value;
+  const modes     = document.getElementById('fieldModes').value;
+  const status    = document.getElementById('fieldStatus').value;
+  const published = document.getElementById('fieldPublished').checked;
+  const shuffle   = document.getElementById('fieldShuffle').checked;
+  const timeLimit = document.getElementById('fieldTimeLimit').value;
+  const notes     = document.getElementById('fieldNotes').value.trim();
+  const items     = Object.values(pickerSelected);
+  const course    = allCourses.find(c => c.course_id === courseId);
+
+  document.getElementById('reviewDetails').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Mock Exam ID</span><span class="detail-value" style="font-family:monospace; color:var(--accent);">${generatedQuizId}</span></div>
+    <div class="detail-row"><span class="detail-label">Title</span><span class="detail-value">${escapeHtml(title)}</span></div>
+    <div class="detail-row"><span class="detail-label">Course</span><span class="detail-value">${course ? course.title : courseId}</span></div>
+    <div class="detail-row"><span class="detail-label">Questions</span><span class="detail-value">${items.length}</span></div>
+    ${notes ? `<div class="detail-row"><span class="detail-label">Notes</span><span class="detail-value">${escapeHtml(notes)}</span></div>` : ''}`;
+
+  document.getElementById('reviewSettings').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Allowed Modes</span><span class="detail-value">${formatMode(modes)}</span></div>
+    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="chip ${status}">${status}</span></span></div>
+    <div class="detail-row"><span class="detail-label">Published</span><span class="detail-value">${published ? '✅ Yes' : '❌ No'}</span></div>
+    <div class="detail-row"><span class="detail-label">Shuffle</span><span class="detail-value">${shuffle ? 'Yes — randomised per attempt' : 'No — fixed order'}</span></div>
+    <div class="detail-row"><span class="detail-label">Time Limit</span><span class="detail-value">${timeLimit ? timeLimit + ' seconds (' + Math.round(timeLimit/60) + ' min)' : 'Auto — 1 min per question'}</span></div>`;
+
+  document.getElementById('reviewCount').textContent = items.length;
+  document.getElementById('reviewItemsList').innerHTML = items.map((item, idx) => `
+    <div class="review-item-row">
+      <span class="review-item-num">${idx + 1}.</span>
+      <span class="review-item-id">${item.item_id}</span>
+      <span class="review-item-stem">${escapeHtml(item.stem)}</span>
+      <span class="chip" style="background:#f1f5f9; color:var(--primary); font-size:10px; flex-shrink:0;">${item.question_type}</span>
+      <button class="review-item-remove" onclick="removeFromReview('${item.item_id}')" title="Remove">×</button>
+    </div>`).join('');
+
+  clearAlert('p4Error');
+  clearAlert('p4Success');
+}
+
+function removeFromReview(itemId) {
+  delete pickerSelected[itemId];
+  if (Object.keys(pickerSelected).length === 0) {
+    showAlert('p4Error', 'You have removed all questions. Please go back and select at least one.');
+  }
+  buildReviewPane();
+  renderPickerTable();
+  renderPickerRight();
+}
+
+async function saveQuiz() {
+  clearAlert('p4Error');
+  clearAlert('p4Success');
+
+  const quizId      = generatedQuizId;
+  const courseId    = document.getElementById('fieldCourse').value;
+  const title       = document.getElementById('fieldTitle').value.trim();
+  const modes       = document.getElementById('fieldModes').value;
+  const status      = document.getElementById('fieldStatus').value;
+  const published   = document.getElementById('fieldPublished').checked;
+  const shuffle     = document.getElementById('fieldShuffle').checked;
+  const timeLimitRaw= document.getElementById('fieldTimeLimit').value;
+  const timeLimit   = timeLimitRaw ? parseInt(timeLimitRaw) : null;
+  const notes       = document.getElementById('fieldNotes').value.trim() || null;
+  const publishAt   = document.getElementById('fieldPublishAt').value || null;
+  const unpublishAt = document.getElementById('fieldUnpublishAt').value || null;
+  const itemIds     = Object.keys(pickerSelected);
+  const n           = itemIds.length;
+
+  if (n === 0) return showAlert('p4Error', 'Cannot save a mock exam with no questions.');
+
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.textContent = 'Saving…';
+  saveBtn.disabled = true;
+
+  const payload = {
+    course_id:      courseId,
+    title,
+    item_ids:       itemIds,
+    n,
+    allowed_modes:  modes,
+    shuffle,
+    time_limit_sec: timeLimit,
+    published,
+    publish_at:     publishAt,
+    unpublish_at:   unpublishAt,
+    status,
+    notes,
+    updated_at:     new Date().toISOString()
+  };
+
+  let error;
+  if (isEditMode) {
+    ({ error } = await db.from('mock_quizzes').update(payload).eq('quiz_id', quizId));
+  } else {
+    payload.quiz_id    = quizId;
+    payload.created_at = new Date().toISOString();
+    ({ error } = await db.from('mock_quizzes').insert(payload));
+  }
+
+  saveBtn.textContent = '💾 Save Mock Exam';
+  saveBtn.disabled = false;
+
+  if (error) {
+    showAlert('p4Error', 'Error saving mock exam: ' + error.message);
+    return;
+  }
+
+  showAlert('p4Success', isEditMode ? '✅ Mock exam updated successfully.' : '✅ Mock exam created successfully.');
+  allQuizzes = await getAllMockQuizzes();
+
+  // Return to list after short delay
+  setTimeout(() => {
+    applyQuizFilters();
+    goToPane(1);
+  }, 1400);
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function formatMode(m) {
+  if (m === 'BOTH')         return 'Both Practice & Exam';
+  if (m === 'INSTANT_ONLY') return 'Practice only';
+  if (m === 'TIMED_ONLY')   return 'Exam only';
+  return m;
+}
+
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function clearAlert(id) {
+  const el = document.getElementById(id);
+  el.textContent = '';
+  el.classList.remove('show');
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Start ──────────────────────────────────────────────────────
+initPage();
+
+</script>
+</body>
+</html>
