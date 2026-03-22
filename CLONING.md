@@ -5,6 +5,88 @@ Technical rebuild guide. Follow end-to-end to recreate the full environment from
 
 ---
 
+## 0. Project Structure & Path Config
+
+### Folder layout
+
+```
+qacademy-gamma/
+  mynmclicensure/          ← NMC Licensure product
+    admin/                 ← 12 admin pages
+    student/               ← 14 student pages
+    runner/                ← 2 quiz runner pages
+  myteacher/               ← Teacher Assess product
+    admin/                 ← 2 admin pages
+    teacher/               ← 8 teacher pages
+    student/               ← 5 student pages
+  js/
+    paths.js               ← CENTRAL PATH CONFIG — edit this to clone
+    config.js              ← Supabase credentials
+    guard.js               ← Auth & role guards
+    mynmclicensure-api.js  ← Licensure data layer
+    myteacher-api.js       ← Teacher Assess data layer
+    mynmclicensure-admin-sidebar.js
+    mynmclicensure-student-sidebar.js
+    myteacher-admin-nav.js
+    myteacher-teacher-nav.js
+    myteacher-student-nav.js
+  payments-worker/         ← Cloudflare Worker (separate deployment)
+  docs/                    ← Reference documentation
+  (root HTML)              ← login, register, router, subscribe, etc.
+```
+
+### Config-driven paths — `js/paths.js`
+
+All dynamic URLs are driven by a central config:
+
+```js
+const LICENSURE = {
+  admin:   '/mynmclicensure/admin',
+  student: '/mynmclicensure/student',
+  runner:  '/mynmclicensure/runner',
+};
+
+const MYTEACHER = {
+  admin:   '/myteacher/admin',
+  teacher: '/myteacher/teacher',
+  student: '/myteacher/student',
+};
+```
+
+Usage in JS: `LICENSURE.student + '/dashboard.html'` or `` `${MYTEACHER.teacher}/classes.html` ``
+
+Static HTML `href` attributes (where JS variables can't be used) use the full path: `href="/mynmclicensure/student/dashboard.html"`.
+
+### The Golden Rule: Never Hardcode Paths in JS
+
+**DO THIS:**
+```js
+window.location.href = LICENSURE.student + '/new-page.html';
+```
+
+**NOT THIS:**
+```js
+window.location.href = '/mynmclicensure/student/new-page.html';
+```
+
+Every hardcoded path in JS is one more thing to find-and-replace when cloning. Using the config constants means cloning only requires changing `js/paths.js`. This applies to both products — use `LICENSURE.x` or `MYTEACHER.x` in all JS contexts.
+
+### Cloning a product
+
+To clone e.g. `mynmclicensure/` into `mypharmacy/`:
+
+1. Add new config to `js/paths.js`: `const PHARMACY = { admin: '/mypharmacy/admin', ... }`
+2. Copy the folder: `cp -r mynmclicensure/ mypharmacy/`
+3. Copy & rename JS files: `mynmclicensure-api.js` → `mypharmacy-api.js`, etc.
+4. In the new JS files, replace `LICENSURE` with `PHARMACY`
+5. In the new HTML files, update `<script src>` tags to point to new JS filenames
+6. Find-and-replace hardcoded HTML hrefs: `/mynmclicensure/` → `/mypharmacy/`
+7. Update `router.html` to route to new product dashboards
+8. Add cross-product switch buttons if needed
+9. Grep to confirm no stale old-product paths remain
+
+---
+
 ## 1. Stack
 - **Frontend:** Vanilla HTML / CSS / JS — no build step
 - **Hosting:** Cloudflare Pages (auto-deploys on push to `main`)
@@ -54,7 +136,7 @@ Worker routes:
 
 Payment status flow: `INIT → PAID → ACTIVATED` (or `SETUP_REQUIRED` if no account yet)
 
-In `subscribe.html`, `student/upgrade.html`, and `payment-confirmation.html` — set `PAYMENTS_WORKER_URL` to the deployed worker URL:
+In `subscribe.html`, `mynmclicensure/student/upgrade.html`, and `payment-confirmation.html` — set `PAYMENTS_WORKER_URL` to the deployed worker URL:
 ```
 https://qacademy-gamma-payment-workers.mybackpacc.workers.dev
 ```
@@ -549,7 +631,7 @@ Sum remaining days across all active subscriptions covering each course. Display
 No pg_cron on Supabase free tier. Status is kept truthful via a manual **Sync Status** button on `admin/subscriptions.html`. It flips `ACTIVE → EXPIRED` where `expires_utc < now()`. One direction only. Run on each admin visit.
 
 ### Announcement Scope — AND Logic
-Student must match every condition set in an announcement's targeting. Handled client-side by `filterAnnouncementsForStudent()` in `api.js`.
+Student must match every condition set in an announcement's targeting. Handled client-side by `filterAnnouncementsForStudent()` in `mynmclicensure-api.js`.
 
 ### Items Architecture
 `maintopic` and `subtopic` are clean separate columns. Old build used a single `topic` column with colon-separated values like `"Anatomy: Cardiovascular"`. `getItemFilterOptions(courseId)` returns distinct values for both — no parsing needed.
@@ -561,11 +643,11 @@ Builder attempts are always fresh. No resume logic — every Build Quiz click cr
 Every key in the config table is referenced by platform code. Key names are read-only. Values and descriptions are editable. Deleting a key requires explicit confirmation warning.
 
 ### Mobile Sidebar
-Hamburger button and overlay are injected by `js/admin-sidebar.js` and `js/student-sidebar.js` — no changes needed to individual page files. Desktop behaviour is unchanged.
+Hamburger button and overlay are injected by `js/mynmclicensure-admin-sidebar.js` and `js/mynmclicensure-student-sidebar.js` — no changes needed to individual page files. Desktop behaviour is unchanged.
 
 ### Payment Flow — Two Entry Points
 1. **New student** (`subscribe.html`) → `init-public` → Paystack → `payment-confirmation.html` → `verify` → if no account: `SETUP_REQUIRED` → student completes registration on confirmation page → `setup-complete` → account + subscription created
-2. **Existing student** (`student/upgrade.html`) → `init-upgrade` (requires Bearer token) → Paystack → `payment-confirmation.html` → `verify` → subscription activated immediately
+2. **Existing student** (`mynmclicensure/student/upgrade.html`) → `init-upgrade` (requires Bearer token) → Paystack → `payment-confirmation.html` → `verify` → subscription activated immediately
 
 ### Grant Subscription — Admin Panel
 The Grant Subscription button in `admin/subscriptions.html` side panel appears for ALL subscription statuses. It pre-fills the student via `openGrantForUser(userId, name, email)` — no manual search needed.
@@ -601,7 +683,7 @@ DRAFT ──publish──▶ PUBLISHED ──archive──▶ ARCHIVED
 
 ## 7. CSV Import — Question Bank (Admin)
 
-The question bank page (`admin/question-bank.html`) has a built-in CSV importer.
+The question bank page (`mynmclicensure/admin/question-bank.html`) has a built-in CSV importer.
 
 Column order (24 columns):
 ```
