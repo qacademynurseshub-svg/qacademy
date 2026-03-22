@@ -70,7 +70,7 @@ const MYTEACHER = {
 
 **In static HTML `href` attributes** (where JS variables can't be used), use the full path: `href="/mynmclicensure/student/dashboard.html"`.
 
-> **Why this matters:** Hardcoded paths break cloning. If you add a new page or link, use the config constants in any JS context. This ensures a new product can be created by changing 3 lines in `paths.js` instead of hunting through 60+ files. See `docs/cloning-guide.md` for full cloning instructions.
+> **Why this matters:** Hardcoded paths break cloning. If you add a new page or link, use the config constants in any JS context. This ensures a new product can be created by changing 3 lines in `paths.js` instead of hunting through 60+ files. See `CLONING.md` section 0 for full cloning instructions.
 
 ---
 
