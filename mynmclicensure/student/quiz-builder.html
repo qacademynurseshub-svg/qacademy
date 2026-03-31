@@ -1036,8 +1036,9 @@ function renderDifficultyChecks() {
     ? CURRENT_FILTER_OPTIONS.difficulties
     : ['Easy', 'Moderate', 'Hard'];
 
+  const pool = getStep2FilteredPool();
   const counts = {};
-  CURRENT_ITEMS.forEach(r => {
+  pool.forEach(r => {
     const key = String(r.difficulty || '').trim();
     if (key) counts[key] = (counts[key] || 0) + 1;
   });
@@ -1065,8 +1066,9 @@ function renderQuestionTypeChecks() {
     ? CURRENT_FILTER_OPTIONS.question_types
     : ['MCQ', 'True/False', 'SATA'];
 
+  const pool = getStep2FilteredPool();
   const counts = {};
-  CURRENT_ITEMS.forEach(r => {
+  pool.forEach(r => {
     const key = String(r.question_type || '').trim();
     if (key) counts[key] = (counts[key] || 0) + 1;
   });
@@ -1086,6 +1088,29 @@ function renderQuestionTypeChecks() {
     });
     box.appendChild(item);
   });
+}
+
+// ── Pool filtered by Step 2 selections only (for Step 3 counts) ──
+function getStep2FilteredPool() {
+  let items = CURRENT_ITEMS.slice();
+  if (currentSelectionMode() === 'topics') {
+    if (!state.useAllTopics && state.selectedTopics.length) {
+      items = items.filter(x => state.selectedTopics.includes(x.maintopic));
+    }
+  } else {
+    const query = String(state.conceptSearch || '').toLowerCase();
+    if (state.selectedConcepts.length) {
+      items = items.filter(x => state.selectedConcepts.includes(x.subtopic));
+    } else if (query) {
+      items = items.filter(x =>
+        String(x.subtopic || '').toLowerCase().includes(query) ||
+        String(x.maintopic || '').toLowerCase().includes(query) ||
+        String(x.stem || '').toLowerCase().includes(query) ||
+        String(x.rationale || '').toLowerCase().includes(query)
+      );
+    }
+  }
+  return items;
 }
 
 // ── Filter pool ──
