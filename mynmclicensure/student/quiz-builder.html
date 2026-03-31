@@ -677,6 +677,9 @@ function goStep(n) {
   // update pane 1 title based on selection mode
   if (n === 1) updatePane1Title();
 
+  // refresh count & mode when landing on step 4
+  if (n === 3) syncCountPane();
+
   // sync review stats when landing on step 5
   if (n === 4) syncReviewStats();
 
@@ -727,6 +730,29 @@ function pickMode(mode) {
   document.getElementById('modeTimedCard').classList.toggle('picked', mode === 'timed');
   document.getElementById('modeInstantRadio').checked = mode === 'instant';
   document.getElementById('modeTimedRadio').checked = mode === 'timed';
+  renderSummary();
+}
+
+function syncCountPane() {
+  const pool = getFilteredPool();
+  const cap = Math.min(pool.length || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
+
+  // clamp count if pool shrank
+  if (state.questionCount > cap) state.questionCount = cap;
+  if (state.questionCount < 1 && cap > 0) state.questionCount = cap;
+
+  // sync slider
+  const slider = document.getElementById('questionCount');
+  if (slider) { slider.max = cap; slider.value = state.questionCount; }
+
+  // sync number input
+  const numInput = document.getElementById('questionCountInput');
+  if (numInput) { numInput.max = cap; numInput.value = state.questionCount || ''; }
+
+  // sync big display
+  const display = document.getElementById('countDisplay');
+  if (display) display.textContent = state.questionCount || '—';
+
   renderSummary();
 }
 
