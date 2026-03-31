@@ -150,6 +150,12 @@
     .topic-chip.picked{border-color:var(--accent);background:var(--primary-light);color:var(--primary);font-weight:600}
     .topic-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .13s}
     .topic-chip.picked .dot{background:var(--accent)}
+    .topic-chip-count{
+      font-size:11px;font-weight:600;color:var(--text-muted);
+      background:var(--bg);border:1px solid var(--border);
+      padding:1px 6px;border-radius:999px;margin-left:auto;flex-shrink:0;
+    }
+    .topic-chip.picked .topic-chip-count{color:var(--accent);border-color:rgba(11,122,117,0.2);background:rgba(11,122,117,0.08)}
     .use-all-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
     .use-all-row label{font-size:13px;color:var(--text);cursor:pointer}
     .chips-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:0}
@@ -176,7 +182,14 @@
       padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer;color:var(--text-muted);
     }
     .concept-item:hover{background:var(--bg);color:var(--text)}
+    .concept-item{display:flex;align-items:center;justify-content:space-between;gap:8px}
     .concept-item.picked{background:var(--primary-light);color:var(--primary);font-weight:600}
+    .concept-item-count{
+      font-size:11px;font-weight:600;color:var(--text-muted);
+      background:var(--bg);border:1px solid var(--border);
+      padding:1px 6px;border-radius:999px;flex-shrink:0;
+    }
+    .concept-item.picked .concept-item-count{color:var(--accent);border-color:rgba(11,122,117,0.2);background:rgba(11,122,117,0.08)}
 
     /* ── Difficulty & Type ── */
     .checks-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -900,11 +913,17 @@ function renderTopics() {
     return;
   }
 
+  const topicCounts = {};
+  CURRENT_ITEMS.forEach(r => {
+    const key = String(r.maintopic || '').trim();
+    if (key) topicCounts[key] = (topicCounts[key] || 0) + 1;
+  });
+
   topics.forEach(t => {
     const chip = document.createElement('div');
     const picked = state.useAllTopics || state.selectedTopics.includes(t);
     chip.className = 'topic-chip' + (picked ? ' picked' : '');
-    chip.innerHTML = `<div class="dot"></div>${escapeHtml(t)}`;
+    chip.innerHTML = `<div class="dot"></div>${escapeHtml(t)}<span class="topic-chip-count">${topicCounts[t] || 0}</span>`;
     chip.addEventListener('click', () => {
       if (state.useAllTopics) return;
       const idx = state.selectedTopics.indexOf(t);
@@ -962,11 +981,17 @@ function renderConcepts() {
     return;
   }
 
+  const conceptCounts = {};
+  CURRENT_ITEMS.forEach(r => {
+    const key = String(r.subtopic || '').trim();
+    if (key) conceptCounts[key] = (conceptCounts[key] || 0) + 1;
+  });
+
   subtopics.forEach(s => {
     const item = document.createElement('div');
     const picked = state.selectedConcepts.includes(s);
     item.className = 'concept-item' + (picked ? ' picked' : '');
-    item.textContent = s;
+    item.innerHTML = `<span>${escapeHtml(s)}</span><span class="concept-item-count">${conceptCounts[s] || 0}</span>`;
     item.addEventListener('click', () => {
       const idx = state.selectedConcepts.indexOf(s);
       if (idx === -1) state.selectedConcepts.push(s);
