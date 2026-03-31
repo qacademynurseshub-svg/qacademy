@@ -564,11 +564,14 @@
 <!-- ═══════════════════════════════════════════════════════════
      SCRIPTS
 ═══════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
 <script src="/js/paths.js"></script>
 <script src="/js/mynmclicensure-api.js"></script>
 <script src="/js/guard.js"></script>
 <script src="/js/mynmclicensure-student-sidebar.js"></script>
+<script src="/js/mynmclicensure-api.js"></script>
 <script>
 
 // ─────────────────────────────────────────────
@@ -742,7 +745,7 @@ function shuffleArray(arr) {
 }
 
 // ── Recent setups (localStorage) ──
-const RECENT_KEY = 'qb_recent_setups';
+const RECENT_KEY = 'qa_builder_recent_v1';
 const RECENT_MAX = 5;
 
 function readRecentSetups() {
@@ -1412,6 +1415,7 @@ async function initPage() {
   COURSE_ACCESS = await getStudentCourseAccess(PROFILE.user_id);
   COURSES = await getCourses();
 
+  populateCourseDropdown(COURSE_ACCESS, COURSES);
   populateCourseSelect();
   renderRecentSetups();
 
