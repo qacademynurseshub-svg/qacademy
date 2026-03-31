@@ -202,6 +202,12 @@
     .check-item.picked{border-color:var(--accent);background:var(--primary-light)}
     .check-item label{font-size:13px;color:var(--text);cursor:pointer;margin:0}
     .check-item input{accent-color:var(--accent)}
+    .check-item-count{
+      font-size:11px;font-weight:600;color:var(--text-muted);
+      background:var(--white);border:1px solid var(--border);
+      padding:1px 6px;border-radius:999px;margin-left:auto;flex-shrink:0;
+    }
+    .check-item.picked .check-item-count{color:var(--accent);border-color:rgba(11,122,117,0.2);background:rgba(11,122,117,0.08)}
 
     /* ── Pool bar ── */
     .pool-bar{
@@ -1030,12 +1036,18 @@ function renderDifficultyChecks() {
     ? CURRENT_FILTER_OPTIONS.difficulties
     : ['Easy', 'Moderate', 'Hard'];
 
+  const counts = {};
+  CURRENT_ITEMS.forEach(r => {
+    const key = String(r.difficulty || '').trim();
+    if (key) counts[key] = (counts[key] || 0) + 1;
+  });
+
   box.innerHTML = '';
   opts.forEach(d => {
     const picked = state.selectedDifficulties.includes(d);
     const item = document.createElement('div');
     item.className = 'check-item' + (picked ? ' picked' : '');
-    item.innerHTML = `<input type="checkbox" ${picked ? 'checked' : ''}><label>${escapeHtml(d)}</label>`;
+    item.innerHTML = `<input type="checkbox" ${picked ? 'checked' : ''}><label>${escapeHtml(d)}</label><span class="check-item-count">${counts[d] || 0}</span>`;
     item.addEventListener('click', () => {
       const idx = state.selectedDifficulties.indexOf(d);
       if (idx === -1) state.selectedDifficulties.push(d);
@@ -1053,12 +1065,18 @@ function renderQuestionTypeChecks() {
     ? CURRENT_FILTER_OPTIONS.question_types
     : ['MCQ', 'True/False', 'SATA'];
 
+  const counts = {};
+  CURRENT_ITEMS.forEach(r => {
+    const key = String(r.question_type || '').trim();
+    if (key) counts[key] = (counts[key] || 0) + 1;
+  });
+
   box.innerHTML = '';
   opts.forEach(qt => {
     const picked = state.selectedQuestionTypes.includes(qt);
     const item = document.createElement('div');
     item.className = 'check-item' + (picked ? ' picked' : '');
-    item.innerHTML = `<input type="checkbox" ${picked ? 'checked' : ''}><label>${escapeHtml(qt)}</label>`;
+    item.innerHTML = `<input type="checkbox" ${picked ? 'checked' : ''}><label>${escapeHtml(qt)}</label><span class="check-item-count">${counts[qt] || 0}</span>`;
     item.addEventListener('click', () => {
       const idx = state.selectedQuestionTypes.indexOf(qt);
       if (idx === -1) state.selectedQuestionTypes.push(qt);
