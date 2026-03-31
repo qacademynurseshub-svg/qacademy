@@ -6,290 +6,264 @@
   <title>Quiz Builder — QAcademy Nurses Hub</title>
   <link rel="stylesheet" href="/css/style.css" />
   <style>
-    .top-nav{
-      display:flex; align-items:center; justify-content:space-between;
-      margin-bottom:28px;
-    }
-    .user-menu{ display:flex; align-items:center; gap:12px; }
-    .logout-btn{
-      font-size:13px; color:var(--text-muted); cursor:pointer;
-      background:none; border:none; font-family:'Inter',sans-serif;
-    }
-    .logout-btn:hover{ color:var(--danger); }
+    /* ── Layout ── */
+    .top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+    .user-menu{display:flex;align-items:center;gap:12px}
+    .logout-btn{font-size:13px;color:var(--text-muted);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif}
+    .logout-btn:hover{color:var(--danger)}
 
-    .builder-hero,
-    .step-card,
-    .summary-card,
-    .recent-card,
-    .empty-card{
+    /* ── Progress block ── */
+    .prog-block{
+      background:var(--white);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:20px 24px;
+      margin-bottom:20px;
+    }
+    .prog-bar{display:flex;align-items:center;margin-bottom:14px}
+    .prog-step{display:flex;align-items:center;flex:1}
+    .prog-step:last-child{flex:0}
+    .prog-circle{
+      width:34px;height:34px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:13px;font-weight:600;cursor:pointer;
+      flex-shrink:0;transition:all .18s;
+      border:1.5px solid var(--border);
+      background:var(--bg);color:var(--text-muted);
+    }
+    .prog-circle.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .prog-circle.done{background:var(--accent);border-color:var(--accent);color:#fff;font-size:12px}
+    .prog-line{flex:1;height:1.5px;background:var(--border);margin:0 6px;transition:background .18s}
+    .prog-line.done{background:var(--accent)}
+    .prog-labels{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-bottom:14px}
+    .prog-lbl{font-size:11px;color:var(--text-muted);text-align:center;cursor:pointer;padding-top:6px;line-height:1.3}
+    .prog-lbl.active{color:var(--primary);font-weight:600}
+    .prog-lbl.done{color:var(--accent)}
+    .prog-step-label{
+      font-size:13px;color:var(--text-muted);
+      border-top:1px solid var(--border);padding-top:12px;margin-top:0;
+    }
+    .prog-step-label strong{color:var(--text);font-weight:600}
+
+    /* ── Wizard panes ── */
+    .pane{display:none}
+    .pane.active{display:block}
+    .pane-card{
       background:var(--white);
       border:1px solid var(--border);
       border-radius:var(--radius);
       padding:24px;
-      margin-bottom:24px;
+      margin-bottom:20px;
     }
+    .pane-title{font-size:20px;font-weight:700;color:var(--primary);margin:0 0 4px}
+    .pane-sub{font-size:13px;color:var(--text-muted);margin:0 0 20px;line-height:1.5}
 
-    .builder-hero{
-      display:flex; justify-content:space-between; align-items:flex-start;
-      gap:16px; flex-wrap:wrap;
+    /* ── Nav bar (Back / Next) ── */
+    .nav-bar{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+    .btn-back{
+      font-size:14px;padding:9px 20px;
+      border:1px solid var(--border);border-radius:8px;
+      background:transparent;color:var(--text);cursor:pointer;
     }
-    .builder-hero h1{
-      font-size:24px; margin:0 0 8px; color:var(--primary);
+    .btn-back:hover{background:var(--bg)}
+    .btn-next{
+      font-size:14px;font-weight:600;padding:9px 24px;
+      border:1.5px solid var(--primary);border-radius:8px;
+      background:var(--primary);color:#fff;cursor:pointer;
     }
-    .builder-hero p{
-      margin:0; color:var(--text-muted); font-size:14px; line-height:1.6;
-      max-width:720px;
+    .btn-next:hover{background:var(--primary-dark)}
+    .btn-next:disabled{opacity:0.45;cursor:default}
+    .btn-build{
+      font-size:14px;font-weight:600;padding:9px 24px;
+      border:1.5px solid var(--accent);border-radius:8px;
+      background:var(--accent);color:#fff;cursor:pointer;
     }
+    .btn-build:hover{background:#235f56}
+    .btn-build:disabled{opacity:0.45;cursor:default}
 
-    .hero-badge{
-      display:inline-flex; align-items:center; gap:8px;
-      background:var(--primary-light);
-      color:var(--accent);
-      border:1px solid rgba(11,122,117,0.18);
-      border-radius:999px;
-      padding:8px 14px;
-      font-size:12px; font-weight:700;
-      white-space:nowrap;
-    }
-
-    .step-head{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; margin-bottom:16px; flex-wrap:wrap;
-    }
-    .step-title{
-      font-size:18px; font-weight:700; color:var(--primary); margin:0;
-    }
-    .step-sub{
-      font-size:13px; color:var(--text-muted); margin:6px 0 0 0;
-    }
-
-    .step-pill{
-      font-size:11px; font-weight:700;
-      padding:4px 10px; border-radius:999px;
-      background:#f3f4f6; color:var(--text-muted);
-    }
-
-    .form-grid-2{
-      display:grid; grid-template-columns:1fr 1fr; gap:16px;
-    }
-    .form-grid-3{
-      display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
-    }
-
-    .field label{
-      display:block; font-size:13px; font-weight:700;
-      color:var(--text); margin-bottom:8px;
-    }
-
-    .field input[type="text"],
-    .field input[type="number"],
-    .field select{
-      width:100%;
+    /* ── Recent setups ── */
+    .recent-collapse{
+      background:var(--bg);
       border:1px solid var(--border);
-      border-radius:12px;
-      padding:12px 14px;
-      font-size:14px;
-      outline:none;
-      background:#fff;
-    }
-
-    .hint{
-      font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.5;
-    }
-
-    .segmented{
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
-    .segmented label{
-      display:flex; align-items:center; gap:8px;
-      padding:10px 14px;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background:#fff;
-      cursor:pointer;
-      font-size:14px;
-      font-weight:600;
-      color:var(--text);
-    }
-
-    .chip-toolbar{
-      display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;
-    }
-
-    .btn-lite, .btn-primary, .btn-ghost{
-      border:none; border-radius:999px; padding:10px 16px;
-      font-size:13px; font-weight:700; cursor:pointer;
-      text-decoration:none; display:inline-flex; align-items:center; justify-content:center;
-    }
-    .btn-primary{ background:var(--accent); color:#fff; }
-    .btn-ghost{ background:#f3f4f6; color:var(--text); }
-    .btn-lite{
-      background:var(--primary-light);
-      color:var(--accent);
-      border:1px solid rgba(11,122,117,0.16);
-    }
-
-    .topics-box, .concept-box{
-      border:1px solid var(--border);
-      border-radius:14px;
-      background:#fff;
-      max-height:280px;
-      overflow:auto;
-      padding:8px;
-    }
-
-    .topic-row, .concept-row{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:12px;
-      padding:10px 12px;
       border-radius:10px;
-      cursor:pointer;
+      padding:14px 16px;
+      margin-bottom:20px;
     }
-    .topic-row:hover, .concept-row:hover{ background:#f8fafb; }
-
-    .topic-left, .concept-left{
-      display:flex; align-items:center; gap:10px; min-width:0;
-    }
-
-    .topic-name, .concept-name{
-      font-size:14px; font-weight:600; color:var(--text);
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-
-    .topic-count, .concept-count{
-      font-size:11px; font-weight:700;
-      padding:4px 8px; border-radius:999px;
-      background:#f3f4f6; color:var(--text-muted);
-      flex-shrink:0;
-    }
-
-    .inline-check{
-      display:flex; align-items:center; gap:8px;
-      padding:10px 12px;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background:#fff;
-      font-size:14px;
-      color:var(--text);
-    }
-
-    .chips{
-      display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;
-    }
-
-    .chip{
-      display:inline-flex; align-items:center; gap:8px;
-      background:var(--primary-light);
-      color:var(--accent);
-      border:1px solid rgba(11,122,117,0.16);
-      border-radius:999px;
-      padding:7px 12px;
-      font-size:12px; font-weight:700;
-    }
-    .chip button{
-      border:none; background:none; cursor:pointer; color:inherit;
-      font-size:12px; padding:0; line-height:1;
-    }
-
-    .muted-box{
-      border:1px dashed var(--border);
-      border-radius:14px;
-      padding:14px;
-      background:#fafbfc;
-      color:var(--text-muted);
-      font-size:13px;
-    }
-
-    .pool-box{
-      display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
-    }
-    .pool-stat{
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:14px;
-      background:#fff;
-    }
-    .pool-stat .label{
-      font-size:12px; color:var(--text-muted); margin-bottom:6px;
-    }
-    .pool-stat .value{
-      font-size:22px; font-weight:700; color:var(--primary);
-    }
-
-    .summary-grid{
-      display:grid; grid-template-columns:1fr 1fr; gap:14px;
-    }
-    .summary-item{
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:14px;
-      background:#fff;
-    }
-    .summary-label{
-      font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:6px;
-    }
-    .summary-value{
-      font-size:14px; color:var(--text);
-      line-height:1.5;
-    }
-
-    .actions{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; margin-top:18px; flex-wrap:wrap;
-    }
-    .actions-right{
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
-
-    .recent-list{
-      display:grid; gap:10px;
-    }
+    .recent-toggle{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+    .recent-toggle-lbl{font-size:13px;font-weight:600;color:var(--text)}
+    .recent-toggle-caret{font-size:12px;color:var(--text-muted);transition:transform .18s;display:inline-block}
+    .recent-toggle-caret.open{transform:rotate(180deg)}
+    .recent-body{display:none;flex-direction:column;gap:8px;margin-top:12px}
+    .recent-body.open{display:flex}
     .recent-item{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; flex-wrap:wrap;
+      display:flex;justify-content:space-between;align-items:center;
+      padding:10px 14px;
+      background:var(--white);
       border:1px solid var(--border);
-      border-radius:14px;
-      padding:14px;
-      background:#fff;
+      border-radius:8px;gap:12px;
     }
-    .recent-main{
-      min-width:0;
+    .recent-main{min-width:0}
+    .recent-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .recent-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .btn-lite{
+      font-size:12px;font-weight:500;padding:6px 14px;
+      border:1px solid var(--border);border-radius:6px;
+      background:var(--white);color:var(--text);cursor:pointer;white-space:nowrap;flex-shrink:0;
     }
-    .recent-title{
-      font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px;
+    .btn-lite:hover{background:var(--bg)}
+
+    /* ── Form fields ── */
+    .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{font-size:13px;font-weight:600;color:var(--text)}
+    .field select{width:100%}
+    .field .hint{font-size:12px;color:var(--text-muted)}
+    .error-text{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+
+    /* ── Segmented control ── */
+    .segmented{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    .segmented label{
+      flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+      padding:9px 12px;font-size:13px;cursor:pointer;
+      color:var(--text-muted);border-right:1px solid var(--border);transition:all .15s;
     }
-    .recent-sub{
-      font-size:12px; color:var(--text-muted);
+    .segmented label:last-child{border-right:none}
+    .segmented label.picked{background:var(--primary-light);color:var(--primary);font-weight:600}
+    .segmented input{display:none}
+
+    /* ── Topics ── */
+    .topics-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+    .topics-toolbar input[type=text]{flex:1;min-width:140px}
+    .topics-box{
+      border:1px solid var(--border);border-radius:10px;
+      background:var(--white);padding:12px;
+      max-height:280px;overflow-y:auto;
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;
+    }
+    .topic-chip{
+      padding:8px 12px;border:1px solid var(--border);
+      border-radius:8px;font-size:13px;cursor:pointer;
+      background:var(--bg);color:var(--text-muted);
+      display:flex;align-items:center;gap:8px;transition:all .13s;
+    }
+    .topic-chip:hover{border-color:var(--accent);color:var(--text)}
+    .topic-chip.picked{border-color:var(--accent);background:var(--primary-light);color:var(--primary);font-weight:600}
+    .topic-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .13s}
+    .topic-chip.picked .dot{background:var(--accent)}
+    .use-all-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .use-all-row label{font-size:13px;color:var(--text);cursor:pointer}
+    .chips-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:0}
+    .chip{
+      display:inline-flex;align-items:center;gap:4px;
+      padding:4px 10px;border-radius:999px;
+      font-size:12px;font-weight:600;
+      background:var(--primary-light);color:var(--primary);
+      border:1px solid rgba(30,58,95,0.18);
+    }
+    .chip-remove{cursor:pointer;font-size:14px;line-height:1;color:var(--primary);opacity:0.7}
+    .chip-remove:hover{opacity:1}
+    .pool-count{font-size:12px;color:var(--text-muted);margin-top:10px}
+
+    /* ── Concept mode ── */
+    .concept-search-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px}
+    .concepts-box{
+      border:1px solid var(--border);border-radius:10px;
+      background:var(--white);padding:8px;
+      max-height:200px;overflow-y:auto;
+      display:flex;flex-direction:column;gap:4px;
+    }
+    .concept-item{
+      padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer;color:var(--text-muted);
+    }
+    .concept-item:hover{background:var(--bg);color:var(--text)}
+    .concept-item.picked{background:var(--primary-light);color:var(--primary);font-weight:600}
+
+    /* ── Difficulty & Type ── */
+    .checks-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .check-item{
+      display:flex;align-items:center;gap:8px;
+      padding:10px 12px;border:1px solid var(--border);border-radius:8px;
+      cursor:pointer;background:var(--bg);transition:all .13s;
+    }
+    .check-item:hover{border-color:var(--accent)}
+    .check-item.picked{border-color:var(--accent);background:var(--primary-light)}
+    .check-item label{font-size:13px;color:var(--text);cursor:pointer;margin:0}
+    .check-item input{accent-color:var(--accent)}
+
+    /* ── Pool bar ── */
+    .pool-bar{
+      display:flex;align-items:center;justify-content:space-between;
+      background:var(--primary-light);
+      border:1px solid rgba(45,125,114,0.2);
+      border-radius:8px;padding:10px 16px;margin-top:20px;
+    }
+    .pool-bar-lbl{font-size:13px;color:var(--text-muted)}
+    .pool-bar-count{font-size:15px;font-weight:700;color:var(--primary)}
+
+    /* ── Count & Mode ── */
+    .count-display-row{display:flex;align-items:center;gap:16px;margin-bottom:8px}
+    .count-big{font-size:36px;font-weight:700;color:var(--primary);min-width:56px;line-height:1}
+    .count-sub{font-size:13px;color:var(--text-muted)}
+    .count-hint{font-size:12px;color:var(--text-muted);margin-bottom:20px}
+    .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+    .mode-card{
+      border:1.5px solid var(--border);border-radius:10px;padding:16px;
+      cursor:pointer;background:var(--bg);transition:all .15s;
+    }
+    .mode-card:hover{border-color:var(--accent)}
+    .mode-card.picked{border-color:var(--primary);background:var(--primary-light)}
+    .mode-card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+    .mode-card-desc{font-size:12px;color:var(--text-muted);line-height:1.55}
+    .mode-badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;margin-top:10px}
+    .badge-instant{background:#e8f5f3;color:#1e5049}
+    .badge-timed{background:#fef3e2;color:#7a4a0a}
+
+    /* ── Review & Build (Step 5) ── */
+    .stats-row{display:flex;gap:12px;margin-bottom:20px}
+    .stat-card{
+      flex:1;background:var(--bg);border-radius:8px;
+      padding:14px;text-align:center;border:1px solid var(--border);
+    }
+    .stat-num{font-size:24px;font-weight:700;color:var(--primary)}
+    .stat-lbl{font-size:12px;color:var(--text-muted);margin-top:4px}
+    .summary-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+    .summary-item{background:var(--bg);border-radius:8px;padding:12px 14px;border:1px solid var(--border)}
+    .summary-label{font-size:12px;color:var(--text-muted);margin-bottom:4px}
+    .summary-value{font-size:13px;font-weight:600;color:var(--text)}
+    .status-box{
+      font-size:13px;color:var(--text-muted);
+      background:var(--bg);border:1px solid var(--border);
+      border-radius:8px;padding:10px 14px;
     }
 
-    .error-text{
-      font-size:12px; color:var(--danger); margin-top:8px; display:none;
+    /* ── Empty & modal ── */
+    .empty-card{
+      background:var(--white);border:1px solid var(--border);
+      border-radius:var(--radius);padding:40px;text-align:center;
     }
-
-    .hidden{ display:none !important; }
-
     .modal-backdrop{
-      position:fixed; inset:0; background:rgba(15,23,42,0.55);
-      display:none; align-items:center; justify-content:center;
-      z-index:9999; padding:16px;
+      position:fixed;inset:0;background:rgba(15,23,42,0.55);
+      display:none;align-items:center;justify-content:center;z-index:9999;padding:16px;
     }
     .modal-card{
-      background:#fff; border-radius:18px; max-width:460px; width:100%;
-      padding:22px; box-shadow:0 24px 60px rgba(0,0,0,0.22);
+      background:#fff;border-radius:18px;max-width:460px;width:100%;
+      padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.22);
     }
-    .modal-card h3{
-      margin:0 0 8px; font-size:20px; color:var(--primary);
-    }
-    .modal-card p{
-      margin:0 0 18px; color:var(--text-muted); font-size:14px; line-height:1.6;
-    }
-    .modal-actions{
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
+    .modal-card h3{margin:0 0 8px;font-size:20px;color:var(--primary)}
+    .modal-card p{margin:0 0 18px;color:var(--text-muted);font-size:14px;line-height:1.6}
+    .modal-actions{display:flex;gap:10px;flex-wrap:wrap}
 
-    @media (max-width: 900px){
-      .form-grid-2, .summary-grid{ grid-template-columns:1fr; }
-      .form-grid-3, .pool-box{ grid-template-columns:1fr; }
+    .hidden{display:none !important}
+
+    @media(max-width:760px){
+      .field-grid,.mode-grid,.summary-grid,.stats-row{grid-template-columns:1fr}
+      .checks-grid{grid-template-columns:1fr 1fr}
+      .prog-lbl{font-size:10px}
+      .count-big{font-size:28px}
+    }
+    @media(max-width:480px){
+      .prog-circle{width:28px;height:28px;font-size:12px}
+      .checks-grid{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -300,8 +274,8 @@
   <main class="main-content">
     <div class="top-nav">
       <div class="page-header" style="margin-bottom:0">
-        <h1 id="pageTitle">Quiz Builder</h1>
-        <p id="pageSub">Build a custom quiz from one course at a time.</p>
+        <h1>Quiz Builder</h1>
+        <p style="font-size:14px;color:var(--text-muted);margin:4px 0 0">Build a custom quiz from one course at a time.</p>
       </div>
       <div class="user-menu">
         <span class="user-name" id="userName"></span>
@@ -309,1010 +283,1149 @@
       </div>
     </div>
 
-    <div id="pageContent" style="display:none;">
-      <section class="builder-hero">
-        <div>
-          <h1>Build Your Custom Quiz</h1>
-          <p>
-            Choose one course, narrow by topics or concept, pick difficulty and question type,
-            set your question count, then launch either instant practice or a timed exam.
-          </p>
-        </div>
-        <div class="hero-badge" id="heroLimitBadge">Limit: — questions</div>
-      </section>
+    <div id="pageContent" style="display:none">
 
-      <section class="recent-card" id="recentCard" style="display:none;">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Recent Builder Setups</h2>
-            <p class="step-sub">Pick one to refill the form intentionally.</p>
+      <!-- ═══════════════════════════════════════
+           PROGRESS BAR
+      ═══════════════════════════════════════ -->
+      <div class="prog-block">
+        <div class="prog-bar">
+          <div class="prog-step">
+            <div class="prog-circle active" id="pc0" data-goto="0">1</div>
+            <div class="prog-line" id="pl0"></div>
           </div>
-          <span class="step-pill" id="recentCountPill">0 saved</span>
-        </div>
-        <div id="recentList" class="recent-list"></div>
-      </section>
-
-      <section class="step-card">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 1 — Course & Selection Mode</h2>
-            <p class="step-sub">Choose your course and whether you want Topics mode or Concept mode.</p>
+          <div class="prog-step">
+            <div class="prog-circle" id="pc1" data-goto="1">2</div>
+            <div class="prog-line" id="pl1"></div>
           </div>
-          <span class="step-pill" id="coursePill">No course selected</span>
-        </div>
-
-        <div class="form-grid-2">
-          <div class="field">
-            <label for="courseSelect">Course</label>
-            <select id="courseSelect"></select>
-            <div class="hint">Only courses in your active access list can be built.</div>
-            <div class="error-text" id="courseError"></div>
+          <div class="prog-step">
+            <div class="prog-circle" id="pc2" data-goto="2">3</div>
+            <div class="prog-line" id="pl2"></div>
           </div>
+          <div class="prog-step">
+            <div class="prog-circle" id="pc3" data-goto="3">4</div>
+            <div class="prog-line" id="pl3"></div>
+          </div>
+          <div class="prog-circle" id="pc4" data-goto="4">5</div>
+        </div>
+        <div class="prog-labels">
+          <div class="prog-lbl active" id="pl-lbl0" data-goto="0">Course &amp; mode</div>
+          <div class="prog-lbl" id="pl-lbl1" data-goto="1">Topics</div>
+          <div class="prog-lbl" id="pl-lbl2" data-goto="2">Difficulty</div>
+          <div class="prog-lbl" id="pl-lbl3" data-goto="3">Count &amp; mode</div>
+          <div class="prog-lbl" id="pl-lbl4" data-goto="4">Review &amp; build</div>
+        </div>
+        <div class="prog-step-label"><strong id="stepLabelText">Step 1 of 5 — Course &amp; selection mode</strong></div>
+      </div>
 
-          <div class="field">
-            <label>Selection mode</label>
-            <div class="segmented">
-              <label><input type="radio" name="selectionMode" value="topics" checked> Topics</label>
-              <label><input type="radio" name="selectionMode" value="concept"> Concept</label>
+      <!-- ═══════════════════════════════════════
+           PANE 0 — COURSE & SELECTION MODE
+      ═══════════════════════════════════════ -->
+      <div class="pane active" id="pane0">
+        <div class="pane-card">
+          <div class="pane-title">Course &amp; selection mode</div>
+          <p class="pane-sub">Choose a course from your active subscriptions, then decide how you want to select questions.</p>
+
+          <!-- Recent setups collapsible -->
+          <div class="recent-collapse" id="recentCard" style="display:none">
+            <div class="recent-toggle" onclick="toggleRecent()">
+              <span class="recent-toggle-lbl">Recent setups <span id="recentCountPill" style="font-size:12px;font-weight:400;color:var(--text-muted)"></span></span>
+              <span class="recent-toggle-caret" id="recentCaret">▾</span>
             </div>
-            <div class="hint">Topics = choose maintopics. Concept = use subtopics and keyword matching.</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="step-card" id="topicsStep">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 2 — Topics or Concept</h2>
-            <p class="step-sub">Pick one or more maintopics, or switch to Concept mode and build around subtopics / keywords.</p>
-          </div>
-          <span class="step-pill" id="selectionPill">Nothing selected</span>
-        </div>
-
-        <div id="topicsModePane">
-          <div class="chip-toolbar">
-            <button class="btn-ghost" type="button" id="selectAllTopicsBtn">Select all shown</button>
-            <button class="btn-ghost" type="button" id="clearTopicsBtn">Clear topics</button>
-          </div>
-
-          <div class="form-grid-2">
-            <div class="field">
-              <label for="topicSearch">Filter topics</label>
-              <input id="topicSearch" type="text" placeholder="Type part of a topic name" />
-            </div>
-            <div class="field">
-              <label>&nbsp;</label>
-              <label class="inline-check">
-                <input type="checkbox" id="useAllTopics" />
-                <span>Use all topics for this course</span>
-              </label>
+            <div class="recent-body" id="recentBody">
+              <div id="recentList"></div>
             </div>
           </div>
 
-          <div class="topics-box" id="topicsBox"></div>
-          <div class="chips" id="selectedTopicChips"></div>
-        </div>
-
-        <div id="conceptModePane" class="hidden">
-          <div class="form-grid-2">
+          <div class="field-grid">
             <div class="field">
-              <label for="conceptSearch">Concept keyword</label>
-              <input id="conceptSearch" type="text" placeholder="e.g. DKA, stroke, shock" />
-              <div class="hint">This searches across subtopic, stem, rationale and maintopic.</div>
+              <label for="courseSelect">Course</label>
+              <select id="courseSelect"></select>
+              <span class="hint">Only your active courses are shown.</span>
+              <div class="error-text" id="courseError"></div>
             </div>
             <div class="field">
-              <label>&nbsp;</label>
-              <div class="chip-toolbar" style="margin-top:0;">
-                <button class="btn-ghost" type="button" id="clearConceptsBtn">Clear concepts</button>
+              <label>Selection mode</label>
+              <div class="segmented" id="selModeSegmented">
+                <label class="picked" id="segTopics"><input type="radio" name="selectionMode" value="topics" checked> Topics</label>
+                <label id="segConcept"><input type="radio" name="selectionMode" value="concept"> Concept</label>
               </div>
+              <span class="hint" id="selModeHint">Topics = choose from main topic groups.</span>
             </div>
           </div>
 
-          <div class="concept-box" id="conceptsBox"></div>
-          <div class="chips" id="selectedConceptChips"></div>
-        </div>
-
-        <div class="error-text" id="selectionError"></div>
-      </section>
-
-      <section class="step-card">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 3 — Difficulty & Question Type</h2>
-            <p class="step-sub">Use one or more filters, or leave blank to pull from all available item types.</p>
-          </div>
-          <span class="step-pill" id="filterPill">All difficulties • All types</span>
-        </div>
-
-        <div class="form-grid-2">
-          <div class="field">
-            <label>Difficulty</label>
-            <div class="form-grid-3" id="difficultyChecks"></div>
-          </div>
-          <div class="field">
-            <label>Question type</label>
-            <div class="form-grid-3" id="questionTypeChecks"></div>
+          <div class="nav-bar">
+            <span></span>
+            <button class="btn-next" onclick="goStep(1)">Next →</button>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section class="step-card">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 4 — Question Count & Mode</h2>
-            <p class="step-sub">The visible limit comes from your config rule, and the live pool count shows how many items currently match.</p>
-          </div>
-          <span class="step-pill" id="countPill">—</span>
-        </div>
+      <!-- ═══════════════════════════════════════
+           PANE 1 — TOPICS / CONCEPT
+      ═══════════════════════════════════════ -->
+      <div class="pane" id="pane1">
+        <div class="pane-card">
+          <div class="pane-title" id="pane1Title">Topics</div>
+          <p class="pane-sub" id="pane1Sub">Select one or more topics to draw questions from.</p>
 
-        <div class="form-grid-2">
-          <div class="field">
-            <label for="questionCount">Number of questions</label>
-            <input id="questionCount" type="number" min="1" />
-            <div class="hint" id="limitHint">You can build up to — questions.</div>
-            <div class="error-text" id="countError"></div>
-          </div>
-
-          <div class="field">
-            <label>Mode</label>
-            <div class="segmented">
-              <label><input type="radio" name="quizMode" value="instant" checked> Instant</label>
-              <label><input type="radio" name="quizMode" value="timed"> Timed</label>
+          <!-- TOPICS MODE -->
+          <div id="topicsModePane">
+            <div class="use-all-row">
+              <input type="checkbox" id="useAllTopics" />
+              <label for="useAllTopics">Use all topics for this course</label>
             </div>
-            <div class="hint" id="modeHint">Timed mode uses 1 minute per question unless admin overrides it later.</div>
+            <div class="topics-toolbar">
+              <input type="text" id="topicSearch" placeholder="Filter topics…" />
+              <button class="btn-lite" id="selectAllTopicsBtn">Select all shown</button>
+              <button class="btn-lite" id="clearTopicsBtn">Clear</button>
+            </div>
+            <div class="topics-box" id="topicsBox"></div>
+            <div class="chips-row" id="selectedTopicChips"></div>
+          </div>
+
+          <!-- CONCEPT MODE -->
+          <div id="conceptModePane" class="hidden">
+            <div class="concept-search-row">
+              <input type="text" id="conceptSearch" placeholder="e.g. DKA, stroke, shock…" />
+              <button class="btn-lite" id="clearConceptsBtn">Clear</button>
+            </div>
+            <span class="hint" style="display:block;margin-bottom:8px">Searches across subtopic, stem, rationale and maintopic.</span>
+            <div class="concepts-box" id="conceptsBox"></div>
+            <div class="chips-row" id="selectedConceptChips"></div>
+          </div>
+
+          <div class="error-text" id="selectionError"></div>
+
+          <div class="nav-bar">
+            <button class="btn-back" onclick="goStep(0)">← Back</button>
+            <button class="btn-next" onclick="goStep(2)">Next →</button>
           </div>
         </div>
+      </div>
 
-        <div class="pool-box" style="margin-top:16px;">
-          <div class="pool-stat">
-            <div class="label">Matching pool</div>
-            <div class="value" id="poolCountValue">0</div>
+      <!-- ═══════════════════════════════════════
+           PANE 2 — DIFFICULTY & QUESTION TYPE
+      ═══════════════════════════════════════ -->
+      <div class="pane" id="pane2">
+        <div class="pane-card">
+          <div class="pane-title">Difficulty &amp; question type</div>
+          <p class="pane-sub">Narrow your pool by difficulty and question format. Leave blank to include all.</p>
+
+          <div class="field-grid">
+            <div class="field">
+              <label>Difficulty</label>
+              <div class="checks-grid" id="difficultyChecks"></div>
+            </div>
+            <div class="field">
+              <label>Question type</label>
+              <div class="checks-grid" id="questionTypeChecks"></div>
+            </div>
           </div>
-          <div class="pool-stat">
-            <div class="label">Selected count</div>
-            <div class="value" id="selectedCountValue">0</div>
+
+          <div class="pool-bar">
+            <span class="pool-bar-lbl">Questions matching your filters</span>
+            <span class="pool-bar-count"><span id="poolCountValue">—</span> available</span>
           </div>
-          <div class="pool-stat">
-            <div class="label">Estimated time</div>
-            <div class="value" id="estimatedTimeValue">0 min</div>
+
+          <div class="nav-bar">
+            <button class="btn-back" onclick="goStep(1)">← Back</button>
+            <button class="btn-next" onclick="goStep(3)">Next →</button>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section class="summary-card">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 5 — Review & Build</h2>
-            <p class="step-sub">Check the setup before creating a fresh builder attempt.</p>
-          </div>
-          <span class="step-pill" id="reviewPill">Not ready yet</span>
-        </div>
+      <!-- ═══════════════════════════════════════
+           PANE 3 — COUNT & MODE
+      ═══════════════════════════════════════ -->
+      <div class="pane" id="pane3">
+        <div class="pane-card">
+          <div class="pane-title">Count &amp; mode</div>
+          <p class="pane-sub">How many questions, and how do you want to take the quiz?</p>
 
-        <div class="summary-grid">
-          <div class="summary-item">
-            <div class="summary-label">Course</div>
-            <div class="summary-value" id="summaryCourse">—</div>
+          <div class="count-display-row">
+            <div>
+              <div class="count-big" id="countDisplay">20</div>
+              <div class="count-sub">questions</div>
+            </div>
+            <input type="range" id="questionCount" min="1" max="50" value="20" step="1"
+              style="flex:1" oninput="onCountSlider(this.value)" />
           </div>
-          <div class="summary-item">
-            <div class="summary-label">Selection mode</div>
-            <div class="summary-value" id="summaryMode">—</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-label">Topics / Concept</div>
-            <div class="summary-value" id="summarySelection">—</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-label">Difficulty</div>
-            <div class="summary-value" id="summaryDifficulty">—</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-label">Question type</div>
-            <div class="summary-value" id="summaryQuestionType">—</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-label">Quiz setup</div>
-            <div class="summary-value" id="summarySetup">—</div>
-          </div>
-        </div>
+          <div class="count-hint" id="limitHint">Max <span id="limitMax">50</span> questions · estimated <span id="estimatedTimeValue">—</span></div>
 
-        <div class="actions">
-          <div class="muted-box" id="statusBox">
-            Choose a course to begin.
+          <label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:10px">Mode</label>
+          <div class="mode-grid">
+            <div class="mode-card picked" id="modeInstantCard" onclick="pickMode('instant')">
+              <div class="mode-card-title">Instant feedback</div>
+              <div class="mode-card-desc">See whether each answer is correct as you go. Best for learning and revision.</div>
+              <span class="mode-badge badge-instant">Practice</span>
+              <input type="radio" name="quizMode" value="instant" checked style="display:none" id="modeInstantRadio" />
+            </div>
+            <div class="mode-card" id="modeTimedCard" onclick="pickMode('timed')">
+              <div class="mode-card-title">Timed exam</div>
+              <div class="mode-card-desc">No feedback during the quiz. Review everything at the end. Simulates the real exam.</div>
+              <span class="mode-badge badge-timed">Exam-style</span>
+              <input type="radio" name="quizMode" value="timed" style="display:none" id="modeTimedRadio" />
+            </div>
           </div>
+          <div class="error-text" id="countError"></div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:10px" id="modeHint"></div>
 
-          <div class="actions-right">
-            <a class="btn-ghost" href="/mynmclicensure/student/dashboard.html">Cancel</a>
-            <button class="btn-primary" id="buildBtn" type="button" disabled>Build Quiz</button>
+          <div class="nav-bar">
+            <button class="btn-back" onclick="goStep(2)">← Back</button>
+            <button class="btn-next" onclick="goStep(4)">Next →</button>
           </div>
         </div>
-      </section>
-    </div>
+      </div>
 
-    <div id="emptyState" class="empty-card" style="display:none;">
-      <h2 style="margin-top:0;color:var(--primary);">No Builder Access</h2>
-      <p style="color:var(--text-muted);font-size:14px;line-height:1.6;">
-        You do not currently have access to any course that can be used in the quiz builder.
-      </p>
+      <!-- ═══════════════════════════════════════
+           PANE 4 — REVIEW & BUILD
+      ═══════════════════════════════════════ -->
+      <div class="pane" id="pane4">
+        <div class="pane-card">
+          <div class="pane-title">Review &amp; build</div>
+          <p class="pane-sub">Check your setup, then build the quiz.</p>
+
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-num" id="poolCountValue2">—</div>
+              <div class="stat-lbl">Pool size</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="selectedCountValue">—</div>
+              <div class="stat-lbl">Questions selected</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="estimatedTimeValue2">—</div>
+              <div class="stat-lbl">Estimated time</div>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-item">
+              <div class="summary-label">Course</div>
+              <div class="summary-value" id="summaryCourse">—</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Selection mode</div>
+              <div class="summary-value" id="summaryMode">—</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Topics / concept</div>
+              <div class="summary-value" id="summarySelection">—</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Difficulty</div>
+              <div class="summary-value" id="summaryDifficulty">—</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Question type</div>
+              <div class="summary-value" id="summaryQuestionType">—</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">Mode</div>
+              <div class="summary-value" id="summarySetup">—</div>
+            </div>
+          </div>
+
+          <div class="status-box" id="statusBox">Choose a course to begin.</div>
+
+          <div class="nav-bar">
+            <button class="btn-back" onclick="goStep(3)">← Back</button>
+            <button class="btn-build" id="buildBtn" disabled>Build quiz →</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /pageContent -->
+
+    <!-- Empty state -->
+    <div id="emptyState" class="empty-card" style="display:none">
+      <h2 style="margin-top:0;color:var(--primary)">No builder access</h2>
+      <p style="color:var(--text-muted);font-size:14px;line-height:1.6">You do not currently have access to any course that can be used in the quiz builder.</p>
       <a href="/mynmclicensure/student/dashboard.html" class="btn-primary">Back to dashboard</a>
     </div>
+
   </main>
 </div>
 
+<!-- Access modal -->
 <div class="modal-backdrop" id="accessModal">
   <div class="modal-card">
     <h3>Course not available</h3>
-    <p id="accessModalText">
-      You do not have an active subscription for this course.
-    </p>
+    <p id="accessModalText">You do not have an active subscription for this course.</p>
     <div class="modal-actions">
-      <a href="/mynmclicensure/student/dashboard.html" class="btn-primary">Go to dashboard</a>
-      <a href="/mynmclicensure/student/course.html" id="courseModalBtn" class="btn-ghost">Go to course page</a>
-      <button type="button" class="btn-lite" id="closeAccessModal">Stay here</button>
+      <button class="btn-ghost" id="closeAccessModal">Close</button>
+      <a class="btn-primary" id="courseModalBtn" href="#">View course</a>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- ═══════════════════════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════════════════════ -->
 <script src="/js/config.js"></script>
-<script src="/js/guard.js"></script>
-<script src="/js/mynmclicensure-api.js"></script>
 <script src="/js/paths.js"></script>
+<script src="/js/mynmclicensure-api.js"></script>
+<script src="/js/guard.js"></script>
 <script src="/js/mynmclicensure-student-sidebar.js"></script>
 <script>
-  let PROFILE = null;
-  let CONFIG = {};
-  let COURSES = [];
-  let COURSE_ACCESS = {};
-  let CURRENT_ITEMS = [];
-  let CURRENT_FILTER_OPTIONS = {};
-  let EFFECTIVE_LIMIT = 50;
-  let MINUTES_PER_QUESTION = 1;
 
-  const RECENT_KEY = 'qa_builder_recent_v1';
+// ─────────────────────────────────────────────
+// WIZARD CONTROLLER
+// ─────────────────────────────────────────────
+const STEP_LABELS = [
+  'Step 1 of 5 — Course &amp; selection mode',
+  'Step 2 of 5 — Topics',
+  'Step 3 of 5 — Difficulty &amp; question type',
+  'Step 4 of 5 — Count &amp; mode',
+  'Step 5 of 5 — Review &amp; build'
+];
 
-  const state = {
-    courseId: '',
-    selectionMode: 'topics',
-    topicSearch: '',
-    useAllTopics: false,
-    selectedTopics: [],
-    conceptSearch: '',
-    selectedConcepts: [],
-    selectedDifficulties: [],
-    selectedQuestionTypes: [],
-    questionCount: 0,
-    mode: 'instant'
-  };
+let currentStep = 0;
 
-  const el = {};
+function goStep(n) {
+  // hide all panes
+  document.querySelectorAll('.pane').forEach((p, i) => p.classList.toggle('active', i === n));
 
-  function byId(id){ return document.getElementById(id); }
-
-  function escapeHtml(str){
-    return String(str || '')
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;');
-  }
-
-  function normaliseArray(arr){
-    return [...new Set((arr || []).map(v => String(v || '').trim()).filter(Boolean))];
-  }
-
-  function effectiveBuilderLimit(config){
-    const def = Number(config.builder_default_questions);
-    const max = Number(config.builder_max_questions);
-    const safeDef = Number.isFinite(def) && def > 0 ? def : 50;
-    const safeMax = Number.isFinite(max) && max > 0 ? max : 50;
-    return Math.max(safeDef, safeMax);
-  }
-
-  function getCourseTitle(courseId){
-    const course = COURSES.find(c => c.course_id === courseId);
-    return course ? course.title : courseId || '—';
-  }
-
-  function currentSelectionMode(){
-    return state.selectionMode === 'concept' ? 'concept' : 'topics';
-  }
-
-  function currentMode(){
-    return state.mode === 'timed' ? 'timed' : 'instant';
-  }
-
-  function shuffleArray(arr){
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  function getFilteredPool(){
-    const mode = currentSelectionMode();
-    let rows = [...CURRENT_ITEMS];
-
-    if (mode === 'topics') {
-      if (!state.useAllTopics) {
-        const selected = new Set(state.selectedTopics);
-        rows = rows.filter(r => selected.has(String(r.maintopic || '').trim()));
-      }
+  // update progress circles
+  for (let i = 0; i < 5; i++) {
+    const circle = document.getElementById('pc' + i);
+    circle.classList.remove('active', 'done');
+    if (i < n) {
+      circle.classList.add('done');
+      circle.textContent = '✓';
+    } else if (i === n) {
+      circle.classList.add('active');
+      circle.textContent = String(i + 1);
     } else {
-      const selectedConcepts = new Set(state.selectedConcepts);
-      const kw = String(state.conceptSearch || '').trim().toLowerCase();
-
-      if (selectedConcepts.size > 0) {
-        rows = rows.filter(r => selectedConcepts.has(String(r.subtopic || '').trim()));
-      }
-
-      if (kw) {
-        rows = rows.filter(r => {
-          const hay = [
-            r.subtopic,
-            r.stem,
-            r.rationale,
-            r.maintopic,
-            r.subject
-          ].join(' ').toLowerCase();
-          return hay.includes(kw);
-        });
-      }
+      circle.textContent = String(i + 1);
     }
-
-    if (state.selectedDifficulties.length) {
-      const set = new Set(state.selectedDifficulties);
-      rows = rows.filter(r => set.has(String(r.difficulty || '').trim()));
-    }
-
-    if (state.selectedQuestionTypes.length) {
-      const set = new Set(state.selectedQuestionTypes);
-      rows = rows.filter(r => set.has(String(r.question_type || '').trim()));
-    }
-
-    return rows;
   }
 
-  function selectionIsValid(){
-    if (!state.courseId) return false;
-
-    if (currentSelectionMode() === 'topics') {
-      return state.useAllTopics || state.selectedTopics.length > 0;
-    }
-
-    return state.selectedConcepts.length > 0 || !!String(state.conceptSearch || '').trim();
+  // update connector lines
+  for (let i = 0; i < 4; i++) {
+    const line = document.getElementById('pl' + i);
+    if (line) line.classList.toggle('done', i < n);
   }
 
-  function getCountErrorText(poolCount){
-    const n = Number(state.questionCount || 0);
-    if (!n || n < 1) return 'Enter a valid number of questions.';
-    if (n > EFFECTIVE_LIMIT) return `Reduce the number to ${EFFECTIVE_LIMIT} or below.`;
-    if (poolCount > 0 && n > poolCount) return `Your current filters support up to ${poolCount} questions.`;
-    return '';
+  // update labels
+  for (let i = 0; i < 5; i++) {
+    const lbl = document.getElementById('pl-lbl' + i);
+    lbl.classList.remove('active', 'done');
+    if (i < n) lbl.classList.add('done');
+    else if (i === n) lbl.classList.add('active');
   }
 
-  function buildReady(){
-    const pool = getFilteredPool();
-    const err = getCountErrorText(pool.length);
-    return !!state.courseId && selectionIsValid() && !err && pool.length > 0;
-  }
+  // step text
+  document.getElementById('stepLabelText').innerHTML = STEP_LABELS[n];
 
-  function saveRecentSetup(){
-    const payload = {
+  // update pane 1 title based on selection mode
+  if (n === 1) updatePane1Title();
+
+  // sync review stats when landing on step 5
+  if (n === 4) syncReviewStats();
+
+  currentStep = n;
+
+  // scroll to top of progress bar
+  document.querySelector('.prog-block').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Wire up progress bar clicks (free navigation)
+document.querySelectorAll('[data-goto]').forEach(el => {
+  el.addEventListener('click', () => goStep(Number(el.getAttribute('data-goto'))));
+});
+
+function updatePane1Title() {
+  const isConcept = state && state.selectionMode === 'concept';
+  document.getElementById('pane1Title').textContent = isConcept ? 'Concept search' : 'Topics';
+  document.getElementById('pane1Sub').textContent = isConcept
+    ? 'Search for a concept keyword and select matching subtopics.'
+    : 'Select one or more topics to draw questions from.';
+}
+
+function onCountSlider(val) {
+  const n = Math.min(Math.max(Number(val), 1), EFFECTIVE_LIMIT);
+  state.questionCount = n;
+  document.getElementById('countDisplay').textContent = n;
+  renderSummary();
+}
+
+function pickMode(mode) {
+  state.mode = mode;
+  document.getElementById('modeInstantCard').classList.toggle('picked', mode === 'instant');
+  document.getElementById('modeTimedCard').classList.toggle('picked', mode === 'timed');
+  document.getElementById('modeInstantRadio').checked = mode === 'instant';
+  document.getElementById('modeTimedRadio').checked = mode === 'timed';
+  renderSummary();
+}
+
+function syncReviewStats() {
+  const pool = getFilteredPool();
+  const n = Number(state.questionCount || 0);
+  const poolEl2 = document.getElementById('poolCountValue2');
+  const selEl = document.getElementById('selectedCountValue');
+  const timeEl2 = document.getElementById('estimatedTimeValue2');
+  if (poolEl2) poolEl2.textContent = pool.length;
+  if (selEl) selEl.textContent = Math.min(n, pool.length);
+  if (timeEl2) timeEl2.textContent = Math.ceil(Math.min(n, pool.length) * MINUTES_PER_QUESTION) + ' min';
+}
+
+// Recent setups toggle
+function toggleRecent() {
+  const body = document.getElementById('recentBody');
+  const caret = document.getElementById('recentCaret');
+  const open = body.classList.toggle('open');
+  caret.classList.toggle('open', open);
+}
+
+// ─────────────────────────────────────────────
+// ORIGINAL QUIZ BUILDER LOGIC (unchanged)
+// ─────────────────────────────────────────────
+
+const byId = id => document.getElementById(id);
+
+let PROFILE = null;
+let CONFIG = {};
+let EFFECTIVE_LIMIT = 50;
+let MINUTES_PER_QUESTION = 1;
+let COURSE_ACCESS = {};
+let COURSES = [];
+let CURRENT_ITEMS = [];
+let CURRENT_FILTER_OPTIONS = {};
+
+const state = {
+  courseId: '',
+  selectionMode: 'topics',
+  useAllTopics: false,
+  selectedTopics: [],
+  topicSearch: '',
+  conceptSearch: '',
+  selectedConcepts: [],
+  selectedDifficulties: [],
+  selectedQuestionTypes: [],
+  questionCount: 20,
+  mode: 'instant'
+};
+
+const el = {};
+
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function normaliseArray(arr) {
+  return [...new Set((arr || []).map(x => String(x || '').trim()).filter(Boolean))];
+}
+
+function currentSelectionMode() { return state.selectionMode; }
+function currentMode() { return state.mode; }
+
+function effectiveBuilderLimit(cfg) {
+  const max = Number(cfg.builder_max_questions);
+  return max > 0 ? max : 50;
+}
+
+function getCourseTitle(courseId) {
+  const c = COURSES.find(x => x.course_id === courseId);
+  return c ? c.title : courseId;
+}
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── Recent setups (localStorage) ──
+const RECENT_KEY = 'qb_recent_setups';
+const RECENT_MAX = 5;
+
+function readRecentSetups() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(_) { return []; }
+}
+
+function saveRecentSetup() {
+  try {
+    const existing = readRecentSetups();
+    const entry = {
       courseId: state.courseId,
       selectionMode: state.selectionMode,
-      useAllTopics: !!state.useAllTopics,
+      useAllTopics: state.useAllTopics,
       selectedTopics: [...state.selectedTopics],
       conceptSearch: state.conceptSearch,
       selectedConcepts: [...state.selectedConcepts],
       selectedDifficulties: [...state.selectedDifficulties],
       selectedQuestionTypes: [...state.selectedQuestionTypes],
-      questionCount: Number(state.questionCount || 0),
+      questionCount: state.questionCount,
       mode: state.mode,
-      savedAt: new Date().toISOString()
+      savedAt: Date.now()
     };
+    const filtered = existing.filter(x => !(x.courseId === entry.courseId && x.selectionMode === entry.selectionMode));
+    const updated = [entry, ...filtered].slice(0, RECENT_MAX);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+  } catch(_) {}
+}
 
-    let arr = [];
-    try {
-      arr = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-      if (!Array.isArray(arr)) arr = [];
-    } catch(_) { arr = []; }
+function applyRecentSetup(item) {
+  state.courseId = item.courseId || '';
+  state.selectionMode = item.selectionMode === 'concept' ? 'concept' : 'topics';
+  state.useAllTopics = !!item.useAllTopics;
+  state.selectedTopics = normaliseArray(item.selectedTopics);
+  state.conceptSearch = String(item.conceptSearch || '');
+  state.selectedConcepts = normaliseArray(item.selectedConcepts);
+  state.selectedDifficulties = normaliseArray(item.selectedDifficulties);
+  state.selectedQuestionTypes = normaliseArray(item.selectedQuestionTypes);
+  state.questionCount = Math.min(Number(item.questionCount || EFFECTIVE_LIMIT), EFFECTIVE_LIMIT);
+  syncFormFromState();
+  handleCourseChange(true).then(() => goStep(4));
+}
 
-    arr = arr.filter(x =>
-      !(x.courseId === payload.courseId &&
-        x.selectionMode === payload.selectionMode &&
-        JSON.stringify(x.selectedTopics || []) === JSON.stringify(payload.selectedTopics) &&
-        JSON.stringify(x.selectedConcepts || []) === JSON.stringify(payload.selectedConcepts) &&
-        JSON.stringify(x.selectedDifficulties || []) === JSON.stringify(payload.selectedDifficulties) &&
-        JSON.stringify(x.selectedQuestionTypes || []) === JSON.stringify(payload.selectedQuestionTypes) &&
-        Number(x.questionCount || 0) === Number(payload.questionCount || 0) &&
-        x.mode === payload.mode)
-    );
+function renderRecentSetups() {
+  const list = readRecentSetups();
+  const card = byId('recentCard');
+  const area = byId('recentList');
+  if (!list.length) { card.style.display = 'none'; return; }
 
-    arr.unshift(payload);
-    arr = arr.slice(0, 3);
+  card.style.display = 'block';
+  byId('recentCountPill').textContent = `— ${list.length} saved`;
+  area.innerHTML = '';
 
-    localStorage.setItem(RECENT_KEY, JSON.stringify(arr));
-    renderRecentSetups();
-  }
+  list.forEach((item, idx) => {
+    const title = getCourseTitle(item.courseId);
+    const modeLabel = item.selectionMode === 'concept' ? 'Concept' : 'Topics';
+    const dt = item.savedAt
+      ? new Date(item.savedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : 'Saved';
+    const sub = `${modeLabel} · ${item.questionCount || '—'}Q · ${item.mode === 'timed' ? 'Timed' : 'Instant'} · ${dt}`;
 
-  function readRecentSetups(){
-    try {
-      const arr = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-      return Array.isArray(arr) ? arr : [];
-    } catch(_) {
-      return [];
-    }
-  }
-
-  function applyRecentSetup(item){
-    state.courseId = item.courseId || '';
-    state.selectionMode = item.selectionMode === 'concept' ? 'concept' : 'topics';
-    state.useAllTopics = !!item.useAllTopics;
-    state.selectedTopics = normaliseArray(item.selectedTopics);
-    state.conceptSearch = String(item.conceptSearch || '');
-    state.selectedConcepts = normaliseArray(item.selectedConcepts);
-    state.selectedDifficulties = normaliseArray(item.selectedDifficulties);
-    state.selectedQuestionTypes = normaliseArray(item.selectedQuestionTypes);
-    state.questionCount = Math.min(
-      Number(item.questionCount || EFFECTIVE_LIMIT),
-      EFFECTIVE_LIMIT
-    );
-    state.mode = item.mode === 'timed' ? 'timed' : 'instant';
-
-    syncFormFromState();
-    handleCourseChange(true);
-  }
-
-  function renderRecentSetups(){
-    const list = readRecentSetups();
-    const card = el.recentCard;
-    const area = el.recentList;
-
-    if (!list.length) {
-      card.style.display = 'none';
-      return;
-    }
-
-    card.style.display = 'block';
-    el.recentCountPill.textContent = `${list.length} saved`;
-    area.innerHTML = '';
-
-    list.forEach((item, idx) => {
-      const title = getCourseTitle(item.courseId);
-      const modeLabel = item.selectionMode === 'concept' ? 'Concept' : 'Topics';
-      const dt = item.savedAt
-        ? new Date(item.savedAt).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
-        : 'Saved';
-      const sub = `${modeLabel} • ${item.questionCount || '—'}Q • ${(item.mode || 'instant')}`;
-
-      const row = document.createElement('div');
-      row.className = 'recent-item';
-      row.innerHTML = `
-        <div class="recent-main">
-          <div class="recent-title">${escapeHtml(title)}</div>
-          <div class="recent-sub">${escapeHtml(sub)} • ${escapeHtml(dt)}</div>
-        </div>
-        <div>
-          <button class="btn-lite" type="button" data-idx="${idx}">Use this setup</button>
-        </div>
-      `;
-      area.appendChild(row);
-    });
-
-    area.querySelectorAll('button[data-idx]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = Number(btn.getAttribute('data-idx'));
-        const items = readRecentSetups();
-        if (items[idx]) applyRecentSetup(items[idx]);
-      });
-    });
-  }
-
-  function syncFormFromState(){
-    el.courseSelect.value = state.courseId || '';
-    document.querySelectorAll('input[name="selectionMode"]').forEach(r => {
-      r.checked = r.value === state.selectionMode;
-    });
-    el.topicSearch.value = state.topicSearch || '';
-    el.useAllTopics.checked = !!state.useAllTopics;
-    el.conceptSearch.value = state.conceptSearch || '';
-    el.questionCount.value = String(state.questionCount || EFFECTIVE_LIMIT);
-
-    document.querySelectorAll('input[name="quizMode"]').forEach(r => {
-      r.checked = r.value === state.mode;
-    });
-  }
-
-  function renderDifficultyChecks(){
-    const values = CURRENT_FILTER_OPTIONS.difficulties || [];
-    el.difficultyChecks.innerHTML = values.length
-      ? values.map(v => `
-          <label class="inline-check">
-            <input type="checkbox" class="difficulty-check" value="${escapeHtml(v)}" ${state.selectedDifficulties.includes(v) ? 'checked' : ''}/>
-            <span>${escapeHtml(v)}</span>
-          </label>
-        `).join('')
-      : `<div class="muted-box">No difficulty values found for this course.</div>`;
-
-    el.difficultyChecks.querySelectorAll('.difficulty-check').forEach(ch => {
-      ch.addEventListener('change', () => {
-        state.selectedDifficulties = normaliseArray(
-          Array.from(el.difficultyChecks.querySelectorAll('.difficulty-check:checked')).map(x => x.value)
-        );
-        renderAll();
-      });
-    });
-  }
-
-  function renderQuestionTypeChecks(){
-    const values = CURRENT_FILTER_OPTIONS.question_types || [];
-    el.questionTypeChecks.innerHTML = values.length
-      ? values.map(v => `
-          <label class="inline-check">
-            <input type="checkbox" class="type-check" value="${escapeHtml(v)}" ${state.selectedQuestionTypes.includes(v) ? 'checked' : ''}/>
-            <span>${escapeHtml(v)}</span>
-          </label>
-        `).join('')
-      : `<div class="muted-box">No question-type values found for this course.</div>`;
-
-    el.questionTypeChecks.querySelectorAll('.type-check').forEach(ch => {
-      ch.addEventListener('change', () => {
-        state.selectedQuestionTypes = normaliseArray(
-          Array.from(el.questionTypeChecks.querySelectorAll('.type-check:checked')).map(x => x.value)
-        );
-        renderAll();
-      });
-    });
-  }
-
-  function renderTopics(){
-    const allTopics = CURRENT_FILTER_OPTIONS.maintopics || [];
-    const filtered = allTopics.filter(t =>
-      String(t).toLowerCase().includes(String(state.topicSearch || '').toLowerCase())
-    );
-
-    const counts = {};
-    CURRENT_ITEMS.forEach(r => {
-      const key = String(r.maintopic || '').trim();
-      if (!key) return;
-      counts[key] = (counts[key] || 0) + 1;
-    });
-
-    if (!filtered.length) {
-      el.topicsBox.innerHTML = `<div class="muted-box">No topics match the current filter.</div>`;
-      return;
-    }
-
-    el.topicsBox.innerHTML = filtered.map(topic => `
-      <div class="topic-row" data-topic="${escapeHtml(topic)}">
-        <div class="topic-left">
-          <input type="checkbox" ${state.selectedTopics.includes(topic) ? 'checked' : ''} ${state.useAllTopics ? 'disabled' : ''}/>
-          <div class="topic-name">${escapeHtml(topic)}</div>
-        </div>
-        <div class="topic-count">${counts[topic] || 0}</div>
+    const row = document.createElement('div');
+    row.className = 'recent-item';
+    row.innerHTML = `
+      <div class="recent-main">
+        <div class="recent-title">${escapeHtml(title)}</div>
+        <div class="recent-sub">${escapeHtml(sub)}</div>
       </div>
-    `).join('');
+      <button class="btn-lite" type="button" data-idx="${idx}">Use this</button>`;
+    area.appendChild(row);
+  });
 
-    el.topicsBox.querySelectorAll('.topic-row').forEach(row => {
-      row.addEventListener('click', () => {
-        if (state.useAllTopics) return;
-        const topic = row.getAttribute('data-topic');
-        const next = new Set(state.selectedTopics);
-        if (next.has(topic)) next.delete(topic);
-        else next.add(topic);
-        state.selectedTopics = [...next];
-        renderAll();
-      });
-    });
-
-    el.selectedTopicChips.innerHTML = state.selectedTopics.length
-      ? state.selectedTopics.map(topic => `
-          <span class="chip">${escapeHtml(topic)} <button type="button" data-topic="${escapeHtml(topic)}">✕</button></span>
-        `).join('')
-      : '';
-
-    el.selectedTopicChips.querySelectorAll('button[data-topic]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const topic = btn.getAttribute('data-topic');
-        state.selectedTopics = state.selectedTopics.filter(t => t !== topic);
-        renderAll();
-      });
-    });
-  }
-
-  function renderConcepts(){
-    const counts = {};
-    CURRENT_ITEMS.forEach(r => {
-      const key = String(r.subtopic || '').trim();
-      if (!key) return;
-      counts[key] = (counts[key] || 0) + 1;
-    });
-
-    const allConcepts = Object.keys(counts).sort((a, b) => a.localeCompare(b));
-    const filtered = allConcepts.filter(c =>
-      String(c).toLowerCase().includes(String(state.conceptSearch || '').toLowerCase())
-    );
-
-    if (!filtered.length) {
-      el.conceptsBox.innerHTML = `<div class="muted-box">No concept suggestions match the current keyword.</div>`;
-    } else {
-      el.conceptsBox.innerHTML = filtered.map(concept => `
-        <div class="concept-row" data-concept="${escapeHtml(concept)}">
-          <div class="concept-left">
-            <input type="checkbox" ${state.selectedConcepts.includes(concept) ? 'checked' : ''}/>
-            <div class="concept-name">${escapeHtml(concept)}</div>
-          </div>
-          <div class="concept-count">${counts[concept] || 0}</div>
-        </div>
-      `).join('');
-
-      el.conceptsBox.querySelectorAll('.concept-row').forEach(row => {
-        row.addEventListener('click', () => {
-          const concept = row.getAttribute('data-concept');
-          const next = new Set(state.selectedConcepts);
-          if (next.has(concept)) next.delete(concept);
-          else next.add(concept);
-          state.selectedConcepts = [...next];
-          renderAll();
-        });
-      });
-    }
-
-    el.selectedConceptChips.innerHTML = state.selectedConcepts.length
-      ? state.selectedConcepts.map(concept => `
-          <span class="chip">${escapeHtml(concept)} <button type="button" data-concept="${escapeHtml(concept)}">✕</button></span>
-        `).join('')
-      : '';
-
-    el.selectedConceptChips.querySelectorAll('button[data-concept]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const concept = btn.getAttribute('data-concept');
-        state.selectedConcepts = state.selectedConcepts.filter(t => t !== concept);
-        renderAll();
-      });
-    });
-  }
-
-  function renderSummary(){
-    const pool = getFilteredPool();
-    const poolCount = pool.length;
-    const countErr = getCountErrorText(poolCount);
-    const selectionText = currentSelectionMode() === 'topics'
-      ? (state.useAllTopics ? 'All topics' : (state.selectedTopics.length ? state.selectedTopics.join(', ') : 'None'))
-      : ((state.selectedConcepts.length ? `Concepts: ${state.selectedConcepts.join(', ')}` : '') +
-         (state.conceptSearch ? `${state.selectedConcepts.length ? ' • ' : ''}Keyword: ${state.conceptSearch}` : '') || 'None');
-
-    const diffText = state.selectedDifficulties.length ? state.selectedDifficulties.join(', ') : 'All difficulties';
-    const typeText = state.selectedQuestionTypes.length ? state.selectedQuestionTypes.join(', ') : 'All question types';
-
-    el.summaryCourse.textContent = getCourseTitle(state.courseId);
-    el.summaryMode.textContent = currentSelectionMode() === 'topics' ? 'Topics mode' : 'Concept mode';
-    el.summarySelection.textContent = selectionText;
-    el.summaryDifficulty.textContent = diffText;
-    el.summaryQuestionType.textContent = typeText;
-    el.summarySetup.textContent = `${state.questionCount || 0} questions • ${currentMode()} • ${Math.ceil((state.questionCount || 0) * MINUTES_PER_QUESTION)} min`;
-
-    el.poolCountValue.textContent = String(poolCount);
-    el.selectedCountValue.textContent = String(state.questionCount || 0);
-    el.estimatedTimeValue.textContent = `${Math.ceil((state.questionCount || 0) * MINUTES_PER_QUESTION)} min`;
-
-    el.limitHint.textContent = `You can build up to ${EFFECTIVE_LIMIT} questions.`;
-    el.heroLimitBadge.textContent = `Limit: ${EFFECTIVE_LIMIT} questions`;
-    el.countPill.textContent = `${state.questionCount || 0} selected`;
-    el.coursePill.textContent = state.courseId ? getCourseTitle(state.courseId) : 'No course selected';
-    el.selectionPill.textContent = selectionIsValid() ? 'Selection ready' : 'Selection incomplete';
-    el.filterPill.textContent = `${diffText} • ${typeText}`;
-    el.reviewPill.textContent = buildReady() ? 'Ready to build' : 'Not ready yet';
-
-    el.statusBox.textContent = !state.courseId
-      ? 'Choose a course to begin.'
-      : countErr
-        ? countErr
-        : poolCount === 0
-          ? 'No questions match the current filters.'
-          : `Ready. This build will create a fresh ${currentMode()} attempt from ${poolCount} matching items.`;
-
-    el.buildBtn.disabled = !buildReady();
-    el.courseError.style.display = 'none';
-    el.selectionError.style.display = selectionIsValid() ? 'none' : 'block';
-    if (!selectionIsValid()) {
-      el.selectionError.textContent = currentSelectionMode() === 'topics'
-        ? 'Select at least one topic or use all topics.'
-        : 'Choose at least one concept or type a concept keyword.';
-    }
-
-    el.countError.style.display = countErr ? 'block' : 'none';
-    el.countError.textContent = countErr || '';
-
-    el.modeHint.textContent = currentMode() === 'timed'
-      ? `Timed mode will start with ${Math.ceil((state.questionCount || 0) * MINUTES_PER_QUESTION)} minute(s).`
-      : 'Instant mode shows feedback immediately while you work.';
-  }
-
-  function renderModePanes(){
-    const concept = currentSelectionMode() === 'concept';
-    el.topicsModePane.classList.toggle('hidden', concept);
-    el.conceptModePane.classList.toggle('hidden', !concept);
-  }
-
-  function renderAll(){
-    renderModePanes();
-    renderDifficultyChecks();
-    renderQuestionTypeChecks();
-    renderTopics();
-    renderConcepts();
-    renderSummary();
-  }
-
-  function populateCourseSelect(){
-    const accessible = COURSES.filter(c => COURSE_ACCESS[c.course_id]);
-
-    if (!accessible.length) {
-      el.emptyState.style.display = 'block';
-      return;
-    }
-
-    el.courseSelect.innerHTML = `<option value="">Select a course…</option>` +
-      accessible.map(c => `<option value="${escapeHtml(c.course_id)}">${escapeHtml(c.title)}</option>`).join('');
-
-    if (!state.courseId && accessible.length === 1) {
-      state.courseId = accessible[0].course_id;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const fromUrl = params.get('course') || '';
-    if (fromUrl && COURSE_ACCESS[fromUrl]) {
-      state.courseId = fromUrl;
-    }
-
-    syncFormFromState();
-  }
-
-  async function handleCourseChange(skipModal){
-    const courseId = String(state.courseId || '').trim();
-
-    if (!courseId) {
-      CURRENT_ITEMS = [];
-      CURRENT_FILTER_OPTIONS = {};
-      renderAll();
-      return;
-    }
-
-    if (!COURSE_ACCESS[courseId]) {
-      if (!skipModal) {
-        el.accessModal.style.display = 'flex';
-        el.accessModalText.textContent = `You do not have an active subscription for ${getCourseTitle(courseId)}.`;
-        el.courseModalBtn.href = `${LICENSURE.student}/course.html?id=${encodeURIComponent(courseId)}`;
+  area.querySelectorAll('button[data-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const items = readRecentSetups();
+      if (items[Number(btn.getAttribute('data-idx'))]) {
+        applyRecentSetup(items[Number(btn.getAttribute('data-idx'))]);
       }
-      return;
-    }
+    });
+  });
+}
 
-    CURRENT_FILTER_OPTIONS = await getItemFilterOptions(courseId);
-    CURRENT_ITEMS = await getBuilderCourseItems(courseId);
+// ── Segmented control ──
+function updateSegmented() {
+  document.getElementById('segTopics').classList.toggle('picked', state.selectionMode === 'topics');
+  document.getElementById('segConcept').classList.toggle('picked', state.selectionMode === 'concept');
+  document.getElementById('selModeHint').textContent = state.selectionMode === 'concept'
+    ? 'Concept = search subtopics and keyword matching.'
+    : 'Topics = choose from main topic groups.';
+}
 
-    state.selectedTopics = state.selectedTopics.filter(t => (CURRENT_FILTER_OPTIONS.maintopics || []).includes(t));
-    state.selectedConcepts = state.selectedConcepts.filter(t => (CURRENT_FILTER_OPTIONS.subtopics || []).includes(t));
-    state.selectedDifficulties = state.selectedDifficulties.filter(t => (CURRENT_FILTER_OPTIONS.difficulties || []).includes(t));
-    state.selectedQuestionTypes = state.selectedQuestionTypes.filter(t => (CURRENT_FILTER_OPTIONS.question_types || []).includes(t));
+// ── Render: topics ──
+function renderTopics() {
+  const box = el.topicsBox;
+  const search = String(state.topicSearch || '').toLowerCase();
+  const topics = (CURRENT_FILTER_OPTIONS.maintopics || []).filter(t =>
+    !search || String(t).toLowerCase().includes(search)
+  );
 
-    if (!state.questionCount || state.questionCount > EFFECTIVE_LIMIT) {
-      state.questionCount = EFFECTIVE_LIMIT;
-    }
-
-    renderAll();
+  box.innerHTML = '';
+  if (!topics.length) {
+    box.innerHTML = `<div style="font-size:13px;color:var(--text-muted);grid-column:1/-1;padding:8px">No topics found.</div>`;
+    return;
   }
 
-  function bindEvents(){
-    el.courseSelect.addEventListener('change', async () => {
-      state.courseId = el.courseSelect.value || '';
-      await handleCourseChange();
-    });
-
-    document.querySelectorAll('input[name="selectionMode"]').forEach(r => {
-      r.addEventListener('change', () => {
-        state.selectionMode = r.value === 'concept' ? 'concept' : 'topics';
-        renderAll();
-      });
-    });
-
-    el.topicSearch.addEventListener('input', () => {
-      state.topicSearch = el.topicSearch.value || '';
+  topics.forEach(t => {
+    const chip = document.createElement('div');
+    const picked = state.useAllTopics || state.selectedTopics.includes(t);
+    chip.className = 'topic-chip' + (picked ? ' picked' : '');
+    chip.innerHTML = `<div class="dot"></div>${escapeHtml(t)}`;
+    chip.addEventListener('click', () => {
+      if (state.useAllTopics) return;
+      const idx = state.selectedTopics.indexOf(t);
+      if (idx === -1) state.selectedTopics.push(t);
+      else state.selectedTopics.splice(idx, 1);
       renderTopics();
-    });
-
-    el.useAllTopics.addEventListener('change', () => {
-      state.useAllTopics = !!el.useAllTopics.checked;
-      renderAll();
-    });
-
-    el.conceptSearch.addEventListener('input', () => {
-      state.conceptSearch = el.conceptSearch.value || '';
-      renderAll();
-    });
-
-    el.questionCount.addEventListener('input', () => {
-      const n = Number(el.questionCount.value || 0);
-      state.questionCount = Math.min(Math.max(n, 0), EFFECTIVE_LIMIT);
+      renderSelectedTopicChips();
       renderSummary();
     });
+    box.appendChild(chip);
+  });
 
-    document.querySelectorAll('input[name="quizMode"]').forEach(r => {
-      r.addEventListener('change', () => {
-        state.mode = r.value === 'timed' ? 'timed' : 'instant';
-        renderSummary();
-      });
+  renderSelectedTopicChips();
+}
+
+function renderSelectedTopicChips() {
+  const row = el.selectedTopicChips;
+  row.innerHTML = '';
+  if (state.useAllTopics) {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = 'All topics';
+    row.appendChild(chip);
+    return;
+  }
+  state.selectedTopics.forEach(t => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `${escapeHtml(t)} <span class="chip-remove" data-t="${escapeHtml(t)}">×</span>`;
+    chip.querySelector('.chip-remove').addEventListener('click', () => {
+      state.selectedTopics = state.selectedTopics.filter(x => x !== t);
+      renderTopics();
+      renderSelectedTopicChips();
+      renderSummary();
     });
+    row.appendChild(chip);
+  });
+}
 
-    el.selectAllTopicsBtn.addEventListener('click', () => {
-      const allTopics = (CURRENT_FILTER_OPTIONS.maintopics || []).filter(t =>
-        String(t).toLowerCase().includes(String(state.topicSearch || '').toLowerCase())
+// ── Render: concepts ──
+function renderConcepts() {
+  const box = el.conceptsBox;
+  const query = String(state.conceptSearch || '').toLowerCase();
+  const subtopics = (CURRENT_FILTER_OPTIONS.subtopics || []).filter(s =>
+    !query || String(s).toLowerCase().includes(query)
+  );
+
+  box.innerHTML = '';
+  if (!subtopics.length && !query) {
+    box.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:8px">Type a keyword to search concepts.</div>`;
+    return;
+  }
+  if (!subtopics.length) {
+    box.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:8px">No matching concepts.</div>`;
+    return;
+  }
+
+  subtopics.forEach(s => {
+    const item = document.createElement('div');
+    const picked = state.selectedConcepts.includes(s);
+    item.className = 'concept-item' + (picked ? ' picked' : '');
+    item.textContent = s;
+    item.addEventListener('click', () => {
+      const idx = state.selectedConcepts.indexOf(s);
+      if (idx === -1) state.selectedConcepts.push(s);
+      else state.selectedConcepts.splice(idx, 1);
+      renderConcepts();
+      renderSelectedConceptChips();
+      renderSummary();
+    });
+    box.appendChild(item);
+  });
+
+  renderSelectedConceptChips();
+}
+
+function renderSelectedConceptChips() {
+  const row = el.selectedConceptChips;
+  row.innerHTML = '';
+  state.selectedConcepts.forEach(s => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `${escapeHtml(s)} <span class="chip-remove">×</span>`;
+    chip.querySelector('.chip-remove').addEventListener('click', () => {
+      state.selectedConcepts = state.selectedConcepts.filter(x => x !== s);
+      renderConcepts();
+      renderSelectedConceptChips();
+      renderSummary();
+    });
+    row.appendChild(chip);
+  });
+}
+
+// ── Render: difficulty & type checkboxes ──
+function renderDifficultyChecks() {
+  const box = el.difficultyChecks;
+  const opts = CURRENT_FILTER_OPTIONS.difficulties && CURRENT_FILTER_OPTIONS.difficulties.length
+    ? CURRENT_FILTER_OPTIONS.difficulties
+    : ['Easy', 'Moderate', 'Hard'];
+
+  box.innerHTML = '';
+  opts.forEach(d => {
+    const picked = state.selectedDifficulties.includes(d);
+    const item = document.createElement('div');
+    item.className = 'check-item' + (picked ? ' picked' : '');
+    item.innerHTML = `<input type="checkbox" ${picked ? 'checked' : ''}><label>${escapeHtml(d)}</label>`;
+    item.addEventListener('click', () => {
+      const idx = state.selectedDifficulties.indexOf(d);
+      if (idx === -1) state.selectedDifficulties.push(d);
+      else state.selectedDifficulties.splice(idx, 1);
+      renderDifficultyChecks();
+      renderSummary();
+    });
+    box.appendChild(item);
+  });
+}
+
+function renderQuestionTypeChecks() {
+  const box = el.questionTypeChecks;
+  const opts = CURRENT_FILTER_OPTIONS.question_types && CURRENT_FILTER_OPTIONS.question_types.length
+    ? CURRENT_FILTER_OPTIONS.question_types
+    : ['MCQ', 'True/False', 'SATA'];
+
+  box.innerHTML = '';
+  opts.forEach(qt => {
+    const picked = state.selectedQuestionTypes.includes(qt);
+    const item = document.createElement('div');
+    item.className = 'check-item' + (picked ? ' picked' : '');
+    item.innerHTML = `<input type="checkbox" ${picked ? 'checked' : ''}><label>${escapeHtml(qt)}</label>`;
+    item.addEventListener('click', () => {
+      const idx = state.selectedQuestionTypes.indexOf(qt);
+      if (idx === -1) state.selectedQuestionTypes.push(qt);
+      else state.selectedQuestionTypes.splice(idx, 1);
+      renderQuestionTypeChecks();
+      renderSummary();
+    });
+    box.appendChild(item);
+  });
+}
+
+// ── Filter pool ──
+function getFilteredPool() {
+  let items = CURRENT_ITEMS.slice();
+
+  if (currentSelectionMode() === 'topics') {
+    if (!state.useAllTopics && state.selectedTopics.length) {
+      items = items.filter(x => state.selectedTopics.includes(x.maintopic));
+    }
+  } else {
+    const query = String(state.conceptSearch || '').toLowerCase();
+    if (state.selectedConcepts.length) {
+      items = items.filter(x => state.selectedConcepts.includes(x.subtopic));
+    } else if (query) {
+      items = items.filter(x =>
+        String(x.subtopic || '').toLowerCase().includes(query) ||
+        String(x.maintopic || '').toLowerCase().includes(query) ||
+        String(x.stem || '').toLowerCase().includes(query) ||
+        String(x.rationale || '').toLowerCase().includes(query)
       );
-      state.selectedTopics = normaliseArray([...state.selectedTopics, ...allTopics]);
+    }
+  }
+
+  if (state.selectedDifficulties.length) {
+    items = items.filter(x => state.selectedDifficulties.includes(x.difficulty));
+  }
+  if (state.selectedQuestionTypes.length) {
+    items = items.filter(x => state.selectedQuestionTypes.includes(x.question_type));
+  }
+
+  return items;
+}
+
+function selectionIsValid() {
+  if (currentSelectionMode() === 'topics') {
+    return state.useAllTopics || state.selectedTopics.length > 0;
+  }
+  return state.selectedConcepts.length > 0 || String(state.conceptSearch || '').trim().length > 0;
+}
+
+function buildReady() {
+  const pool = getFilteredPool();
+  const n = Number(state.questionCount || 0);
+  return !!state.courseId && selectionIsValid() && n > 0 && pool.length > 0;
+}
+
+function buildBuilderDisplayLabel({ selection_mode, maintopics, difficulties, concepts, concept_query, n }) {
+  const parts = [];
+  if (selection_mode === 'topics') {
+    parts.push(maintopics && maintopics.length ? maintopics.slice(0, 3).join(', ') : 'All topics');
+  } else {
+    const terms = [...(concepts || []), concept_query].filter(Boolean);
+    parts.push(terms.length ? terms.slice(0, 3).join(', ') : 'Concept search');
+  }
+  if (difficulties && difficulties.length) parts.push(difficulties.join('/'));
+  parts.push(`${n}Q`);
+  return parts.join(' · ');
+}
+
+// ── Render: summary (step 5 + pool bar on step 3) ──
+function renderSummary() {
+  const pool = getFilteredPool();
+  const n = Number(state.questionCount || 0);
+  const courseTitle = getCourseTitle(state.courseId);
+  const poolSize = pool.length;
+  const selectedN = Math.min(n, poolSize);
+  const estTime = Math.ceil(selectedN * MINUTES_PER_QUESTION);
+
+  // Pool bar (step 3)
+  if (el.poolCountValue) el.poolCountValue.textContent = poolSize;
+
+  // Count display (step 4)
+  const countDisplayEl = byId('countDisplay');
+  if (countDisplayEl && Number(countDisplayEl.textContent) !== n) countDisplayEl.textContent = n;
+
+  const estEl = byId('estimatedTimeValue');
+  if (estEl) estEl.textContent = `${Math.ceil(n * MINUTES_PER_QUESTION)} min`;
+
+  const limitMaxEl = byId('limitMax');
+  if (limitMaxEl) limitMaxEl.textContent = EFFECTIVE_LIMIT;
+
+  const sliderEl = el.questionCount;
+  if (sliderEl) { sliderEl.max = EFFECTIVE_LIMIT; sliderEl.value = n; }
+
+  // Mode hint
+  if (el.modeHint) {
+    el.modeHint.textContent = state.mode === 'timed'
+      ? `Timed mode will give you ${Math.ceil(n * MINUTES_PER_QUESTION)} minute(s).`
+      : 'Instant mode shows feedback after each answer.';
+  }
+
+  // Summary values (step 5)
+  if (el.summaryCourse) el.summaryCourse.textContent = courseTitle || '—';
+  if (el.summaryMode) el.summaryMode.textContent = currentSelectionMode() === 'concept' ? 'Concept' : 'Topics';
+  if (el.summarySelection) {
+    if (currentSelectionMode() === 'topics') {
+      el.summarySelection.textContent = state.useAllTopics ? 'All topics' : (state.selectedTopics.length ? state.selectedTopics.join(', ') : '—');
+    } else {
+      const terms = [...state.selectedConcepts, state.conceptSearch].filter(Boolean);
+      el.summarySelection.textContent = terms.length ? terms.join(', ') : '—';
+    }
+  }
+  if (el.summaryDifficulty) el.summaryDifficulty.textContent = state.selectedDifficulties.length ? state.selectedDifficulties.join(', ') : 'All';
+  if (el.summaryQuestionType) el.summaryQuestionType.textContent = state.selectedQuestionTypes.length ? state.selectedQuestionTypes.join(', ') : 'All types';
+  if (el.summarySetup) el.summarySetup.textContent = state.mode === 'timed' ? 'Timed exam' : 'Instant feedback';
+
+  // Stats row (step 5)
+  const p2 = byId('poolCountValue2');
+  const s2 = byId('selectedCountValue');
+  const t2 = byId('estimatedTimeValue2');
+  if (p2) p2.textContent = poolSize;
+  if (s2) s2.textContent = selectedN;
+  if (t2) t2.textContent = `${estTime} min`;
+
+  // Status box
+  if (el.statusBox) {
+    if (!state.courseId) {
+      el.statusBox.textContent = 'Choose a course to begin.';
+    } else if (!selectionIsValid()) {
+      el.statusBox.textContent = currentSelectionMode() === 'topics'
+        ? 'Select at least one topic or use all topics.'
+        : 'Choose at least one concept or type a concept keyword.';
+    } else if (poolSize === 0) {
+      el.statusBox.textContent = 'No questions match your current filters. Adjust difficulty or question type.';
+    } else if (n < 1) {
+      el.statusBox.textContent = 'Set a question count greater than 0.';
+    } else {
+      el.statusBox.textContent = `Ready — ${selectedN} question${selectedN !== 1 ? 's' : ''} from a pool of ${poolSize}.`;
+    }
+  }
+
+  // Build button
+  if (el.buildBtn) el.buildBtn.disabled = !buildReady();
+}
+
+function renderModePanes() {
+  const concept = currentSelectionMode() === 'concept';
+  el.topicsModePane.classList.toggle('hidden', concept);
+  el.conceptModePane.classList.toggle('hidden', !concept);
+}
+
+function renderAll() {
+  renderModePanes();
+  renderDifficultyChecks();
+  renderQuestionTypeChecks();
+  renderTopics();
+  renderConcepts();
+  renderSummary();
+}
+
+// ── Course dropdown ──
+function populateCourseSelect() {
+  const accessible = COURSES.filter(c => COURSE_ACCESS[c.course_id]);
+
+  if (!accessible.length) {
+    byId('emptyState').style.display = 'block';
+    return;
+  }
+
+  el.courseSelect.innerHTML = `<option value="">Select a course…</option>` +
+    accessible.map(c => `<option value="${escapeHtml(c.course_id)}">${escapeHtml(c.title)}</option>`).join('');
+
+  if (!state.courseId && accessible.length === 1) {
+    state.courseId = accessible[0].course_id;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get('course') || '';
+  if (fromUrl && COURSE_ACCESS[fromUrl]) state.courseId = fromUrl;
+
+  syncFormFromState();
+}
+
+function syncFormFromState() {
+  el.courseSelect.value = state.courseId || '';
+  document.querySelectorAll('input[name="selectionMode"]').forEach(r => {
+    r.checked = r.value === state.selectionMode;
+  });
+  updateSegmented();
+
+  if (el.useAllTopics) el.useAllTopics.checked = state.useAllTopics;
+  if (el.topicSearch) el.topicSearch.value = state.topicSearch || '';
+  if (el.conceptSearch) el.conceptSearch.value = state.conceptSearch || '';
+
+  const countEl = el.questionCount;
+  if (countEl) { countEl.max = EFFECTIVE_LIMIT; countEl.value = state.questionCount; }
+  const countDisplay = byId('countDisplay');
+  if (countDisplay) countDisplay.textContent = state.questionCount;
+
+  // mode cards
+  document.getElementById('modeInstantCard').classList.toggle('picked', state.mode === 'instant');
+  document.getElementById('modeTimedCard').classList.toggle('picked', state.mode === 'timed');
+  document.getElementById('modeInstantRadio').checked = state.mode === 'instant';
+  document.getElementById('modeTimedRadio').checked = state.mode === 'timed';
+}
+
+async function handleCourseChange(skipModal) {
+  const courseId = String(state.courseId || '').trim();
+
+  if (!courseId) {
+    CURRENT_ITEMS = [];
+    CURRENT_FILTER_OPTIONS = {};
+    renderAll();
+    return;
+  }
+
+  if (!COURSE_ACCESS[courseId]) {
+    if (!skipModal) {
+      el.accessModal.style.display = 'flex';
+      el.accessModalText.textContent = `You do not have an active subscription for ${getCourseTitle(courseId)}.`;
+      el.courseModalBtn.href = `${LICENSURE.student}/course.html?id=${encodeURIComponent(courseId)}`;
+    }
+    return;
+  }
+
+  CURRENT_FILTER_OPTIONS = await getItemFilterOptions(courseId);
+  CURRENT_ITEMS = await getBuilderCourseItems(courseId);
+
+  state.selectedTopics = state.selectedTopics.filter(t => (CURRENT_FILTER_OPTIONS.maintopics || []).includes(t));
+  state.selectedConcepts = state.selectedConcepts.filter(t => (CURRENT_FILTER_OPTIONS.subtopics || []).includes(t));
+  state.selectedDifficulties = state.selectedDifficulties.filter(t => (CURRENT_FILTER_OPTIONS.difficulties || []).includes(t));
+  state.selectedQuestionTypes = state.selectedQuestionTypes.filter(t => (CURRENT_FILTER_OPTIONS.question_types || []).includes(t));
+
+  if (!state.questionCount || state.questionCount > EFFECTIVE_LIMIT) {
+    state.questionCount = EFFECTIVE_LIMIT;
+  }
+
+  renderAll();
+}
+
+// ── Bind events ──
+function bindEvents() {
+  el.courseSelect.addEventListener('change', async () => {
+    state.courseId = el.courseSelect.value || '';
+    await handleCourseChange();
+  });
+
+  document.querySelectorAll('input[name="selectionMode"]').forEach(r => {
+    r.addEventListener('change', () => {
+      state.selectionMode = r.value === 'concept' ? 'concept' : 'topics';
+      updateSegmented();
       renderAll();
     });
+  });
 
-    el.clearTopicsBtn.addEventListener('click', () => {
-      state.selectedTopics = [];
-      state.useAllTopics = false;
-      renderAll();
+  el.topicSearch.addEventListener('input', () => {
+    state.topicSearch = el.topicSearch.value || '';
+    renderTopics();
+  });
+
+  el.useAllTopics.addEventListener('change', () => {
+    state.useAllTopics = !!el.useAllTopics.checked;
+    renderAll();
+  });
+
+  el.conceptSearch.addEventListener('input', () => {
+    state.conceptSearch = el.conceptSearch.value || '';
+    renderAll();
+  });
+
+  el.selectAllTopicsBtn.addEventListener('click', () => {
+    const search = String(state.topicSearch || '').toLowerCase();
+    const visible = (CURRENT_FILTER_OPTIONS.maintopics || []).filter(t =>
+      !search || String(t).toLowerCase().includes(search)
+    );
+    state.selectedTopics = normaliseArray([...state.selectedTopics, ...visible]);
+    renderAll();
+  });
+
+  el.clearTopicsBtn.addEventListener('click', () => {
+    state.selectedTopics = [];
+    state.useAllTopics = false;
+    if (el.useAllTopics) el.useAllTopics.checked = false;
+    renderAll();
+  });
+
+  el.clearConceptsBtn.addEventListener('click', () => {
+    state.selectedConcepts = [];
+    state.conceptSearch = '';
+    el.conceptSearch.value = '';
+    renderAll();
+  });
+
+  el.closeAccessModal.addEventListener('click', () => {
+    el.accessModal.style.display = 'none';
+    if (COURSE_ACCESS[state.courseId]) return;
+    state.courseId = '';
+    syncFormFromState();
+    renderAll();
+  });
+
+  // segmented labels also fire the radio change, but we wire label clicks explicitly too
+  document.getElementById('segTopics').addEventListener('click', () => {
+    state.selectionMode = 'topics';
+    updateSegmented();
+    renderAll();
+  });
+  document.getElementById('segConcept').addEventListener('click', () => {
+    state.selectionMode = 'concept';
+    updateSegmented();
+    renderAll();
+  });
+
+  el.buildBtn.addEventListener('click', async () => {
+    const pool = getFilteredPool();
+    const n = Number(state.questionCount || 0);
+    const chosen = shuffleArray(pool).slice(0, n).map(x => x.item_id);
+
+    if (!chosen.length || !buildReady()) { renderSummary(); return; }
+
+    el.buildBtn.disabled = true;
+    el.statusBox.textContent = 'Building your quiz…';
+
+    const displayLabel = buildBuilderDisplayLabel({
+      selection_mode: currentSelectionMode(),
+      maintopics: state.useAllTopics ? (CURRENT_FILTER_OPTIONS.maintopics || []) : state.selectedTopics,
+      difficulties: state.selectedDifficulties,
+      concepts: state.selectedConcepts,
+      concept_query: state.conceptSearch,
+      n
     });
 
-    el.clearConceptsBtn.addEventListener('click', () => {
-      state.selectedConcepts = [];
-      state.conceptSearch = '';
-      el.conceptSearch.value = '';
-      renderAll();
-    });
-
-    el.closeAccessModal.addEventListener('click', () => {
-      el.accessModal.style.display = 'none';
-      if (COURSE_ACCESS[state.courseId]) return;
-      state.courseId = '';
-      syncFormFromState();
-      renderAll();
-    });
-
-    el.buildBtn.addEventListener('click', async () => {
-      const pool = getFilteredPool();
-      const n = Number(state.questionCount || 0);
-      const chosen = shuffleArray(pool).slice(0, n).map(x => x.item_id);
-
-      if (!chosen.length || !buildReady()) {
-        renderSummary();
-        return;
-      }
-
-      el.buildBtn.disabled = true;
-      el.statusBox.textContent = 'Building your quiz…';
-
-      const displayLabel = buildBuilderDisplayLabel({
+    const attempt = await spawnBuilderAttempt(
+      PROFILE.user_id,
+      state.courseId,
+      chosen,
+      currentMode(),
+      {
+        n,
         selection_mode: currentSelectionMode(),
         maintopics: state.useAllTopics ? (CURRENT_FILTER_OPTIONS.maintopics || []) : state.selectedTopics,
+        subtopics: state.selectedConcepts,
         difficulties: state.selectedDifficulties,
+        question_types: state.selectedQuestionTypes,
         concepts: state.selectedConcepts,
         concept_query: state.conceptSearch,
-        n: n
-      });
-
-      const attempt = await spawnBuilderAttempt(
-        PROFILE.user_id,
-        state.courseId,
-        chosen,
-        currentMode(),
-        {
-          n: n,
-          selection_mode: currentSelectionMode(),
-          maintopics: state.useAllTopics ? (CURRENT_FILTER_OPTIONS.maintopics || []) : state.selectedTopics,
-          subtopics: state.selectedConcepts,
-          difficulties: state.selectedDifficulties,
-          question_types: state.selectedQuestionTypes,
-          concepts: state.selectedConcepts,
-          concept_query: state.conceptSearch,
-          display_label: displayLabel,
-          duration_min_override: Math.ceil(n * MINUTES_PER_QUESTION)
-        }
-      );
-
-      if (!attempt || !attempt.attempt_id) {
-        el.statusBox.textContent = 'We could not build your quiz. Please try again.';
-        el.buildBtn.disabled = false;
-        return;
+        display_label: displayLabel,
+        duration_min_override: Math.ceil(n * MINUTES_PER_QUESTION)
       }
+    );
 
-      saveRecentSetup();
+    if (!attempt || !attempt.attempt_id) {
+      el.statusBox.textContent = 'We could not build your quiz. Please try again.';
+      el.buildBtn.disabled = false;
+      return;
+    }
 
-      const runnerUrl = currentMode() === 'timed'
-        ? `${LICENSURE.runner}/timed.html?attempt_id=${encodeURIComponent(attempt.attempt_id)}`
-        : `${LICENSURE.runner}/instant.html?attempt_id=${encodeURIComponent(attempt.attempt_id)}`;
+    saveRecentSetup();
 
-      el.statusBox.textContent = 'Quiz ready. Opening runner…';
-      window.location.href = runnerUrl;
-    });
-  }
+    const runnerUrl = currentMode() === 'timed'
+      ? `${LICENSURE.runner}/timed.html?attempt_id=${encodeURIComponent(attempt.attempt_id)}`
+      : `${LICENSURE.runner}/instant.html?attempt_id=${encodeURIComponent(attempt.attempt_id)}`;
 
-  async function initPage(){
-    PROFILE = await guardPage('STUDENT');
-    if (!PROFILE) return;
+    el.statusBox.textContent = 'Quiz ready. Opening runner…';
+    window.location.href = runnerUrl;
+  });
+}
 
-    Object.assign(el, {
-      pageContent: byId('pageContent'),
-      emptyState: byId('emptyState'),
-      userName: byId('userName'),
-      courseSelect: byId('courseSelect'),
-      courseError: byId('courseError'),
-      topicSearch: byId('topicSearch'),
-      useAllTopics: byId('useAllTopics'),
-      topicsBox: byId('topicsBox'),
-      selectedTopicChips: byId('selectedTopicChips'),
-      conceptSearch: byId('conceptSearch'),
-      conceptsBox: byId('conceptsBox'),
-      selectedConceptChips: byId('selectedConceptChips'),
-      selectionError: byId('selectionError'),
-      difficultyChecks: byId('difficultyChecks'),
-      questionTypeChecks: byId('questionTypeChecks'),
-      questionCount: byId('questionCount'),
-      countError: byId('countError'),
-      limitHint: byId('limitHint'),
-      modeHint: byId('modeHint'),
-      buildBtn: byId('buildBtn'),
-      statusBox: byId('statusBox'),
-      poolCountValue: byId('poolCountValue'),
-      selectedCountValue: byId('selectedCountValue'),
-      estimatedTimeValue: byId('estimatedTimeValue'),
-      summaryCourse: byId('summaryCourse'),
-      summaryMode: byId('summaryMode'),
-      summarySelection: byId('summarySelection'),
-      summaryDifficulty: byId('summaryDifficulty'),
-      summaryQuestionType: byId('summaryQuestionType'),
-      summarySetup: byId('summarySetup'),
-      heroLimitBadge: byId('heroLimitBadge'),
-      countPill: byId('countPill'),
-      coursePill: byId('coursePill'),
-      selectionPill: byId('selectionPill'),
-      filterPill: byId('filterPill'),
-      reviewPill: byId('reviewPill'),
-      recentCard: byId('recentCard'),
-      recentList: byId('recentList'),
-      recentCountPill: byId('recentCountPill'),
-      accessModal: byId('accessModal'),
-      accessModalText: byId('accessModalText'),
-      courseModalBtn: byId('courseModalBtn'),
-      closeAccessModal: byId('closeAccessModal'),
-      topicsModePane: byId('topicsModePane'),
-      conceptModePane: byId('conceptModePane'),
-      selectAllTopicsBtn: byId('selectAllTopicsBtn'),
-      clearTopicsBtn: byId('clearTopicsBtn'),
-      clearConceptsBtn: byId('clearConceptsBtn')
-    });
+// ── Init ──
+async function initPage() {
+  PROFILE = await guardPage('STUDENT');
+  if (!PROFILE) return;
 
-    el.userName.textContent = PROFILE.forename || PROFILE.name || PROFILE.email;
+  Object.assign(el, {
+    pageContent:          byId('pageContent'),
+    emptyState:           byId('emptyState'),
+    userName:             byId('userName'),
+    courseSelect:         byId('courseSelect'),
+    courseError:          byId('courseError'),
+    topicSearch:          byId('topicSearch'),
+    useAllTopics:         byId('useAllTopics'),
+    topicsBox:            byId('topicsBox'),
+    selectedTopicChips:   byId('selectedTopicChips'),
+    conceptSearch:        byId('conceptSearch'),
+    conceptsBox:          byId('conceptsBox'),
+    selectedConceptChips: byId('selectedConceptChips'),
+    selectionError:       byId('selectionError'),
+    difficultyChecks:     byId('difficultyChecks'),
+    questionTypeChecks:   byId('questionTypeChecks'),
+    questionCount:        byId('questionCount'),
+    countError:           byId('countError'),
+    limitHint:            byId('limitHint'),
+    modeHint:             byId('modeHint'),
+    buildBtn:             byId('buildBtn'),
+    statusBox:            byId('statusBox'),
+    poolCountValue:       byId('poolCountValue'),
+    selectedCountValue:   byId('selectedCountValue'),
+    estimatedTimeValue:   byId('estimatedTimeValue'),
+    summaryCourse:        byId('summaryCourse'),
+    summaryMode:          byId('summaryMode'),
+    summarySelection:     byId('summarySelection'),
+    summaryDifficulty:    byId('summaryDifficulty'),
+    summaryQuestionType:  byId('summaryQuestionType'),
+    summarySetup:         byId('summarySetup'),
+    recentCard:           byId('recentCard'),
+    recentList:           byId('recentList'),
+    recentCountPill:      byId('recentCountPill'),
+    accessModal:          byId('accessModal'),
+    accessModalText:      byId('accessModalText'),
+    courseModalBtn:       byId('courseModalBtn'),
+    closeAccessModal:     byId('closeAccessModal'),
+    topicsModePane:       byId('topicsModePane'),
+    conceptModePane:      byId('conceptModePane'),
+    selectAllTopicsBtn:   byId('selectAllTopicsBtn'),
+    clearTopicsBtn:       byId('clearTopicsBtn'),
+    clearConceptsBtn:     byId('clearConceptsBtn')
+  });
 
-    CONFIG = await getConfig();
-    EFFECTIVE_LIMIT = effectiveBuilderLimit(CONFIG);
-    MINUTES_PER_QUESTION = Number(CONFIG.builder_minutes_per_question) > 0
-      ? Number(CONFIG.builder_minutes_per_question)
-      : 1;
+  el.userName.textContent = PROFILE.forename || PROFILE.name || PROFILE.email;
 
-    COURSE_ACCESS = await getStudentCourseAccess(PROFILE.user_id);
-    COURSES = await getCourses();
+  CONFIG = await getConfig();
+  EFFECTIVE_LIMIT = effectiveBuilderLimit(CONFIG);
+  MINUTES_PER_QUESTION = Number(CONFIG.builder_minutes_per_question) > 0
+    ? Number(CONFIG.builder_minutes_per_question) : 1;
 
-    populateCourseDropdown(COURSE_ACCESS, COURSES);
-    populateCourseSelect();
-    renderRecentSetups();
+  COURSE_ACCESS = await getStudentCourseAccess(PROFILE.user_id);
+  COURSES = await getCourses();
 
-    state.questionCount = EFFECTIVE_LIMIT;
-    state.mode = 'instant';
-    syncFormFromState();
+  populateCourseSelect();
+  renderRecentSetups();
 
-    bindEvents();
-    await handleCourseChange(true);
+  state.questionCount = EFFECTIVE_LIMIT;
+  state.mode = 'instant';
+  syncFormFromState();
 
-    el.pageContent.style.display = 'block';
-  }
+  bindEvents();
+  await handleCourseChange(true);
 
-  initPage();
+  el.pageContent.style.display = 'block';
+}
+
+initPage();
 </script>
 </body>
 </html>
