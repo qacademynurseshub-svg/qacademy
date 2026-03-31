@@ -332,35 +332,6 @@
     <!-- Subscription Status Bar -->
     <div id="subscriptionBar"></div>
 
-    <!-- Quick Links -->
-    <p class="section-title">Quick Links</p>
-    <div class="quick-links">
-      <a href="/mynmclicensure/student/fixed-quizzes.html" class="quick-link-card">
-        <div class="quick-link-icon">📝</div>
-        <div class="quick-link-label">Fixed Quizzes</div>
-      </a>
-      <a href="/mynmclicensure/student/quiz-builder.html" class="quick-link-card">
-        <div class="quick-link-icon">🔧</div>
-        <div class="quick-link-label">Quiz Builder</div>
-      </a>
-      <a href="/mynmclicensure/student/learning-history.html" class="quick-link-card">
-        <div class="quick-link-icon">📊</div>
-        <div class="quick-link-label">Learning History</div>
-      </a>
-      <a href="/mynmclicensure/student/my-offline-packs.html" class="quick-link-card">
-        <div class="quick-link-icon">📥</div>
-        <div class="quick-link-label">My Offline Packs</div>
-      </a>
-      <a href="/mynmclicensure/student/messages.html" class="quick-link-card">
-        <div class="quick-link-icon">💬</div>
-        <div class="quick-link-label">Messages <span class="badge" id="msgBadge2" style="display:none"></span></div>
-      </a>
-      <a href="/mynmclicensure/student/telegram.html" class="quick-link-card">
-        <div class="quick-link-icon">✈️</div>
-        <div class="quick-link-label">Telegram</div>
-      </a>
-    </div>
-
     <!-- Course Cards -->
     <p class="section-title">My Courses</p>
     <div id="coursesArea" class="card-grid" style="margin-bottom:32px;"></div>
@@ -739,9 +710,9 @@ function sanitiseBodyHtml(raw) {
     if (!attempts || attempts.length === 0) {
       area.innerHTML = `
         <p style="color:var(--text-muted); font-size:14px; margin:0 0 12px;">No quiz attempts yet. Start a quiz to see your history here.</p>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          <a href="${LICENSURE.student}/quiz-builder.html" class="btn btn-primary" style="padding:8px 14px; font-size:13px; text-decoration:none;">Create Custom Quiz</a>
-          <a href="${LICENSURE.student}/fixed-quizzes.html" class="btn btn-secondary" style="padding:8px 14px; font-size:13px; text-decoration:none;">Try Fixed Quizzes</a>
+        <div style="display:flex; gap:8px;">
+          <a href="${LICENSURE.student}/quiz-builder.html" class="btn btn-primary" style="flex:1; padding:8px 14px; font-size:13px; text-decoration:none; text-align:center;">Custom Quiz</a>
+          <a href="${LICENSURE.student}/fixed-quizzes.html" class="btn btn-primary" style="flex:1; padding:8px 14px; font-size:13px; text-decoration:none; text-align:center;">Fixed Quizzes</a>
         </div>`;
       return;
     }
