@@ -391,7 +391,10 @@
     </div>
 
     <!-- Recent Attempts -->
-    <p class="section-title">Recent Quiz Attempts</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <p class="section-title" style="margin-bottom:0;">Recent Quiz Attempts</p>
+      <a href="/mynmclicensure/student/learning-history.html" style="font-size:13px; color:var(--accent); font-weight:600; text-decoration:none;">View full history &rarr;</a>
+    </div>
     <div class="card" id="attemptsArea">
       <p style="color:var(--text-muted); font-size:14px;">No quiz attempts yet.</p>
     </div>
@@ -734,13 +737,20 @@ function sanitiseBodyHtml(raw) {
     const area = document.getElementById('attemptsArea');
 
     if (!attempts || attempts.length === 0) {
-      area.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No quiz attempts yet. Start a quiz to see your history here.</p>';
+      area.innerHTML = `
+        <p style="color:var(--text-muted); font-size:14px; margin:0 0 12px;">No quiz attempts yet. Start a quiz to see your history here.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <a href="${LICENSURE.student}/quiz-builder.html" class="btn btn-primary" style="padding:8px 14px; font-size:13px; text-decoration:none;">Create Custom Quiz</a>
+          <a href="${LICENSURE.student}/fixed-quizzes.html" class="btn btn-secondary" style="padding:8px 14px; font-size:13px; text-decoration:none;">Try Fixed Quizzes</a>
+        </div>`;
       return;
     }
 
     let rows = '';
     attempts.forEach(a => {
-      const date  = new Date(a.ts_iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+      const d = new Date(a.ts_iso);
+      const date = d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+        + ' \u00b7 ' + d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
       const score = a.status === 'completed'
         ? `${a.score_raw}/${a.score_total} (${Math.round(a.score_pct)}%)`
         : '—';
