@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Portal Guide — QAcademy Nurses Hub</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .logout-btn {
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    /* Guide layout: content + right nav */
+    .guide-layout {
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Hero */
+    .guide-hero {
+      background: linear-gradient(135deg, var(--primary-light), rgba(11,122,117,0.08));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      margin-bottom: 24px;
+    }
+    .guide-hero h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+      margin: 0 0 8px;
+    }
+    .guide-hero p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin: 0;
+      max-width: 65ch;
+    }
+
+    /* Section cards */
+    .guide-section {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+      scroll-margin-top: 20px;
+    }
+    .guide-section h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0 0 6px;
+    }
+    .guide-section .lead {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin: 0 0 14px;
+    }
+    .guide-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .guide-inner-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .guide-inner-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 8px;
+    }
+    .guide-inner-card p,
+    .guide-inner-card li {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin: 0;
+    }
+    .guide-inner-card ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .guide-inner-card li { margin-bottom: 4px; }
+    .guide-inner-card li:last-child { margin-bottom: 0; }
+
+    .guide-tip {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(11,122,117,0.2);
+      background: rgba(11,122,117,0.05);
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* FAQ accordion */
+    .faq-list { display: flex; flex-direction: column; gap: 8px; }
+    .faq-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--white);
+      overflow: hidden;
+    }
+    .faq-btn {
+      width: 100%;
+      text-align: left;
+      padding: 14px 16px;
+      background: transparent;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+    }
+    .faq-btn:hover { background: var(--bg); }
+    .faq-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      background: var(--white);
+    }
+    .faq-panel {
+      display: none;
+      padding: 0 16px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+    .faq-item.open .faq-panel { display: block; }
+    .faq-item.open .faq-icon { color: var(--accent); border-color: var(--accent); }
+
+    /* CTA footer */
+    .guide-cta {
+      background: linear-gradient(135deg, var(--primary-light), rgba(11,122,117,0.08));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .guide-cta h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0 0 4px;
+    }
+    .guide-cta p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    .guide-cta-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* Right-side sticky nav */
+    .guide-nav {
+      position: sticky;
+      top: 20px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+    }
+    .guide-nav-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 12px;
+    }
+    .guide-nav a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+    .guide-nav a:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+    .guide-nav a.active {
+      background: var(--primary-light);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .guide-nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .guide-nav a.active .guide-nav-dot {
+      background: var(--accent);
+    }
+
+    /* Mobile: hide right nav, show toggle */
+    .guide-nav-mobile {
+      display: none;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .guide-nav-mobile-btn {
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+    }
+    .guide-nav-mobile-panel {
+      display: none;
+      padding: 8px 12px 12px;
+      border-top: 1px solid var(--border);
+    }
+    .guide-nav-mobile.open .guide-nav-mobile-panel { display: block; }
+    .guide-nav-mobile-panel a {
+      display: block;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-radius: 6px;
+    }
+    .guide-nav-mobile-panel a:hover { background: var(--bg); }
+
+    @media (max-width: 800px) {
+      .guide-layout { grid-template-columns: 1fr; }
+      .guide-nav { display: none; }
+      .guide-nav-mobile { display: block; }
+      .guide-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+  <div id="sidebar"></div>
+
+  <main class="main-content">
+
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Portal Guide</h1>
+        <p>How to use QAcademy effectively</p>
+      </div>
+      <div class="user-menu">
+        <span class="user-name" id="userName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <div id="pageContent" style="display:none;">
+
+      <!-- Mobile nav toggle -->
+      <div class="guide-nav-mobile" id="mobileNav">
+        <button class="guide-nav-mobile-btn" onclick="toggleMobileNav()">
+          <span>On this page</span>
+          <span style="font-size:12px; color:var(--text-muted);">Tap to open</span>
+        </button>
+        <div class="guide-nav-mobile-panel" id="mobileNavPanel"></div>
+      </div>
+
+      <!-- Hero -->
+      <div class="guide-hero">
+        <h1>Portal Guide</h1>
+        <p>Use this guide to navigate QAcademy confidently — practice, review, track progress, and improve consistently.</p>
+      </div>
+
+      <div class="guide-layout">
+        <!-- Main content -->
+        <div class="guide-content">
+
+          <!-- Dashboard -->
+          <div class="guide-section" id="sec-dashboard" data-section="Dashboard">
+            <h2>Dashboard (Your home page)</h2>
+            <p class="lead">Your Dashboard helps you find everything quickly — active courses, practice tools, and your account status.</p>
+            <div class="guide-inner-card">
+              <h3>Use the Dashboard to:</h3>
+              <ul>
+                <li>See your active courses and access status</li>
+                <li>Jump into Fixed Quizzes, Quiz Builder, Learning History, Downloads, and Messages</li>
+                <li>Continue your study routine without searching for links</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Fixed Quizzes -->
+          <div class="guide-section" id="sec-fixed-quizzes" data-section="Fixed Quizzes">
+            <h2>Fixed Quizzes (Ready-made practice)</h2>
+            <p class="lead">Fixed Quizzes are prepared sets you can start immediately — no topic selection required.</p>
+            <div class="guide-grid">
+              <div class="guide-inner-card">
+                <h3>Recommended for</h3>
+                <ul>
+                  <li>Daily practice</li>
+                  <li>Fast revision before exams</li>
+                  <li>Quick mock sessions</li>
+                </ul>
+              </div>
+              <div class="guide-inner-card">
+                <h3>How to use it well</h3>
+                <p>Start a set, finish it, then review your explanations carefully. Use Learning History to identify repeated weak areas.</p>
+                <div class="guide-tip"><strong>Tip:</strong> If you keep missing the same topic, switch to Quiz Builder and focus on that area.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quiz Builder -->
+          <div class="guide-section" id="sec-quiz-builder" data-section="Quiz Builder">
+            <h2>Quiz Builder (Custom practice)</h2>
+            <p class="lead">Quiz Builder lets you create targeted practice by choosing course, topics, difficulty, number of questions, and mode.</p>
+            <div class="guide-grid">
+              <div class="guide-inner-card">
+                <h3>What you choose</h3>
+                <ul>
+                  <li>Course</li>
+                  <li>Topics</li>
+                  <li>Difficulty</li>
+                  <li>Number of questions</li>
+                  <li>Mode (Instant or Timed)</li>
+                </ul>
+              </div>
+              <div class="guide-inner-card">
+                <h3>Recommended settings</h3>
+                <ul>
+                  <li><strong>New topic:</strong> 10–20 questions, Instant</li>
+                  <li><strong>Revision:</strong> 25–50 questions, mixed difficulty</li>
+                  <li><strong>Mock exam:</strong> 50–100 questions, Timed</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Instant vs Timed -->
+          <div class="guide-section" id="sec-modes" data-section="Instant vs Timed">
+            <h2>Instant vs Timed (Choose the right mode)</h2>
+            <p class="lead">Both modes are valuable. Use Instant for learning and Timed for exam readiness.</p>
+            <div class="guide-grid">
+              <div class="guide-inner-card">
+                <h3>Instant Mode</h3>
+                <p>Feedback shows as you answer. Best for learning, understanding concepts, and improving quickly.</p>
+              </div>
+              <div class="guide-inner-card">
+                <h3>Timed Mode</h3>
+                <p>Exam-style practice. Best for speed, accuracy, and confidence under pressure.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- After Your Quiz -->
+          <div class="guide-section" id="sec-after-quiz" data-section="After Your Quiz">
+            <h2>After your quiz (Improve faster)</h2>
+            <p class="lead">Your improvement comes from the review process, not only from answering questions.</p>
+            <div class="guide-inner-card">
+              <ul>
+                <li>Review explanations carefully — focus on <em>why</em> an option is correct</li>
+                <li>Identify repeated weak areas</li>
+                <li>Build your next session around weak topics (Quiz Builder) or repeat a similar Fixed Quiz</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Learning History -->
+          <div class="guide-section" id="sec-learning-history" data-section="Learning History">
+            <h2>Learning History (Track your progress)</h2>
+            <p class="lead">Learning History helps you review past attempts, identify weak topics, and monitor improvement over time.</p>
+            <div class="guide-grid">
+              <div class="guide-inner-card">
+                <h3>What it helps you do</h3>
+                <ul>
+                  <li>Review your past attempts and scores</li>
+                  <li>Identify topics you repeatedly miss</li>
+                  <li>Monitor improvement over time</li>
+                </ul>
+              </div>
+              <div class="guide-inner-card">
+                <h3>Best practice</h3>
+                <p>After each session, select 1–2 weak topics from Learning History and practice them in Quiz Builder.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Offline Packs -->
+          <div class="guide-section" id="sec-downloads" data-section="Offline Packs">
+            <h2>My Downloads (Offline Packs)</h2>
+            <p class="lead">Offline packs help you study without internet and re-open your materials anytime.</p>
+            <div class="guide-inner-card">
+              <ul>
+                <li>Generate a pack from your course/topics</li>
+                <li>Find it later inside <strong>My Downloads</strong></li>
+                <li>Re-open packs without needing to regenerate</li>
+              </ul>
+              <div class="guide-tip"><strong>Note:</strong> Download limits may apply depending on your subscription.</div>
+            </div>
+          </div>
+
+          <!-- Messages -->
+          <div class="guide-section" id="sec-messages" data-section="Messages">
+            <h2>Messages (Support and tutors)</h2>
+            <p class="lead">Use Messages to get help quickly — general support, course support, or question-specific support.</p>
+            <div class="guide-grid">
+              <div class="guide-inner-card">
+                <h3>When to message</h3>
+                <ul>
+                  <li><strong>General support:</strong> account or access questions</li>
+                  <li><strong>Course support:</strong> help with a course topic</li>
+                  <li><strong>Question support:</strong> "Message about this question" inside a quiz</li>
+                </ul>
+              </div>
+              <div class="guide-inner-card">
+                <h3>To get faster help</h3>
+                <p>Include the topic, what confused you, and a short screenshot if needed. Avoid sharing personal details.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Telegram -->
+          <div class="guide-section" id="sec-telegram" data-section="Telegram">
+            <h2>Telegram Support (Premium)</h2>
+            <p class="lead">Premium members can access Telegram support groups for updates, guidance, and support.</p>
+            <div class="guide-inner-card">
+              <ol style="margin:0; padding-left:18px;">
+                <li style="font-size:13px; color:var(--text-muted); line-height:1.6; margin-bottom:4px;">Link your Telegram account (one time)</li>
+                <li style="font-size:13px; color:var(--text-muted); line-height:1.6; margin-bottom:4px;">Join your assigned groups</li>
+                <li style="font-size:13px; color:var(--text-muted); line-height:1.6;">Use the groups for updates and support</li>
+              </ol>
+              <div class="guide-tip"><strong>If you cannot join:</strong> confirm your subscription is active, then message support with your Telegram username.</div>
+            </div>
+          </div>
+
+          <!-- Payments -->
+          <div class="guide-section" id="sec-payments" data-section="Payments">
+            <h2>Payments &amp; Access</h2>
+            <p class="lead">After payment, access should activate automatically and your Dashboard will show active courses.</p>
+            <div class="guide-inner-card">
+              <h3>If you paid but access is still locked</h3>
+              <ul>
+                <li>Keep your <strong>Paystack reference</strong></li>
+                <li>Use the verify/success flow (if available)</li>
+                <li>Or message support and include the Paystack reference</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- FAQs -->
+          <div class="guide-section" id="sec-faqs" data-section="FAQs">
+            <h2>FAQs (Quick fixes)</h2>
+            <p class="lead">Common issues and the fastest solutions.</p>
+            <div class="faq-list" id="faqList">
+              <div class="faq-item">
+                <button class="faq-btn" onclick="toggleFaq(this)">
+                  Why does it say "Access blocked"?
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-panel">
+                  This usually means your subscription is expired or the course is not included in your current product. Confirm your access status on the Dashboard, then message support if it still looks incorrect.
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-btn" onclick="toggleFaq(this)">
+                  I paid — why is my course still locked?
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-panel">
+                  Access should activate automatically. If it does not, keep your Paystack reference and use the verify/success flow if available. You can also message support and include the Paystack reference for faster resolution.
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-btn" onclick="toggleFaq(this)">
+                  Quiz won't load — what should I do?
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-panel">
+                  Refresh the page, confirm your internet connection, and sign in again if needed. If the issue persists, try a different browser tab and then message support with the course and mode (Instant/Timed).
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-btn" onclick="toggleFaq(this)">
+                  What's the difference between Fixed Quizzes and Quiz Builder?
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-panel">
+                  Fixed Quizzes are ready-made sets you can start immediately. Quiz Builder creates custom practice based on your selected topics and difficulty — best for targeting weak areas.
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-btn" onclick="toggleFaq(this)">
+                  How do I use Learning History properly?
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-panel">
+                  After each session, check your recent attempts, identify 1–2 weak topics, then build a targeted Quiz Builder session. Track improvement over time by revisiting the same topics weekly.
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-btn" onclick="toggleFaq(this)">
+                  Where do I find my Offline Packs again?
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-panel">
+                  Go to <strong>My Downloads</strong>. Your packs remain available for re-access, so you can open them again without regenerating.
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-btn" onclick="toggleFaq(this)">
+                  Why did my timed quiz submit automatically?
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-panel">
+                  Timed Mode auto-submits when the timer ends. This is normal and matches exam-style practice. Review your results and explanations after submission.
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-btn" onclick="toggleFaq(this)">
+                  Telegram linking or join issues — what should I check?
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-panel">
+                  Confirm your subscription is active, then link Telegram again if needed. If it still fails, message support with your Telegram username.
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-btn" onclick="toggleFaq(this)">
+                  I forgot my password — what next?
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-panel">
+                  Use the password reset/forgot password flow on the login page. If you cannot regain access, message support with your account email (avoid sharing sensitive details).
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTA Footer -->
+          <div class="guide-cta">
+            <div>
+              <h3>Ready to upgrade your prep?</h3>
+              <p>Get full access and premium support for your 2026 licensure preparation.</p>
+            </div>
+            <div class="guide-cta-actions">
+              <a href="/mynmclicensure/student/upgrade.html" class="btn btn-primary" style="text-decoration:none; font-size:13px;">Upgrade Access</a>
+              <a href="/mynmclicensure/student/messages.html" class="btn btn-secondary" style="text-decoration:none; font-size:13px;">Message Support</a>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right-side sticky nav -->
+        <aside class="guide-nav" id="guideNav"></aside>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/mynmclicensure-api.js"></script>
+<script src="/js/paths.js"></script>
+<script src="/js/mynmclicensure-student-sidebar.js"></script>
+<script>
+
+// ── Build nav from sections ────────────────────────────
+function buildGuideNav() {
+  const sections = document.querySelectorAll('.guide-section[data-section]');
+  const nav = document.getElementById('guideNav');
+  const mobilePanel = document.getElementById('mobileNavPanel');
+
+  let html = '<div class="guide-nav-title">On this page</div>';
+  let mobileHtml = '';
+
+  sections.forEach(sec => {
+    const id = sec.id;
+    const label = sec.getAttribute('data-section');
+    html += `<a href="#${id}" data-nav="${id}"><span class="guide-nav-dot"></span>${label}</a>`;
+    mobileHtml += `<a href="#${id}" onclick="closeMobileNav()">${label}</a>`;
+  });
+
+  nav.innerHTML = html;
+  mobilePanel.innerHTML = mobileHtml;
+}
+
+// ── Active section highlighting ─────────────────────────
+function initScrollSpy() {
+  const sections = document.querySelectorAll('.guide-section[data-section]');
+  const links = document.querySelectorAll('a[data-nav]');
+
+  if (!('IntersectionObserver' in window) || sections.length === 0) return;
+
+  const obs = new IntersectionObserver(entries => {
+    const visible = entries
+      .filter(e => e.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+    if (visible && visible.target.id) {
+      links.forEach(a => a.classList.remove('active'));
+      document.querySelectorAll(`a[data-nav="${visible.target.id}"]`).forEach(a => {
+        a.classList.add('active');
+      });
+    }
+  }, { root: null, threshold: [0.2, 0.4, 0.6] });
+
+  sections.forEach(s => obs.observe(s));
+}
+
+// ── Smooth scroll for nav links ─────────────────────────
+function initNavClicks() {
+  document.querySelectorAll('a[data-nav]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const el = document.getElementById(a.getAttribute('data-nav'));
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
+// ── Mobile nav toggle ───────────────────────────────────
+function toggleMobileNav() {
+  document.getElementById('mobileNav').classList.toggle('open');
+}
+function closeMobileNav() {
+  document.getElementById('mobileNav').classList.remove('open');
+}
+
+// ── FAQ accordion ───────────────────────────────────────
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const icon = item.querySelector('.faq-icon');
+  const wasOpen = item.classList.contains('open');
+
+  // Close all
+  document.querySelectorAll('.faq-item').forEach(i => {
+    i.classList.remove('open');
+    const ic = i.querySelector('.faq-icon');
+    if (ic) ic.textContent = '+';
+  });
+
+  // Open current if was closed
+  if (!wasOpen) {
+    item.classList.add('open');
+    if (icon) icon.textContent = '–';
+  }
+}
+
+// ── Page init ───────────────────────────────────────────
+async function initPage() {
+  const profile = await guardPage('STUDENT');
+  if (!profile) return;
+
+  document.getElementById('userName').textContent = profile.forename || profile.name || profile.email;
+
+  // Populate sidebar course dropdown
+  const courseAccessMap = await getStudentCourseAccess(profile.user_id);
+  const allCourses = await getCourses();
+  populateCourseDropdown(courseAccessMap, allCourses);
+
+  buildGuideNav();
+  initNavClicks();
+  initScrollSpy();
+
+  document.getElementById('pageContent').style.display = '';
+}
+
+initPage();
+
+</script>
+</body>
+</html>
