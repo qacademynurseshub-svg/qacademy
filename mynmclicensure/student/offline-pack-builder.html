@@ -6,321 +6,197 @@
   <title>Offline Pack Builder — QAcademy Nurses Hub</title>
   <link rel="stylesheet" href="/css/style.css" />
   <style>
-    .top-nav{
-      display:flex; align-items:center; justify-content:space-between;
-      margin-bottom:28px;
-    }
-    .user-menu{ display:flex; align-items:center; gap:12px; }
-    .logout-btn{
-      font-size:13px; color:var(--text-muted); cursor:pointer;
-      background:none; border:none; font-family:'Inter',sans-serif;
-    }
-    .logout-btn:hover{ color:var(--danger); }
+    /* ── Layout ── */
+    .top-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+    .user-menu{display:flex;align-items:center;gap:12px}
+    .logout-btn{font-size:13px;color:var(--text-muted);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif}
+    .logout-btn:hover{color:var(--danger)}
 
-    .builder-hero,
-    .step-card,
-    .summary-card,
-    .recent-card,
-    .empty-card{
-      background:var(--white);
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      padding:24px;
-      margin-bottom:24px;
+    /* ── Progress block ── */
+    .prog-block{
+      background:var(--white);border:1px solid var(--border);
+      border-radius:var(--radius);padding:20px 24px;margin-bottom:20px;
     }
+    .prog-bar{display:flex;align-items:center;margin-bottom:14px}
+    .prog-step{display:flex;align-items:center;flex:1}
+    .prog-step:last-child{flex:0}
+    .prog-circle{
+      width:34px;height:34px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;
+      transition:all .18s;border:1.5px solid var(--border);
+      background:var(--bg);color:var(--text-muted);
+    }
+    .prog-circle.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .prog-circle.done{background:var(--accent);border-color:var(--accent);color:#fff;font-size:12px}
+    .prog-line{flex:1;height:1.5px;background:var(--border);margin:0 6px;transition:background .18s}
+    .prog-line.done{background:var(--accent)}
+    .prog-labels{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-bottom:14px}
+    .prog-lbl{font-size:11px;color:var(--text-muted);text-align:center;cursor:pointer;padding-top:6px;line-height:1.3}
+    .prog-lbl.active{color:var(--primary);font-weight:600}
+    .prog-lbl.done{color:var(--accent)}
+    .prog-step-label{font-size:13px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:12px}
+    .prog-step-label strong{color:var(--text);font-weight:600}
 
-    .builder-hero{
-      display:flex; justify-content:space-between; align-items:flex-start;
-      gap:16px; flex-wrap:wrap;
+    /* ── Wizard panes ── */
+    .pane{display:none}
+    .pane.active{display:block}
+    .pane-card{
+      background:var(--white);border:1px solid var(--border);
+      border-radius:var(--radius);padding:24px;margin-bottom:20px;
     }
-    .builder-hero h1{
-      font-size:24px; margin:0 0 8px; color:var(--primary);
-    }
-    .builder-hero p{
-      margin:0; color:var(--text-muted); font-size:14px; line-height:1.6;
-      max-width:760px;
-    }
+    .pane-title{font-size:20px;font-weight:700;color:var(--primary);margin:0 0 4px}
+    .pane-sub{font-size:13px;color:var(--text-muted);margin:0 0 20px;line-height:1.5}
 
-    .hero-badge{
-      display:inline-flex; align-items:center; gap:8px;
-      background:var(--primary-light);
-      color:var(--accent);
-      border:1px solid rgba(11,122,117,0.18);
-      border-radius:999px;
-      padding:8px 14px;
-      font-size:12px; font-weight:700;
-      white-space:nowrap;
-    }
+    /* ── Nav bar ── */
+    .nav-bar{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+    .btn-back{font-size:14px;padding:9px 20px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);cursor:pointer}
+    .btn-back:hover{background:var(--bg)}
+    .btn-next{font-size:14px;font-weight:600;padding:9px 24px;border:1.5px solid var(--primary);border-radius:8px;background:var(--primary);color:#fff;cursor:pointer}
+    .btn-next:hover{background:var(--primary-dark)}
+    .btn-next:disabled{opacity:0.45;cursor:default}
+    .btn-create{font-size:14px;font-weight:600;padding:9px 24px;border:1.5px solid var(--accent);border-radius:8px;background:var(--accent);color:#fff;cursor:pointer}
+    .btn-create:hover{background:#235f56}
+    .btn-create:disabled{opacity:0.45;cursor:default}
 
-    .step-head{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; margin-bottom:16px; flex-wrap:wrap;
-    }
-    .step-title{
-      font-size:18px; font-weight:700; color:var(--primary); margin:0;
-    }
-    .step-sub{
-      font-size:13px; color:var(--text-muted); margin:6px 0 0 0;
-    }
+    /* ── Recent setups ── */
+    .recent-collapse{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px}
+    .recent-toggle{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+    .recent-toggle-lbl{font-size:13px;font-weight:600;color:var(--text)}
+    .recent-toggle-caret{font-size:12px;color:var(--text-muted);transition:transform .18s;display:inline-block}
+    .recent-toggle-caret.open{transform:rotate(180deg)}
+    .recent-body{display:none;flex-direction:column;gap:8px;margin-top:12px}
+    .recent-body.open{display:flex}
+    .recent-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--white);border:1px solid var(--border);border-radius:8px;gap:12px}
+    .recent-main{min-width:0}
+    .recent-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .recent-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .btn-lite{font-size:12px;font-weight:500;padding:6px 14px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);cursor:pointer;white-space:nowrap;flex-shrink:0}
+    .btn-lite:hover{background:var(--bg)}
 
-    .step-pill{
-      font-size:11px; font-weight:700;
-      padding:4px 10px; border-radius:999px;
-      background:#f3f4f6; color:var(--text-muted);
-    }
+    /* ── Form fields ── */
+    .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{font-size:13px;font-weight:600;color:var(--text)}
+    .field select,.field input[type=text]{width:100%}
+    .field .hint{font-size:12px;color:var(--text-muted)}
+    .error-text{font-size:12px;color:var(--danger);margin-top:4px;display:none}
 
-    .form-grid-2{
-      display:grid; grid-template-columns:1fr 1fr; gap:16px;
-    }
-    .form-grid-3{
-      display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
-    }
+    /* ── Segmented control ── */
+    .segmented{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    .segmented label{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;font-size:13px;cursor:pointer;color:var(--text-muted);border-right:1px solid var(--border);transition:all .15s}
+    .segmented label:last-child{border-right:none}
+    .segmented label.picked{background:var(--primary-light);color:var(--primary);font-weight:600}
+    .segmented input{display:none}
 
-    .field label{
-      display:block; font-size:13px; font-weight:700;
-      color:var(--text); margin-bottom:8px;
+    /* ── Topics ── */
+    .topics-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+    .topics-toolbar input[type=text]{flex:1;min-width:140px}
+    .topics-box{border:1px solid var(--border);border-radius:10px;background:var(--white);padding:12px;max-height:280px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+    .topic-chip{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;background:var(--bg);color:var(--text-muted);display:flex;align-items:center;gap:8px;transition:all .13s}
+    .topic-chip:hover{border-color:var(--accent);color:var(--text)}
+    .topic-chip.picked{border-color:var(--accent);background:var(--primary-light);color:var(--primary);font-weight:600}
+    .topic-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .13s}
+    .topic-chip.picked .dot{background:var(--accent)}
+    .topic-chip-count{
+      font-size:11px;font-weight:600;color:var(--text-muted);
+      background:var(--bg);border:1px solid var(--border);
+      padding:1px 6px;border-radius:999px;margin-left:auto;flex-shrink:0;
     }
+    .topic-chip.picked .topic-chip-count{color:var(--accent);border-color:rgba(11,122,117,0.2);background:rgba(11,122,117,0.08)}
+    .use-all-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .use-all-row label{font-size:13px;color:var(--text);cursor:pointer}
+    .chips-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:0}
+    .chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--primary-light);color:var(--primary);border:1px solid rgba(30,58,95,0.18)}
+    .chip-remove{cursor:pointer;font-size:14px;line-height:1;color:var(--primary);opacity:0.7}
+    .chip-remove:hover{opacity:1}
 
-    .field input[type="text"],
-    .field input[type="number"],
-    .field select{
-      width:100%;
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:12px 14px;
-      font-size:14px;
-      outline:none;
-      background:#fff;
+    /* ── Concept mode ── */
+    .concept-search-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px}
+    .concepts-box{border:1px solid var(--border);border-radius:10px;background:var(--white);padding:8px;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+    .concept-item{padding:8px 12px;border-radius:7px;font-size:13px;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .concept-item:hover{background:var(--bg);color:var(--text)}
+    .concept-item.picked{background:var(--primary-light);color:var(--primary);font-weight:600}
+    .concept-item-count{
+      font-size:11px;font-weight:600;color:var(--text-muted);
+      background:var(--bg);border:1px solid var(--border);
+      padding:1px 6px;border-radius:999px;flex-shrink:0;
     }
+    .concept-item.picked .concept-item-count{color:var(--accent);border-color:rgba(11,122,117,0.2);background:rgba(11,122,117,0.08)}
 
-    .hint{
-      font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.5;
+    /* ── Difficulty & Type ── */
+    .checks-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .check-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);transition:all .13s}
+    .check-item:hover{border-color:var(--accent)}
+    .check-item.picked{border-color:var(--accent);background:var(--primary-light)}
+    .check-item label{font-size:13px;color:var(--text);cursor:pointer;margin:0}
+    .check-item input{accent-color:var(--accent)}
+    .check-item-count{
+      font-size:11px;font-weight:600;color:var(--text-muted);
+      background:var(--white);border:1px solid var(--border);
+      padding:1px 6px;border-radius:999px;margin-left:auto;flex-shrink:0;
     }
+    .check-item.picked .check-item-count{color:var(--accent);border-color:rgba(11,122,117,0.2);background:rgba(11,122,117,0.08)}
 
-    .segmented{
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
-    .segmented label{
-      display:flex; align-items:center; gap:8px;
-      padding:10px 14px;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background:#fff;
-      cursor:pointer;
-      font-size:14px;
-      font-weight:600;
-      color:var(--text);
-    }
+    /* ── Pool bar ── */
+    .pool-bar{display:flex;align-items:center;justify-content:space-between;background:var(--primary-light);border:1px solid rgba(45,125,114,0.2);border-radius:8px;padding:10px 16px;margin-top:20px}
+    .pool-bar-lbl{font-size:13px;color:var(--text-muted)}
+    .pool-bar-count{font-size:15px;font-weight:700;color:var(--primary)}
 
-    .chip-toolbar{
-      display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;
-    }
+    /* ── Count & Name (Step 4) ── */
+    .count-display-row{display:flex;align-items:center;gap:16px;margin-bottom:8px}
+    .count-big{font-size:36px;font-weight:700;color:var(--primary);min-width:56px;line-height:1}
+    .count-sub{font-size:13px;color:var(--text-muted)}
+    .count-hint{font-size:12px;color:var(--text-muted);margin-bottom:20px}
+    .pack-name-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
+    .pack-name-section label{font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px}
+    .pack-name-section input{width:100%}
+    .pack-name-section .hint{font-size:12px;color:var(--text-muted);margin-top:4px}
 
-    .btn-lite, .btn-primary, .btn-ghost{
-      border:none; border-radius:999px; padding:10px 16px;
-      font-size:13px; font-weight:700; cursor:pointer;
-      text-decoration:none; display:inline-flex; align-items:center; justify-content:center;
-    }
-    .btn-primary{ background:var(--accent); color:#fff; }
-    .btn-ghost{ background:#f3f4f6; color:var(--text); }
-    .btn-lite{
-      background:var(--primary-light);
-      color:var(--accent);
-      border:1px solid rgba(11,122,117,0.16);
-    }
+    /* ── Review & Create (Step 5) ── */
+    .stats-row{display:flex;gap:12px;margin-bottom:20px}
+    .stat-card{flex:1;background:var(--bg);border-radius:8px;padding:14px;text-align:center;border:1px solid var(--border)}
+    .stat-num{font-size:24px;font-weight:700;color:var(--primary)}
+    .stat-lbl{font-size:12px;color:var(--text-muted);margin-top:4px}
+    .summary-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+    .summary-item{background:var(--bg);border-radius:8px;padding:12px 14px;border:1px solid var(--border)}
+    .summary-label{font-size:12px;color:var(--text-muted);margin-bottom:4px}
+    .summary-value{font-size:13px;font-weight:600;color:var(--text)}
+    .review-edit{border:none;background:transparent;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;padding:0}
+    .review-edit:hover{text-decoration:underline}
+    .status-box{font-size:13px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:0}
 
-    .topics-box, .concept-box{
-      border:1px solid var(--border);
-      border-radius:14px;
-      background:#fff;
-      max-height:280px;
-      overflow:auto;
-      padding:8px;
-    }
-
-    .topic-row, .concept-row{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:12px;
-      padding:10px 12px;
-      border-radius:10px;
-      cursor:pointer;
-    }
-    .topic-row:hover, .concept-row:hover{ background:#f8fafb; }
-
-    .topic-left, .concept-left{
-      display:flex; align-items:center; gap:10px; min-width:0;
-    }
-
-    .topic-name, .concept-name{
-      font-size:14px; font-weight:600; color:var(--text);
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-
-    .topic-count, .concept-count{
-      font-size:11px; font-weight:700;
-      padding:4px 8px; border-radius:999px;
-      background:#f3f4f6; color:var(--text-muted);
-      flex-shrink:0;
-    }
-
-    .inline-check{
-      display:flex; align-items:center; gap:8px;
-      padding:10px 12px;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background:#fff;
-      font-size:14px;
-      color:var(--text);
-    }
-
-    .chips{
-      display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;
-    }
-
-    .chip{
-      display:inline-flex; align-items:center; gap:8px;
-      background:var(--primary-light);
-      color:var(--accent);
-      border:1px solid rgba(11,122,117,0.16);
-      border-radius:999px;
-      padding:7px 12px;
-      font-size:12px; font-weight:700;
-    }
-    .chip button{
-      border:none; background:none; cursor:pointer; color:inherit;
-      font-size:12px; padding:0; line-height:1;
-    }
-
-    .muted-box{
-      border:1px dashed var(--border);
-      border-radius:14px;
-      padding:14px;
-      background:#fafbfc;
-      color:var(--text-muted);
-      font-size:13px;
-    }
-
-    .pool-box{
-      display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
-    }
-    .pool-stat{
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:14px;
-      background:#fff;
-    }
-    .pool-stat .label{
-      font-size:12px; color:var(--text-muted); margin-bottom:6px;
-    }
-    .pool-stat .value{
-      font-size:22px; font-weight:700; color:var(--primary);
-    }
-
-    .summary-grid{
-      display:grid; grid-template-columns:1fr 1fr; gap:14px;
-    }
-    .summary-item{
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:14px;
-      background:#fff;
-    }
-    .summary-label{
-      font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:6px;
-    }
-    .summary-value{
-      font-size:14px; color:var(--text);
-      line-height:1.5;
-    }
-
-    .actions{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; margin-top:18px; flex-wrap:wrap;
-    }
-    .actions-right{
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
-
-    .recent-list{
-      display:grid; gap:10px;
-    }
-    .recent-item{
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; flex-wrap:wrap;
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:14px;
-      background:#fff;
-    }
-    .recent-main{
-      min-width:0;
-    }
-    .recent-title{
-      font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px;
-    }
-    .recent-sub{
-      font-size:12px; color:var(--text-muted);
-    }
-
-    .error-text{
-      font-size:12px; color:var(--danger); margin-top:8px; display:none;
-    }
-
-    .hidden{ display:none !important; }
-
-    .modal-backdrop{
-      position:fixed; inset:0; background:rgba(15,23,42,0.55);
-      display:none; align-items:center; justify-content:center;
-      z-index:9999; padding:16px;
-    }
-    .modal-card{
-      background:#fff; border-radius:18px; max-width:520px; width:100%;
-      padding:22px; box-shadow:0 24px 60px rgba(0,0,0,0.22);
-    }
-    .modal-card h3{
-      margin:0 0 8px; font-size:20px; color:var(--primary);
-    }
-    .modal-card p{
-      margin:0 0 18px; color:var(--text-muted); font-size:14px; line-height:1.6;
-    }
-    .modal-actions{
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
-
+    /* ── Offline confirmation modal (fixed overlay) ── */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.55);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}
+    .modal-card{background:#fff;border-radius:18px;max-width:520px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.22)}
+    .modal-card h3{margin:0 0 8px;font-size:20px;color:var(--primary)}
+    .modal-card p{margin:0 0 18px;color:var(--text-muted);font-size:14px;line-height:1.6}
+    .modal-actions{display:flex;gap:10px;flex-wrap:wrap}
     .rule-box{
-      border:1px solid rgba(11,122,117,0.14);
-      background:var(--primary-light);
-      border-radius:14px;
-      padding:14px;
-      margin-bottom:14px;
-      font-size:13px;
-      line-height:1.65;
-      color:var(--text);
+      border:1px solid rgba(11,122,117,0.14);background:var(--primary-light);
+      border-radius:14px;padding:14px;margin-bottom:14px;
+      font-size:13px;line-height:1.65;color:var(--text);
     }
+    .kv-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+    .pill{display:inline-flex;align-items:center;gap:8px;background:#f3f4f6;color:var(--text);border-radius:999px;padding:8px 12px;font-size:12px;font-weight:700}
+    .inline-error{font-size:12px;color:var(--danger);min-height:18px;margin-bottom:12px}
+    .btn-ghost{font-size:14px;padding:9px 18px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text);cursor:pointer}
+    .btn-ghost:hover{background:var(--bg)}
 
-    .kv-pills{
-      display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;
+    /* ── Empty card ── */
+    .empty-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:40px;text-align:center}
+
+    .hidden{display:none !important}
+
+    @media(max-width:760px){
+      .field-grid,.summary-grid,.stats-row{grid-template-columns:1fr}
+      .checks-grid{grid-template-columns:1fr 1fr}
+      .prog-lbl{font-size:10px}
+      .count-big{font-size:28px}
     }
-
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      background:#f3f4f6;
-      color:var(--text);
-      border-radius:999px;
-      padding:8px 12px;
-      font-size:12px; font-weight:700;
-    }
-
-    .inline-error{
-      font-size:12px;
-      color:var(--danger);
-      margin-top:10px;
-      min-height:18px;
-    }
-
-    @media (max-width: 900px){
-      .form-grid-2, .summary-grid{ grid-template-columns:1fr; }
-      .form-grid-3, .pool-box{ grid-template-columns:1fr; }
+    @media(max-width:480px){
+      .prog-circle{width:28px;height:28px;font-size:12px}
+      .checks-grid{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -331,8 +207,8 @@
   <main class="main-content">
     <div class="top-nav">
       <div class="page-header" style="margin-bottom:0">
-        <h1 id="pageTitle">Offline Pack Builder</h1>
-        <p id="pageSub">Build a stored offline revision pack from one course at a time.</p>
+        <h1>Offline Pack Builder</h1>
+        <p style="font-size:14px;color:var(--text-muted);margin:4px 0 0">Build a stored revision pack from one course at a time.</p>
       </div>
       <div class="user-menu">
         <span class="user-name" id="userName"></span>
@@ -340,247 +216,288 @@
       </div>
     </div>
 
-    <div id="pageContent" style="display:none;">
-      <section class="builder-hero">
-        <div>
-          <h1>Create Your Offline Pack</h1>
-          <p>
-            Choose one course, narrow by topics or concept, apply difficulty and question-type filters,
-            set your question count, then create a stored offline PDF pack for revision.
-          </p>
-        </div>
-        <div class="hero-badge" id="heroLimitBadge">Offline limit: — questions</div>
-      </section>
+    <div id="pageContent" style="display:none">
 
-      <section class="recent-card" id="recentCard" style="display:none;">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Recent Offline Setups</h2>
-            <p class="step-sub">Pick one to refill the form intentionally.</p>
+      <!-- ═══════════════════════════════════════
+           PROGRESS BAR
+      ═══════════════════════════════════════ -->
+      <div class="prog-block">
+        <div class="prog-bar">
+          <div class="prog-step">
+            <div class="prog-circle active" id="pc0" data-goto="0">1</div>
+            <div class="prog-line" id="pl0"></div>
           </div>
-          <span class="step-pill" id="recentCountPill">0 saved</span>
-        </div>
-        <div id="recentList" class="recent-list"></div>
-      </section>
-
-      <section class="step-card">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 1 — Course & Selection Mode</h2>
-            <p class="step-sub">Choose your course and whether you want Topics mode or Concept mode.</p>
+          <div class="prog-step">
+            <div class="prog-circle" id="pc1" data-goto="1">2</div>
+            <div class="prog-line" id="pl1"></div>
           </div>
-          <span class="step-pill" id="coursePill">No course selected</span>
-        </div>
-
-        <div class="form-grid-2">
-          <div class="field">
-            <label for="courseSelect">Course</label>
-            <select id="courseSelect"></select>
-            <div class="hint">Only courses in your active access list can be opened here.</div>
-            <div class="error-text" id="courseError"></div>
+          <div class="prog-step">
+            <div class="prog-circle" id="pc2" data-goto="2">3</div>
+            <div class="prog-line" id="pl2"></div>
           </div>
+          <div class="prog-step">
+            <div class="prog-circle" id="pc3" data-goto="3">4</div>
+            <div class="prog-line" id="pl3"></div>
+          </div>
+          <div class="prog-circle" id="pc4" data-goto="4">5</div>
+        </div>
+        <div class="prog-labels">
+          <div class="prog-lbl active" id="pl-lbl0" data-goto="0">Course &amp; mode</div>
+          <div class="prog-lbl" id="pl-lbl1" data-goto="1">Topics</div>
+          <div class="prog-lbl" id="pl-lbl2" data-goto="2">Difficulty</div>
+          <div class="prog-lbl" id="pl-lbl3" data-goto="3">Count &amp; name</div>
+          <div class="prog-lbl" id="pl-lbl4" data-goto="4">Review &amp; create</div>
+        </div>
+        <div class="prog-step-label"><strong id="stepLabelText">Step 1 of 5 — Course &amp; selection mode</strong></div>
+      </div>
 
-          <div class="field">
-            <label>Selection mode</label>
-            <div class="segmented">
-              <label><input type="radio" name="selectionMode" value="topics" checked> Topics</label>
-              <label><input type="radio" name="selectionMode" value="concept"> Concept</label>
+      <!-- PANE 0 — COURSE & SELECTION MODE -->
+      <div class="pane active" id="pane0">
+        <div class="pane-card">
+          <div class="pane-title">Course &amp; selection mode</div>
+          <p class="pane-sub">Choose a course from your active subscriptions, then decide how you want to select questions.</p>
+
+          <div class="recent-collapse" id="recentCard" style="display:none">
+            <div class="recent-toggle" onclick="toggleRecent()">
+              <span class="recent-toggle-lbl">Recent setups <span id="recentCountPill" style="font-size:12px;font-weight:400;color:var(--text-muted)"></span></span>
+              <span class="recent-toggle-caret" id="recentCaret">▾</span>
             </div>
-            <div class="hint">Topics = choose maintopics. Concept = use subtopics and keyword matching.</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="step-card" id="topicsStep">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 2 — Topics or Concept</h2>
-            <p class="step-sub">Pick one or more maintopics, or switch to Concept mode and build around subtopics / keywords.</p>
-          </div>
-          <span class="step-pill" id="selectionPill">Nothing selected</span>
-        </div>
-
-        <div id="topicsModePane">
-          <div class="chip-toolbar">
-            <button class="btn-ghost" type="button" id="selectAllTopicsBtn">Select all shown</button>
-            <button class="btn-ghost" type="button" id="clearTopicsBtn">Clear topics</button>
-          </div>
-
-          <div class="form-grid-2">
-            <div class="field">
-              <label for="topicSearch">Filter topics</label>
-              <input id="topicSearch" type="text" placeholder="Type part of a topic name" />
-            </div>
-            <div class="field">
-              <label>&nbsp;</label>
-              <label class="inline-check">
-                <input type="checkbox" id="useAllTopics" />
-                <span>Use all topics for this course</span>
-              </label>
+            <div class="recent-body" id="recentBody">
+              <div id="recentList"></div>
             </div>
           </div>
 
-          <div class="topics-box" id="topicsBox"></div>
-          <div class="chips" id="selectedTopicChips"></div>
-        </div>
-
-        <div id="conceptModePane" class="hidden">
-          <div class="form-grid-2">
+          <div class="field-grid">
             <div class="field">
-              <label for="conceptSearch">Concept keyword</label>
-              <input id="conceptSearch" type="text" placeholder="e.g. DKA, stroke, shock" />
-              <div class="hint">This searches across subtopic, stem, rationale and maintopic.</div>
+              <label for="courseSelect">Course</label>
+              <select id="courseSelect"></select>
+              <span class="hint">Only your active courses are shown.</span>
+              <div class="error-text" id="courseError"></div>
             </div>
             <div class="field">
-              <label>&nbsp;</label>
-              <div class="chip-toolbar" style="margin-top:0;">
-                <button class="btn-ghost" type="button" id="clearConceptsBtn">Clear concepts</button>
+              <label>Selection mode</label>
+              <div class="segmented">
+                <label class="picked" id="segTopics"><input type="radio" name="selectionMode" value="topics" checked> Topics</label>
+                <label id="segConcept"><input type="radio" name="selectionMode" value="concept"> Concept</label>
+              </div>
+              <span class="hint" id="selModeHint">Topics = choose from main topic groups.</span>
+            </div>
+          </div>
+
+          <div class="nav-bar">
+            <span></span>
+            <button class="btn-next" onclick="goStep(1)">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE 1 — TOPICS / CONCEPT -->
+      <div class="pane" id="pane1">
+        <div class="pane-card">
+          <div class="pane-title" id="pane1Title">Topics</div>
+          <p class="pane-sub" id="pane1Sub">Select one or more topics to draw questions from.</p>
+
+          <div id="topicsModePane">
+            <div class="use-all-row">
+              <input type="checkbox" id="useAllTopics" />
+              <label for="useAllTopics">Use all topics for this course</label>
+            </div>
+            <div class="topics-toolbar">
+              <input type="text" id="topicSearch" placeholder="Filter topics…" />
+              <button class="btn-lite" id="selectAllTopicsBtn">Select all shown</button>
+              <button class="btn-lite" id="clearTopicsBtn">Clear</button>
+            </div>
+            <div class="topics-box" id="topicsBox"></div>
+            <div class="chips-row" id="selectedTopicChips"></div>
+          </div>
+
+          <div id="conceptModePane" class="hidden">
+            <div class="concept-search-row">
+              <input type="text" id="conceptSearch" placeholder="e.g. DKA, stroke, shock…" />
+              <button class="btn-lite" id="clearConceptsBtn">Clear</button>
+            </div>
+            <span class="hint" style="display:block;margin-bottom:8px">Searches across subtopic, stem, rationale and maintopic.</span>
+            <div class="concepts-box" id="conceptsBox"></div>
+            <div class="chips-row" id="selectedConceptChips"></div>
+          </div>
+
+          <div class="error-text" id="selectionError"></div>
+
+          <div class="nav-bar">
+            <button class="btn-back" onclick="goStep(0)">← Back</button>
+            <button class="btn-next" onclick="goStep(2)">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE 2 — DIFFICULTY & QUESTION TYPE -->
+      <div class="pane" id="pane2">
+        <div class="pane-card">
+          <div class="pane-title">Difficulty &amp; question type</div>
+          <p class="pane-sub">Narrow your pool by difficulty and question format. Leave blank to include all.</p>
+
+          <div class="field-grid">
+            <div class="field">
+              <label>Difficulty</label>
+              <div class="checks-grid" id="difficultyChecks"></div>
+            </div>
+            <div class="field">
+              <label>Question type</label>
+              <div class="checks-grid" id="questionTypeChecks"></div>
+            </div>
+          </div>
+
+          <div class="pool-bar">
+            <span class="pool-bar-lbl">Questions matching your filters</span>
+            <span class="pool-bar-count"><span id="poolCountValue">—</span> available</span>
+          </div>
+
+          <div class="nav-bar">
+            <button class="btn-back" onclick="goStep(1)">← Back</button>
+            <button class="btn-next" onclick="goStep(3)">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE 3 — COUNT & PACK NAME -->
+      <div class="pane" id="pane3">
+        <div class="pane-card">
+          <div class="pane-title">Count &amp; pack name</div>
+          <p class="pane-sub">Set how many questions to include, then give your pack a name for easy reference later.</p>
+
+          <div class="count-display-row">
+            <div>
+              <div class="count-big" id="countDisplay">—</div>
+              <div class="count-sub">questions</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+              <input type="range" id="questionCount" min="1" max="50" value="1" step="1"
+                oninput="onCountSlider(this.value)" />
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="number" id="questionCountInput" min="1" max="50" value=""
+                  placeholder="Enter number"
+                  style="width:120px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none"
+                  oninput="onCountInput(this.value)" />
+                <span class="hint" style="margin:0">or use the slider</span>
               </div>
             </div>
           </div>
+          <div class="count-hint" id="limitHint">Max <span id="limitMax">50</span> questions per pack · Pool: <span id="poolHintCount">—</span> available</div>
 
-          <div class="concept-box" id="conceptsBox"></div>
-          <div class="chips" id="selectedConceptChips"></div>
-        </div>
-
-        <div class="error-text" id="selectionError"></div>
-      </section>
-
-      <section class="step-card">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 3 — Difficulty & Question Type</h2>
-            <p class="step-sub">Use one or more filters, or leave blank to pull from all available item types.</p>
+          <div class="pack-name-section">
+            <label for="packName">Pack name</label>
+            <input type="text" id="packName" placeholder="e.g. Cardio Revision Week 3" />
+            <span class="hint">This name appears on your downloads page. You can also edit it when confirming.</span>
           </div>
-          <span class="step-pill" id="filterPill">All difficulties • All types</span>
-        </div>
 
-        <div class="form-grid-2">
-          <div class="field">
-            <label>Difficulty</label>
-            <div class="form-grid-3" id="difficultyChecks"></div>
-          </div>
-          <div class="field">
-            <label>Question type</label>
-            <div class="form-grid-3" id="questionTypeChecks"></div>
+          <div class="error-text" id="countError"></div>
+
+          <div class="nav-bar">
+            <button class="btn-back" onclick="goStep(2)">← Back</button>
+            <button class="btn-next" onclick="goStep(4)">Next →</button>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section class="step-card">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 4 — Question Count & Pack Name</h2>
-            <p class="step-sub">The visible limit here comes from the offline config rule, not the quiz builder rule.</p>
-          </div>
-          <span class="step-pill" id="countPill">—</span>
-        </div>
+      <!-- PANE 4 — REVIEW & CREATE -->
+      <div class="pane" id="pane4">
+        <div class="pane-card">
+          <div class="pane-title">Review &amp; create</div>
+          <p class="pane-sub">Check your setup, then create the offline pack.</p>
 
-        <div class="form-grid-2">
-          <div class="field">
-            <label for="questionCount">Number of questions</label>
-            <input id="questionCount" type="number" min="1" />
-            <div class="hint" id="limitHint">You can create up to — questions in one offline pack.</div>
-            <div class="error-text" id="countError"></div>
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-num" id="poolCountValue2">—</div>
+              <div class="stat-lbl">Pool size</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="selectedCountValue">—</div>
+              <div class="stat-lbl">Questions selected</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="packTypeValue">PDF</div>
+              <div class="stat-lbl">Format</div>
+            </div>
           </div>
 
-          <div class="field">
-            <label for="packName">Pack name (optional)</label>
-            <input id="packName" type="text" maxlength="120" placeholder="e.g. GP Exam Revision Pack 1" />
-            <div class="hint">Leave blank to use an automatic pack title.</div>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Course</div>
+                <button type="button" class="review-edit" onclick="goStep(0)">Edit</button>
+              </div>
+              <div class="summary-value" id="summaryCourse">—</div>
+            </div>
+            <div class="summary-item">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Selection mode</div>
+                <button type="button" class="review-edit" onclick="goStep(0)">Edit</button>
+              </div>
+              <div class="summary-value" id="summaryMode">—</div>
+            </div>
+            <div class="summary-item">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Topics / concept</div>
+                <button type="button" class="review-edit" onclick="goStep(1)">Edit</button>
+              </div>
+              <div class="summary-value" id="summarySelection">—</div>
+            </div>
+            <div class="summary-item">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Difficulty</div>
+                <button type="button" class="review-edit" onclick="goStep(2)">Edit</button>
+              </div>
+              <div class="summary-value" id="summaryDifficulty">—</div>
+            </div>
+            <div class="summary-item">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Question type</div>
+                <button type="button" class="review-edit" onclick="goStep(2)">Edit</button>
+              </div>
+              <div class="summary-value" id="summaryQuestionType">—</div>
+            </div>
+            <div class="summary-item">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Pack name</div>
+                <button type="button" class="review-edit" onclick="goStep(3)">Edit</button>
+              </div>
+              <div class="summary-value" id="summarySetup">—</div>
+            </div>
           </div>
-        </div>
 
-        <div class="pool-box" style="margin-top:16px;">
-          <div class="pool-stat">
-            <div class="label">Matching pool</div>
-            <div class="value" id="poolCountValue">0</div>
-          </div>
-          <div class="pool-stat">
-            <div class="label">Selected count</div>
-            <div class="value" id="selectedCountValue">0</div>
-          </div>
-          <div class="pool-stat">
-            <div class="label">Pack type</div>
-            <div class="value" id="packTypeValue">PDF</div>
-          </div>
-        </div>
-      </section>
+          <div class="status-box" id="statusBox">Choose a course to begin.</div>
 
-      <section class="summary-card">
-        <div class="step-head">
-          <div>
-            <h2 class="step-title">Step 5 — Review & Download</h2>
-            <p class="step-sub">Check the setup before creating your stored offline revision pack.</p>
-          </div>
-          <span class="step-pill" id="reviewPill">Not ready yet</span>
-        </div>
-
-        <div class="summary-grid">
-          <div class="summary-item">
-            <div class="summary-label">Course</div>
-            <div class="summary-value" id="summaryCourse">—</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-label">Selection mode</div>
-            <div class="summary-value" id="summaryMode">—</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-label">Topics / Concept</div>
-            <div class="summary-value" id="summarySelection">—</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-label">Difficulty</div>
-            <div class="summary-value" id="summaryDifficulty">—</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-label">Question type</div>
-            <div class="summary-value" id="summaryQuestionType">—</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-label">Pack setup</div>
-            <div class="summary-value" id="summarySetup">—</div>
+          <div class="nav-bar">
+            <button class="btn-back" onclick="goStep(3)">← Back</button>
+            <button class="btn-create" id="buildBtn" disabled>Create pack →</button>
           </div>
         </div>
+      </div>
 
-        <div class="actions">
-          <div class="muted-box" id="statusBox">
-            Choose a course to begin.
-          </div>
+    </div><!-- /pageContent -->
 
-          <div class="actions-right">
-            <a class="btn-ghost" href="/mynmclicensure/student/dashboard.html">Cancel</a>
-            <a class="btn-lite" href="/mynmclicensure/student/my-offline-packs.html">My Downloads</a>
-            <button class="btn-primary" id="buildBtn" type="button" disabled>Download Offline Pack</button>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <div id="emptyState" class="empty-card" style="display:none;">
-      <h2 style="margin-top:0;color:var(--primary);">No Offline Builder Access</h2>
-      <p style="color:var(--text-muted);font-size:14px;line-height:1.6;">
-        You do not currently have access to any course that can be used here.
-      </p>
+    <div id="emptyState" class="empty-card" style="display:none">
+      <h2 style="margin-top:0;color:var(--primary)">No builder access</h2>
+      <p style="color:var(--text-muted);font-size:14px;line-height:1.6">You do not currently have access to any course that can be used in the offline pack builder.</p>
       <a href="/mynmclicensure/student/dashboard.html" class="btn-primary">Back to dashboard</a>
     </div>
+
   </main>
 </div>
 
+<!-- Access modal -->
 <div class="modal-backdrop" id="accessModal">
   <div class="modal-card">
     <h3>Course not available</h3>
-    <p id="accessModalText">
-      You do not have an active subscription for this course.
-    </p>
+    <p id="accessModalText">You do not have an active subscription for this course.</p>
     <div class="modal-actions">
-      <a href="/mynmclicensure/student/dashboard.html" class="btn-primary">Go to dashboard</a>
-      <a href="/mynmclicensure/student/course.html" id="courseModalBtn" class="btn-ghost">Go to course page</a>
-      <button type="button" class="btn-lite" id="closeAccessModal">Stay here</button>
+      <button class="btn-ghost" id="closeAccessModal">Close</button>
+      <a class="btn-primary" id="courseModalBtn" href="#">View course</a>
     </div>
   </div>
 </div>
 
+<!-- Offline confirmation modal (fixed overlay, same as original) -->
 <div class="modal-backdrop" id="offlineModal">
   <div class="modal-card">
     <h3>Confirm offline pack download</h3>
@@ -596,12 +513,12 @@
       • Creating a pack consumes allowance. Deleting later does not restore it.
     </div>
 
-<div class="kv-pills">
-  <span class="pill" id="offlineCoursePill">Course: —</span>
-  <span class="pill" id="offlineCountPill">Questions: —</span>
-  <span class="pill" id="offlineAllowancePill">Allowance: —</span>
-  <span class="pill" id="offlineFreshnessPill" style="display:none;">Fresh: — • Reused: —</span>
-</div>
+    <div class="kv-pills">
+      <span class="pill" id="offlineCoursePill">Course: —</span>
+      <span class="pill" id="offlineCountPill">Questions: —</span>
+      <span class="pill" id="offlineAllowancePill">Allowance: —</span>
+      <span class="pill" id="offlineFreshnessPill" style="display:none;">Fresh: — • Reused: —</span>
+    </div>
 
     <div class="field" style="margin-bottom:8px;">
       <label for="modalPackName">Pack name</label>
@@ -613,616 +530,786 @@
 
     <div class="modal-actions">
       <button type="button" class="btn-ghost" id="offlineCancelBtn">Cancel</button>
-      <button type="button" class="btn-primary" id="offlineCreateBtn">Create & Download</button>
+      <button type="button" class="btn-create" id="offlineCreateBtn">Create &amp; Download</button>
     </div>
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
 <script src="/js/guard.js"></script>
-<script src="/js/mynmclicensure-api.js"></script>
 <script src="/js/paths.js"></script>
 <script src="/js/mynmclicensure-student-sidebar.js"></script>
+<script src="/js/mynmclicensure-api.js"></script>
 <script>
-  let PROFILE = null;
-  let CONFIG = {};
-  let COURSES = [];
-  let COURSE_ACCESS = {};
-  let CURRENT_ITEMS = [];
-  let CURRENT_FILTER_OPTIONS = {};
-  let EFFECTIVE_LIMIT = 50;
 
-  const RECENT_KEY = 'qa_offline_builder_recent_v1';
-  const OFFLINE_RENDERER_URL = `${LICENSURE.student}/offline-pack-renderer.html`;
-  const MY_OFFLINE_PACKS_URL = `${LICENSURE.student}/my-offline-packs.html`;
+// ─────────────────────────────────────────────
+// WIZARD CONTROLLER
+// ─────────────────────────────────────────────
+const STEP_LABELS = [
+  'Step 1 of 5 — Course &amp; selection mode',
+  'Step 2 of 5 — Topics',
+  'Step 3 of 5 — Difficulty &amp; question type',
+  'Step 4 of 5 — Count &amp; pack name',
+  'Step 5 of 5 — Review &amp; create'
+];
 
-  const state = {
-    courseId: '',
-    selectionMode: 'topics',
-    topicSearch: '',
-    useAllTopics: false,
-    selectedTopics: [],
-    conceptSearch: '',
-    selectedConcepts: [],
-    selectedDifficulties: [],
-    selectedQuestionTypes: [],
-    questionCount: 0,
-    packName: ''
-  };
+let currentStep = 0;
 
-  const el = {};
+function goStep(n) {
+  document.querySelectorAll('.pane').forEach((p, i) => p.classList.toggle('active', i === n));
 
-  function byId(id){ return document.getElementById(id); }
-
-  function escapeHtml(str){
-    return String(str || '')
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;');
+  for (let i = 0; i < 5; i++) {
+    const circle = document.getElementById('pc' + i);
+    circle.classList.remove('active', 'done');
+    if (i < n) { circle.classList.add('done'); circle.textContent = '✓'; }
+    else if (i === n) { circle.classList.add('active'); circle.textContent = String(i + 1); }
+    else { circle.textContent = String(i + 1); }
   }
 
-  function normaliseArray(arr){
-    return [...new Set((arr || []).map(v => String(v || '').trim()).filter(Boolean))];
+  for (let i = 0; i < 4; i++) {
+    const line = document.getElementById('pl' + i);
+    if (line) line.classList.toggle('done', i < n);
   }
 
-  function effectiveOfflineLimit(config){
-    const n = Number(config.offline_max_questions);
-    return Number.isFinite(n) && n > 0 ? n : 50;
+  for (let i = 0; i < 5; i++) {
+    const lbl = document.getElementById('pl-lbl' + i);
+    lbl.classList.remove('active', 'done');
+    if (i < n) lbl.classList.add('done');
+    else if (i === n) lbl.classList.add('active');
   }
 
-  function getCourseTitle(courseId){
-    const course = COURSES.find(c => c.course_id === courseId);
-    return course ? course.title : courseId || '—';
+  document.getElementById('stepLabelText').innerHTML = STEP_LABELS[n];
+
+  if (n === 1) updatePane1Title();
+  if (n === 3) syncCountPane();
+  if (n === 4) syncReviewStats();
+
+  currentStep = n;
+  document.querySelector('.prog-block').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.querySelectorAll('[data-goto]').forEach(el => {
+  el.addEventListener('click', () => goStep(Number(el.getAttribute('data-goto'))));
+});
+
+function updatePane1Title() {
+  const isConcept = state && state.selectionMode === 'concept';
+  document.getElementById('pane1Title').textContent = isConcept ? 'Concept search' : 'Topics';
+  document.getElementById('pane1Sub').textContent = isConcept
+    ? 'Search for a concept keyword and select matching subtopics.'
+    : 'Select one or more topics to draw questions from.';
+}
+
+function onCountSlider(val) {
+  const pool = getFilteredPool();
+  const cap = Math.min(pool.length || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
+  const n = Math.min(Math.max(Number(val), 1), cap);
+  state.questionCount = n;
+  document.getElementById('countDisplay').textContent = n;
+  const numInput = document.getElementById('questionCountInput');
+  if (numInput) numInput.value = n;
+  renderSummary();
+}
+
+function onCountInput(val) {
+  const pool = getFilteredPool();
+  const cap = Math.min(pool.length || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
+  const n = Math.min(Math.max(Number(val) || 0, 0), cap);
+  state.questionCount = n;
+  document.getElementById('countDisplay').textContent = n || '—';
+  const slider = document.getElementById('questionCount');
+  if (slider) slider.value = n || 1;
+  renderSummary();
+}
+
+function syncCountPane() {
+  const pool = getFilteredPool();
+  const cap = Math.min(pool.length || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
+
+  if (state.questionCount > cap) state.questionCount = cap;
+  if (state.questionCount < 1 && cap > 0) state.questionCount = cap;
+
+  const slider = document.getElementById('questionCount');
+  if (slider) { slider.max = cap; slider.value = state.questionCount; }
+
+  const numInput = document.getElementById('questionCountInput');
+  if (numInput) { numInput.max = cap; numInput.value = state.questionCount || ''; }
+
+  const display = document.getElementById('countDisplay');
+  if (display) display.textContent = state.questionCount || '—';
+
+  renderSummary();
+}
+
+function syncReviewStats() {
+  const pool = getFilteredPool();
+  const n = Number(state.questionCount || 0);
+  const p2 = document.getElementById('poolCountValue2');
+  const s2 = document.getElementById('selectedCountValue');
+  if (p2) p2.textContent = pool.length;
+  if (s2) s2.textContent = Math.min(n, pool.length);
+}
+
+function toggleRecent() {
+  const body = document.getElementById('recentBody');
+  const caret = document.getElementById('recentCaret');
+  const open = body.classList.toggle('open');
+  caret.classList.toggle('open', open);
+}
+
+// ─────────────────────────────────────────────
+// OFFLINE PACK BUILDER LOGIC
+// ─────────────────────────────────────────────
+
+const byId = id => document.getElementById(id);
+
+let PROFILE = null;
+let CONFIG = {};
+let EFFECTIVE_LIMIT = 50;
+let COURSE_ACCESS = {};
+let COURSES = [];
+let CURRENT_ITEMS = [];
+let CURRENT_FILTER_OPTIONS = {};
+
+const OFFLINE_RENDERER_URL = `${LICENSURE.student}/offline-pack-renderer.html`;
+const RECENT_KEY = 'qa_offline_builder_recent_v1';
+
+const state = {
+  courseId: '',
+  selectionMode: 'topics',
+  useAllTopics: false,
+  selectedTopics: [],
+  topicSearch: '',
+  conceptSearch: '',
+  selectedConcepts: [],
+  selectedDifficulties: [],
+  selectedQuestionTypes: [],
+  questionCount: 0,
+  packName: ''
+};
+
+const el = {};
+
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function normaliseArray(arr) {
+  return [...new Set((arr || []).map(x => String(x || '').trim()).filter(Boolean))];
+}
+
+function currentSelectionMode() { return state.selectionMode; }
+
+function effectiveOfflineLimit(cfg) {
+  const max = Number(cfg.offline_max_questions);
+  return max > 0 ? max : 50;
+}
+
+function getCourseTitle(courseId) {
+  const c = COURSES.find(x => x.course_id === courseId);
+  return c ? c.title : courseId;
+}
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
+  return a;
+}
 
-  function currentSelectionMode(){
-    return state.selectionMode === 'concept' ? 'concept' : 'topics';
-  }
+function getChosenMaintopics() {
+  return state.useAllTopics ? (CURRENT_FILTER_OPTIONS.maintopics || []) : state.selectedTopics;
+}
 
-  function shuffleArray(arr){
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
+function getCountErrorText(poolCount) {
+  const n = Number(state.questionCount || 0);
+  if (!n || n < 1) return 'Enter a valid number of questions.';
+  if (n > EFFECTIVE_LIMIT) return `Reduce the number to ${EFFECTIVE_LIMIT} or below.`;
+  if (poolCount > 0 && n > poolCount) return `Your current filters support up to ${poolCount} questions.`;
+  return '';
+}
 
-  function getChosenMaintopics(){
-    return state.useAllTopics
-      ? (CURRENT_FILTER_OPTIONS.maintopics || [])
-      : state.selectedTopics;
-  }
+function buildReady() {
+  const pool = getFilteredPool();
+  const err = getCountErrorText(pool.length);
+  return !!state.courseId && selectionIsValid() && !err && pool.length > 0;
+}
 
-  function getFilteredPool(){
-    const mode = currentSelectionMode();
-    let rows = [...CURRENT_ITEMS];
-
-    if (mode === 'topics') {
-      if (!state.useAllTopics) {
-        const selected = new Set(state.selectedTopics);
-        rows = rows.filter(r => selected.has(String(r.maintopic || '').trim()));
-      }
-    } else {
-      const selectedConcepts = new Set(state.selectedConcepts);
-      const kw = String(state.conceptSearch || '').trim().toLowerCase();
-
-      if (selectedConcepts.size > 0) {
-        rows = rows.filter(r => selectedConcepts.has(String(r.subtopic || '').trim()));
-      }
-
-      if (kw) {
-        rows = rows.filter(r => {
-          const hay = [
-            r.subtopic,
-            r.stem,
-            r.rationale,
-            r.maintopic,
-            r.subject
-          ].join(' ').toLowerCase();
-          return hay.includes(kw);
-        });
-      }
-    }
-
-    if (state.selectedDifficulties.length) {
-      const set = new Set(state.selectedDifficulties);
-      rows = rows.filter(r => set.has(String(r.difficulty || '').trim()));
-    }
-
-    if (state.selectedQuestionTypes.length) {
-      const set = new Set(state.selectedQuestionTypes);
-      rows = rows.filter(r => set.has(String(r.question_type || '').trim()));
-    }
-
-    return rows;
-  }
-
-  function selectionIsValid(){
-    if (!state.courseId) return false;
-
-    if (currentSelectionMode() === 'topics') {
-      return state.useAllTopics || state.selectedTopics.length > 0;
-    }
-
-    return state.selectedConcepts.length > 0 || !!String(state.conceptSearch || '').trim();
-  }
-
-  function getCountErrorText(poolCount){
-    const n = Number(state.questionCount || 0);
-    if (!n || n < 1) return 'Enter a valid number of questions.';
-    if (n > EFFECTIVE_LIMIT) return `Reduce the number to ${EFFECTIVE_LIMIT} or below.`;
-    if (poolCount > 0 && n > poolCount) return `Your current filters support up to ${poolCount} questions.`;
-    return '';
-  }
-
-  function buildReady(){
-    const pool = getFilteredPool();
-    const err = getCountErrorText(pool.length);
-    return !!state.courseId && selectionIsValid() && !err && pool.length > 0;
-  }
-
-  function getSuggestedPackName(){
-    const meta = {
+function getSuggestedPackName() {
+  if (typeof buildOfflinePackDefaultName === 'function') {
+    return buildOfflinePackDefaultName({
       n: Number(state.questionCount || 0),
       selection_mode: currentSelectionMode(),
       maintopics: getChosenMaintopics(),
       difficulties: state.selectedDifficulties,
       concepts: state.selectedConcepts,
       concept_query: state.conceptSearch
-    };
-
-    return buildOfflinePackDefaultName(meta);
-  }
-
-  function saveRecentSetup(){
-    const payload = {
-      courseId: state.courseId,
-      selectionMode: state.selectionMode,
-      useAllTopics: !!state.useAllTopics,
-      selectedTopics: [...state.selectedTopics],
-      conceptSearch: state.conceptSearch,
-      selectedConcepts: [...state.selectedConcepts],
-      selectedDifficulties: [...state.selectedDifficulties],
-      selectedQuestionTypes: [...state.selectedQuestionTypes],
-      questionCount: Number(state.questionCount || 0),
-      packName: String(state.packName || '').trim(),
-      savedAt: new Date().toISOString()
-    };
-
-    let arr = [];
-    try {
-      arr = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-      if (!Array.isArray(arr)) arr = [];
-    } catch(_) { arr = []; }
-
-    arr = arr.filter(x =>
-      !(x.courseId === payload.courseId &&
-        x.selectionMode === payload.selectionMode &&
-        JSON.stringify(x.selectedTopics || []) === JSON.stringify(payload.selectedTopics) &&
-        JSON.stringify(x.selectedConcepts || []) === JSON.stringify(payload.selectedConcepts) &&
-        JSON.stringify(x.selectedDifficulties || []) === JSON.stringify(payload.selectedDifficulties) &&
-        JSON.stringify(x.selectedQuestionTypes || []) === JSON.stringify(payload.selectedQuestionTypes) &&
-        Number(x.questionCount || 0) === Number(payload.questionCount || 0) &&
-        String(x.packName || '') === String(payload.packName || ''))
-    );
-
-    arr.unshift(payload);
-    arr = arr.slice(0, 3);
-
-    localStorage.setItem(RECENT_KEY, JSON.stringify(arr));
-    renderRecentSetups();
-  }
-
-  function readRecentSetups(){
-    try {
-      const arr = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-      return Array.isArray(arr) ? arr : [];
-    } catch(_) {
-      return [];
-    }
-  }
-
-  function applyRecentSetup(item){
-    state.courseId = item.courseId || '';
-    state.selectionMode = item.selectionMode === 'concept' ? 'concept' : 'topics';
-    state.useAllTopics = !!item.useAllTopics;
-    state.selectedTopics = normaliseArray(item.selectedTopics);
-    state.conceptSearch = String(item.conceptSearch || '');
-    state.selectedConcepts = normaliseArray(item.selectedConcepts);
-    state.selectedDifficulties = normaliseArray(item.selectedDifficulties);
-    state.selectedQuestionTypes = normaliseArray(item.selectedQuestionTypes);
-    state.questionCount = Math.min(
-      Number(item.questionCount || EFFECTIVE_LIMIT),
-      EFFECTIVE_LIMIT
-    );
-    state.packName = String(item.packName || '').trim();
-
-    syncFormFromState();
-    handleCourseChange(true);
-  }
-
-  function renderRecentSetups(){
-    const list = readRecentSetups();
-    const card = el.recentCard;
-    const area = el.recentList;
-
-    if (!list.length) {
-      card.style.display = 'none';
-      return;
-    }
-
-    card.style.display = 'block';
-    el.recentCountPill.textContent = `${list.length} saved`;
-    area.innerHTML = '';
-
-    list.forEach((item, idx) => {
-      const title = getCourseTitle(item.courseId);
-      const modeLabel = item.selectionMode === 'concept' ? 'Concept' : 'Topics';
-      const dt = item.savedAt
-        ? new Date(item.savedAt).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
-        : 'Saved';
-
-      const sub = `${modeLabel} • ${item.questionCount || '—'}Q${item.packName ? ` • ${item.packName}` : ''}`;
-
-      const row = document.createElement('div');
-      row.className = 'recent-item';
-      row.innerHTML = `
-        <div class="recent-main">
-          <div class="recent-title">${escapeHtml(title)}</div>
-          <div class="recent-sub">${escapeHtml(sub)} • ${escapeHtml(dt)}</div>
-        </div>
-        <div>
-          <button class="btn-lite" type="button" data-idx="${idx}">Use this setup</button>
-        </div>
-      `;
-      area.appendChild(row);
-    });
-
-    area.querySelectorAll('button[data-idx]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = Number(btn.getAttribute('data-idx'));
-        const items = readRecentSetups();
-        if (items[idx]) applyRecentSetup(items[idx]);
-      });
     });
   }
+  const course = getCourseTitle(state.courseId);
+  return `${course} — ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short' })}`;
+}
 
-  function syncFormFromState(){
-    el.courseSelect.value = state.courseId || '';
-    document.querySelectorAll('input[name="selectionMode"]').forEach(r => {
-      r.checked = r.value === state.selectionMode;
-    });
-    el.topicSearch.value = state.topicSearch || '';
-    el.useAllTopics.checked = !!state.useAllTopics;
-    el.conceptSearch.value = state.conceptSearch || '';
-    el.questionCount.value = String(state.questionCount || EFFECTIVE_LIMIT);
-    el.packName.value = state.packName || '';
+function allowanceMessageForReason(reason, allowance) {
+  const limit = allowance && allowance.downloads_per_course != null
+    ? Number(allowance.downloads_per_course) : 3;
+  switch (String(reason || '').trim()) {
+    case 'not_subscribed':      return 'You do not currently have an active eligible subscription for this course.';
+    case 'renew_required':      return 'Your course subscription exists but is not currently active. Please renew before downloading offline packs.';
+    case 'trial_not_allowed':   return 'Offline packs are not available on trial access.';
+    case 'limit_reached':       return `You have already used your ${limit} offline pack allowance for this course in the current subscription period.`;
+    case 'allowance_check_failed': return 'We could not confirm your allowance right now. Please try again.';
+    default:                    return 'This offline pack cannot be created right now.';
   }
+}
 
-  function renderDifficultyChecks(){
-    const values = CURRENT_FILTER_OPTIONS.difficulties || [];
-    el.difficultyChecks.innerHTML = values.length
-      ? values.map(v => `
-          <label class="inline-check">
-            <input type="checkbox" class="difficulty-check" value="${escapeHtml(v)}" ${state.selectedDifficulties.includes(v) ? 'checked' : ''}/>
-            <span>${escapeHtml(v)}</span>
-          </label>
-        `).join('')
-      : `<div class="muted-box">No difficulty values found for this course.</div>`;
+// ── Recent setups ──
+function readRecentSetups() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    return Array.isArray(arr) ? arr : [];
+  } catch(_) { return []; }
+}
 
-    el.difficultyChecks.querySelectorAll('.difficulty-check').forEach(ch => {
-      ch.addEventListener('change', () => {
-        state.selectedDifficulties = normaliseArray(
-          Array.from(el.difficultyChecks.querySelectorAll('.difficulty-check:checked')).map(x => x.value)
-        );
-        renderAll();
-      });
-    });
-  }
+function saveRecentSetup() {
+  const payload = {
+    courseId: state.courseId,
+    selectionMode: state.selectionMode,
+    useAllTopics: !!state.useAllTopics,
+    selectedTopics: [...state.selectedTopics],
+    conceptSearch: state.conceptSearch,
+    selectedConcepts: [...state.selectedConcepts],
+    selectedDifficulties: [...state.selectedDifficulties],
+    selectedQuestionTypes: [...state.selectedQuestionTypes],
+    questionCount: Number(state.questionCount || 0),
+    packName: String(state.packName || '').trim(),
+    savedAt: new Date().toISOString()
+  };
+  let arr = readRecentSetups();
+  arr = arr.filter(x => !(
+    x.courseId === payload.courseId &&
+    x.selectionMode === payload.selectionMode &&
+    JSON.stringify(x.selectedTopics || []) === JSON.stringify(payload.selectedTopics) &&
+    JSON.stringify(x.selectedConcepts || []) === JSON.stringify(payload.selectedConcepts) &&
+    JSON.stringify(x.selectedDifficulties || []) === JSON.stringify(payload.selectedDifficulties) &&
+    JSON.stringify(x.selectedQuestionTypes || []) === JSON.stringify(payload.selectedQuestionTypes) &&
+    Number(x.questionCount || 0) === Number(payload.questionCount || 0) &&
+    String(x.packName || '') === String(payload.packName || '')
+  ));
+  arr.unshift(payload);
+  arr = arr.slice(0, 3);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(arr)); } catch(_) {}
+  renderRecentSetups();
+}
 
-  function renderQuestionTypeChecks(){
-    const values = CURRENT_FILTER_OPTIONS.question_types || [];
-    el.questionTypeChecks.innerHTML = values.length
-      ? values.map(v => `
-          <label class="inline-check">
-            <input type="checkbox" class="type-check" value="${escapeHtml(v)}" ${state.selectedQuestionTypes.includes(v) ? 'checked' : ''}/>
-            <span>${escapeHtml(v)}</span>
-          </label>
-        `).join('')
-      : `<div class="muted-box">No question-type values found for this course.</div>`;
+function applyRecentSetup(item) {
+  state.courseId = item.courseId || '';
+  state.selectionMode = item.selectionMode === 'concept' ? 'concept' : 'topics';
+  state.useAllTopics = !!item.useAllTopics;
+  state.selectedTopics = normaliseArray(item.selectedTopics);
+  state.conceptSearch = String(item.conceptSearch || '');
+  state.selectedConcepts = normaliseArray(item.selectedConcepts);
+  state.selectedDifficulties = normaliseArray(item.selectedDifficulties);
+  state.selectedQuestionTypes = normaliseArray(item.selectedQuestionTypes);
+  state.questionCount = Math.min(Number(item.questionCount || EFFECTIVE_LIMIT), EFFECTIVE_LIMIT);
+  state.packName = String(item.packName || '');
+  syncFormFromState();
+  handleCourseChange(true).then(() => goStep(4));
+}
 
-    el.questionTypeChecks.querySelectorAll('.type-check').forEach(ch => {
-      ch.addEventListener('change', () => {
-        state.selectedQuestionTypes = normaliseArray(
-          Array.from(el.questionTypeChecks.querySelectorAll('.type-check:checked')).map(x => x.value)
-        );
-        renderAll();
-      });
-    });
-  }
+function renderRecentSetups() {
+  const list = readRecentSetups();
+  const card = byId('recentCard');
+  const area = byId('recentList');
+  if (!list.length) { card.style.display = 'none'; return; }
 
-  function renderTopics(){
-    const allTopics = CURRENT_FILTER_OPTIONS.maintopics || [];
-    const filtered = allTopics.filter(t =>
-      String(t).toLowerCase().includes(String(state.topicSearch || '').toLowerCase())
-    );
+  card.style.display = 'block';
+  byId('recentCountPill').textContent = `— ${list.length} saved`;
+  area.innerHTML = '';
 
-    const counts = {};
-    CURRENT_ITEMS.forEach(r => {
-      const key = String(r.maintopic || '').trim();
-      if (!key) return;
-      counts[key] = (counts[key] || 0) + 1;
-    });
+  list.forEach((item, idx) => {
+    const title = getCourseTitle(item.courseId);
+    const modeLabel = item.selectionMode === 'concept' ? 'Concept' : 'Topics';
+    const dt = item.savedAt
+      ? new Date(item.savedAt).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
+      : 'Saved';
+    const packLabel = item.packName ? ` · ${item.packName}` : '';
+    const sub = `${modeLabel} · ${item.questionCount || '—'}Q${packLabel} · ${dt}`;
 
-    if (!filtered.length) {
-      el.topicsBox.innerHTML = `<div class="muted-box">No topics match the current filter.</div>`;
-      return;
-    }
-
-    el.topicsBox.innerHTML = filtered.map(topic => `
-      <div class="topic-row" data-topic="${escapeHtml(topic)}">
-        <div class="topic-left">
-          <input type="checkbox" ${state.selectedTopics.includes(topic) ? 'checked' : ''} ${state.useAllTopics ? 'disabled' : ''}/>
-          <div class="topic-name">${escapeHtml(topic)}</div>
-        </div>
-        <div class="topic-count">${counts[topic] || 0}</div>
+    const row = document.createElement('div');
+    row.className = 'recent-item';
+    row.innerHTML = `
+      <div class="recent-main">
+        <div class="recent-title">${escapeHtml(title)}</div>
+        <div class="recent-sub">${escapeHtml(sub)}</div>
       </div>
-    `).join('');
+      <button class="btn-lite" type="button" data-idx="${idx}">Use this</button>`;
+    area.appendChild(row);
+  });
 
-    el.topicsBox.querySelectorAll('.topic-row').forEach(row => {
-      row.addEventListener('click', () => {
-        if (state.useAllTopics) return;
-        const topic = row.getAttribute('data-topic');
-        const next = new Set(state.selectedTopics);
-        if (next.has(topic)) next.delete(topic);
-        else next.add(topic);
-        state.selectedTopics = [...next];
-        renderAll();
-      });
+  area.querySelectorAll('button[data-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const items = readRecentSetups();
+      if (items[Number(btn.getAttribute('data-idx'))]) {
+        applyRecentSetup(items[Number(btn.getAttribute('data-idx'))]);
+      }
     });
+  });
+}
 
-    el.selectedTopicChips.innerHTML = state.selectedTopics.length
-      ? state.selectedTopics.map(topic => `
-          <span class="chip">${escapeHtml(topic)} <button type="button" data-topic="${escapeHtml(topic)}">✕</button></span>
-        `).join('')
-      : '';
+// ── Segmented control ──
+function updateSegmented() {
+  document.getElementById('segTopics').classList.toggle('picked', state.selectionMode === 'topics');
+  document.getElementById('segConcept').classList.toggle('picked', state.selectionMode === 'concept');
+  document.getElementById('selModeHint').textContent = state.selectionMode === 'concept'
+    ? 'Concept = search subtopics and keyword matching.'
+    : 'Topics = choose from main topic groups.';
+}
 
-    el.selectedTopicChips.querySelectorAll('button[data-topic]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const topic = btn.getAttribute('data-topic');
-        state.selectedTopics = state.selectedTopics.filter(t => t !== topic);
-        renderAll();
-      });
-    });
+// ── Render: topics (with counts) ──
+function renderTopics() {
+  const box = el.topicsBox;
+  const search = String(state.topicSearch || '').toLowerCase();
+  const topics = (CURRENT_FILTER_OPTIONS.maintopics || []).filter(t =>
+    !search || String(t).toLowerCase().includes(search)
+  );
+
+  const topicCounts = {};
+  CURRENT_ITEMS.forEach(r => {
+    const key = String(r.maintopic || '').trim();
+    if (key) topicCounts[key] = (topicCounts[key] || 0) + 1;
+  });
+
+  box.innerHTML = '';
+  if (!topics.length) {
+    box.innerHTML = `<div style="font-size:13px;color:var(--text-muted);grid-column:1/-1;padding:8px">No topics found.</div>`;
+    return;
   }
 
-  function renderConcepts(){
-    const counts = {};
-    CURRENT_ITEMS.forEach(r => {
-      const key = String(r.subtopic || '').trim();
-      if (!key) return;
-      counts[key] = (counts[key] || 0) + 1;
+  topics.forEach(t => {
+    const chip = document.createElement('div');
+    const picked = state.useAllTopics || state.selectedTopics.includes(t);
+    chip.className = 'topic-chip' + (picked ? ' picked' : '');
+    chip.innerHTML = `<div class="dot"></div>${escapeHtml(t)}<span class="topic-chip-count">${topicCounts[t] || 0}</span>`;
+    chip.addEventListener('click', () => {
+      if (state.useAllTopics) return;
+      const idx = state.selectedTopics.indexOf(t);
+      if (idx === -1) state.selectedTopics.push(t);
+      else state.selectedTopics.splice(idx, 1);
+      renderTopics();
+      renderSelectedTopicChips();
+      renderSummary();
     });
+    box.appendChild(chip);
+  });
 
-    const allConcepts = Object.keys(counts).sort((a, b) => a.localeCompare(b));
-    const filtered = allConcepts.filter(c =>
-      String(c).toLowerCase().includes(String(state.conceptSearch || '').toLowerCase())
-    );
+  renderSelectedTopicChips();
+}
 
-    if (!filtered.length) {
-      el.conceptsBox.innerHTML = `<div class="muted-box">No concept suggestions match the current keyword.</div>`;
-    } else {
-      el.conceptsBox.innerHTML = filtered.map(concept => `
-        <div class="concept-row" data-concept="${escapeHtml(concept)}">
-          <div class="concept-left">
-            <input type="checkbox" ${state.selectedConcepts.includes(concept) ? 'checked' : ''}/>
-            <div class="concept-name">${escapeHtml(concept)}</div>
-          </div>
-          <div class="concept-count">${counts[concept] || 0}</div>
-        </div>
-      `).join('');
-
-      el.conceptsBox.querySelectorAll('.concept-row').forEach(row => {
-        row.addEventListener('click', () => {
-          const concept = row.getAttribute('data-concept');
-          const next = new Set(state.selectedConcepts);
-          if (next.has(concept)) next.delete(concept);
-          else next.add(concept);
-          state.selectedConcepts = [...next];
-          renderAll();
-        });
-      });
-    }
-
-    el.selectedConceptChips.innerHTML = state.selectedConcepts.length
-      ? state.selectedConcepts.map(concept => `
-          <span class="chip">${escapeHtml(concept)} <button type="button" data-concept="${escapeHtml(concept)}">✕</button></span>
-        `).join('')
-      : '';
-
-    el.selectedConceptChips.querySelectorAll('button[data-concept]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const concept = btn.getAttribute('data-concept');
-        state.selectedConcepts = state.selectedConcepts.filter(t => t !== concept);
-        renderAll();
-      });
+function renderSelectedTopicChips() {
+  const row = el.selectedTopicChips;
+  row.innerHTML = '';
+  if (state.useAllTopics) {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = 'All topics';
+    row.appendChild(chip);
+    return;
+  }
+  state.selectedTopics.forEach(t => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `${escapeHtml(t)} <span class="chip-remove" data-t="${escapeHtml(t)}">×</span>`;
+    chip.querySelector('.chip-remove').addEventListener('click', () => {
+      state.selectedTopics = state.selectedTopics.filter(x => x !== t);
+      renderTopics();
+      renderSelectedTopicChips();
+      renderSummary();
     });
+    row.appendChild(chip);
+  });
+}
+
+// ── Render: concepts (with counts) ──
+function renderConcepts() {
+  const box = el.conceptsBox;
+  const query = String(state.conceptSearch || '').toLowerCase();
+  const subtopics = (CURRENT_FILTER_OPTIONS.subtopics || []).filter(s =>
+    !query || String(s).toLowerCase().includes(query)
+  );
+
+  const conceptCounts = {};
+  CURRENT_ITEMS.forEach(r => {
+    const key = String(r.subtopic || '').trim();
+    if (key) conceptCounts[key] = (conceptCounts[key] || 0) + 1;
+  });
+
+  box.innerHTML = '';
+  if (!subtopics.length && !query) {
+    box.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:8px">Type a keyword to search concepts.</div>`;
+    return;
+  }
+  if (!subtopics.length) {
+    box.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:8px">No matching concepts.</div>`;
+    return;
   }
 
-  function renderSummary(){
-    const pool = getFilteredPool();
-    const poolCount = pool.length;
-    const countErr = getCountErrorText(poolCount);
-
-    const selectionText = currentSelectionMode() === 'topics'
-      ? (state.useAllTopics ? 'All topics' : (state.selectedTopics.length ? state.selectedTopics.join(', ') : 'None'))
-      : ((state.selectedConcepts.length ? `Concepts: ${state.selectedConcepts.join(', ')}` : '') +
-         (state.conceptSearch ? `${state.selectedConcepts.length ? ' • ' : ''}Keyword: ${state.conceptSearch}` : '') || 'None');
-
-    const diffText = state.selectedDifficulties.length ? state.selectedDifficulties.join(', ') : 'All difficulties';
-    const typeText = state.selectedQuestionTypes.length ? state.selectedQuestionTypes.join(', ') : 'All question types';
-
-    const displayLabel = buildOfflinePackDisplayLabel({
-      selection_mode: currentSelectionMode(),
-      maintopics: getChosenMaintopics(),
-      difficulties: state.selectedDifficulties,
-      concepts: state.selectedConcepts,
-      concept_query: state.conceptSearch,
-      n: Number(state.questionCount || 0)
+  subtopics.forEach(s => {
+    const item = document.createElement('div');
+    const picked = state.selectedConcepts.includes(s);
+    item.className = 'concept-item' + (picked ? ' picked' : '');
+    item.innerHTML = `<span>${escapeHtml(s)}</span><span class="concept-item-count">${conceptCounts[s] || 0}</span>`;
+    item.addEventListener('click', () => {
+      const idx = state.selectedConcepts.indexOf(s);
+      if (idx === -1) state.selectedConcepts.push(s);
+      else state.selectedConcepts.splice(idx, 1);
+      renderConcepts();
+      renderSelectedConceptChips();
+      renderSummary();
     });
+    box.appendChild(item);
+  });
 
-    const chosenPackName = String(state.packName || '').trim() || getSuggestedPackName();
+  renderSelectedConceptChips();
+}
 
-    el.summaryCourse.textContent = getCourseTitle(state.courseId);
-    el.summaryMode.textContent = currentSelectionMode() === 'topics' ? 'Topics mode' : 'Concept mode';
-    el.summarySelection.textContent = selectionText;
-    el.summaryDifficulty.textContent = diffText;
-    el.summaryQuestionType.textContent = typeText;
-    el.summarySetup.textContent = `${state.questionCount || 0} questions • PDF pack • ${chosenPackName}`;
+function renderSelectedConceptChips() {
+  const row = el.selectedConceptChips;
+  row.innerHTML = '';
+  state.selectedConcepts.forEach(s => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `${escapeHtml(s)} <span class="chip-remove">×</span>`;
+    chip.querySelector('.chip-remove').addEventListener('click', () => {
+      state.selectedConcepts = state.selectedConcepts.filter(x => x !== s);
+      renderConcepts();
+      renderSelectedConceptChips();
+      renderSummary();
+    });
+    row.appendChild(chip);
+  });
+}
 
-    el.poolCountValue.textContent = String(poolCount);
-    el.selectedCountValue.textContent = String(state.questionCount || 0);
-    el.packTypeValue.textContent = 'PDF';
-
-    el.limitHint.textContent = `You can create up to ${EFFECTIVE_LIMIT} questions in one offline pack.`;
-    el.heroLimitBadge.textContent = `Offline limit: ${EFFECTIVE_LIMIT} questions`;
-    el.countPill.textContent = `${state.questionCount || 0} selected`;
-    el.coursePill.textContent = state.courseId ? getCourseTitle(state.courseId) : 'No course selected';
-    el.selectionPill.textContent = selectionIsValid() ? 'Selection ready' : 'Selection incomplete';
-    el.filterPill.textContent = `${diffText} • ${typeText}`;
-    el.reviewPill.textContent = buildReady() ? 'Ready to download' : 'Not ready yet';
-
-    el.statusBox.textContent = !state.courseId
-      ? 'Choose a course to begin.'
-      : countErr
-        ? countErr
-        : poolCount === 0
-          ? 'No questions match the current filters.'
-          : `Ready. This will create a stored offline PDF pack from ${poolCount} matching items. Suggested label: ${displayLabel}`;
-
-    el.buildBtn.disabled = !buildReady();
-    el.courseError.style.display = 'none';
-    el.selectionError.style.display = selectionIsValid() ? 'none' : 'block';
-    if (!selectionIsValid()) {
-      el.selectionError.textContent = currentSelectionMode() === 'topics'
-        ? 'Select at least one topic or use all topics.'
-        : 'Choose at least one concept or type a concept keyword.';
+// ── Step 2 filtered pool (for Step 3 counts) ──
+function getStep2FilteredPool() {
+  let items = CURRENT_ITEMS.slice();
+  if (currentSelectionMode() === 'topics') {
+    if (!state.useAllTopics && state.selectedTopics.length) {
+      items = items.filter(x => state.selectedTopics.includes(x.maintopic));
     }
+  } else {
+    const query = String(state.conceptSearch || '').toLowerCase();
+    if (state.selectedConcepts.length) {
+      items = items.filter(x => state.selectedConcepts.includes(x.subtopic));
+    } else if (query) {
+      items = items.filter(x =>
+        String(x.subtopic || '').toLowerCase().includes(query) ||
+        String(x.maintopic || '').toLowerCase().includes(query) ||
+        String(x.stem || '').toLowerCase().includes(query) ||
+        String(x.rationale || '').toLowerCase().includes(query)
+      );
+    }
+  }
+  return items;
+}
 
+// ── Render: difficulty & type (with filtered counts) ──
+function renderDifficultyChecks() {
+  const box = el.difficultyChecks;
+  const opts = CURRENT_FILTER_OPTIONS.difficulties && CURRENT_FILTER_OPTIONS.difficulties.length
+    ? CURRENT_FILTER_OPTIONS.difficulties : ['Easy', 'Moderate', 'Hard'];
+
+  const pool = getStep2FilteredPool();
+  const counts = {};
+  pool.forEach(r => {
+    const key = String(r.difficulty || '').trim();
+    if (key) counts[key] = (counts[key] || 0) + 1;
+  });
+
+  box.innerHTML = '';
+  opts.forEach(d => {
+    const picked = state.selectedDifficulties.includes(d);
+    const item = document.createElement('div');
+    item.className = 'check-item' + (picked ? ' picked' : '');
+    item.innerHTML = `<input type="checkbox" ${picked ? 'checked' : ''}><label>${escapeHtml(d)}</label><span class="check-item-count">${counts[d] || 0}</span>`;
+    item.addEventListener('click', () => {
+      const idx = state.selectedDifficulties.indexOf(d);
+      if (idx === -1) state.selectedDifficulties.push(d);
+      else state.selectedDifficulties.splice(idx, 1);
+      renderDifficultyChecks();
+      renderSummary();
+    });
+    box.appendChild(item);
+  });
+}
+
+function renderQuestionTypeChecks() {
+  const box = el.questionTypeChecks;
+  const opts = CURRENT_FILTER_OPTIONS.question_types && CURRENT_FILTER_OPTIONS.question_types.length
+    ? CURRENT_FILTER_OPTIONS.question_types : ['MCQ', 'True/False', 'SATA'];
+
+  const pool = getStep2FilteredPool();
+  const counts = {};
+  pool.forEach(r => {
+    const key = String(r.question_type || '').trim();
+    if (key) counts[key] = (counts[key] || 0) + 1;
+  });
+
+  box.innerHTML = '';
+  opts.forEach(qt => {
+    const picked = state.selectedQuestionTypes.includes(qt);
+    const item = document.createElement('div');
+    item.className = 'check-item' + (picked ? ' picked' : '');
+    item.innerHTML = `<input type="checkbox" ${picked ? 'checked' : ''}><label>${escapeHtml(qt)}</label><span class="check-item-count">${counts[qt] || 0}</span>`;
+    item.addEventListener('click', () => {
+      const idx = state.selectedQuestionTypes.indexOf(qt);
+      if (idx === -1) state.selectedQuestionTypes.push(qt);
+      else state.selectedQuestionTypes.splice(idx, 1);
+      renderQuestionTypeChecks();
+      renderSummary();
+    });
+    box.appendChild(item);
+  });
+}
+
+// ── Filter pool ──
+function getFilteredPool() {
+  let items = CURRENT_ITEMS.slice();
+
+  if (currentSelectionMode() === 'topics') {
+    if (!state.useAllTopics && state.selectedTopics.length) {
+      items = items.filter(x => state.selectedTopics.includes(x.maintopic));
+    }
+  } else {
+    const query = String(state.conceptSearch || '').toLowerCase();
+    if (state.selectedConcepts.length) {
+      items = items.filter(x => state.selectedConcepts.includes(x.subtopic));
+    } else if (query) {
+      items = items.filter(x =>
+        String(x.subtopic || '').toLowerCase().includes(query) ||
+        String(x.maintopic || '').toLowerCase().includes(query) ||
+        String(x.stem || '').toLowerCase().includes(query) ||
+        String(x.rationale || '').toLowerCase().includes(query)
+      );
+    }
+  }
+
+  if (state.selectedDifficulties.length) {
+    items = items.filter(x => state.selectedDifficulties.includes(x.difficulty));
+  }
+  if (state.selectedQuestionTypes.length) {
+    items = items.filter(x => state.selectedQuestionTypes.includes(x.question_type));
+  }
+
+  return items;
+}
+
+function selectionIsValid() {
+  if (currentSelectionMode() === 'topics') {
+    return state.useAllTopics || state.selectedTopics.length > 0;
+  }
+  return state.selectedConcepts.length > 0 || String(state.conceptSearch || '').trim().length > 0;
+}
+
+// ── Render: summary ──
+function renderSummary() {
+  const pool = getFilteredPool();
+  const poolCount = pool.length;
+  const n = Number(state.questionCount || 0);
+  const countErr = getCountErrorText(poolCount);
+
+  // Pool bar (step 3)
+  if (el.poolCountValue) el.poolCountValue.textContent = poolCount;
+
+  // Pool hint (step 4)
+  const poolHintEl = byId('poolHintCount');
+  if (poolHintEl) poolHintEl.textContent = poolCount;
+
+  // Count display & limit (step 4)
+  const cap = Math.min(poolCount || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
+  const countDisplayEl = byId('countDisplay');
+  if (countDisplayEl && Number(countDisplayEl.textContent) !== n) countDisplayEl.textContent = n || '—';
+  const slider = el.questionCount;
+  if (slider) { slider.max = cap; slider.value = n || 1; }
+  const numInputEl = byId('questionCountInput');
+  if (numInputEl) { numInputEl.max = cap; }
+  const limitMaxEl = byId('limitMax');
+  if (limitMaxEl) limitMaxEl.textContent = EFFECTIVE_LIMIT;
+
+  // Count error
+  if (el.countError) {
     el.countError.style.display = countErr ? 'block' : 'none';
     el.countError.textContent = countErr || '';
   }
 
-  function renderModePanes(){
-    const concept = currentSelectionMode() === 'concept';
-    el.topicsModePane.classList.toggle('hidden', concept);
-    el.conceptModePane.classList.toggle('hidden', !concept);
+  // Pack name
+  const nameEl = el.packName;
+  if (nameEl && !state.packName && state.courseId) {
+    const suggested = getSuggestedPackName();
+    if (!nameEl.value) { nameEl.value = suggested; state.packName = suggested; }
   }
 
-  function renderAll(){
-    renderModePanes();
-    renderDifficultyChecks();
-    renderQuestionTypeChecks();
-    renderTopics();
-    renderConcepts();
-    renderSummary();
+  // Summary values (step 5)
+  if (el.summaryCourse) el.summaryCourse.textContent = getCourseTitle(state.courseId) || '—';
+  if (el.summaryMode) el.summaryMode.textContent = currentSelectionMode() === 'concept' ? 'Concept' : 'Topics';
+  if (el.summarySelection) {
+    if (currentSelectionMode() === 'topics') {
+      el.summarySelection.textContent = state.useAllTopics ? 'All topics' : (state.selectedTopics.length ? state.selectedTopics.join(', ') : '—');
+    } else {
+      const terms = [...state.selectedConcepts, state.conceptSearch].filter(Boolean);
+      el.summarySelection.textContent = terms.length ? terms.join(', ') : '—';
+    }
+  }
+  if (el.summaryDifficulty) el.summaryDifficulty.textContent = state.selectedDifficulties.length ? state.selectedDifficulties.join(', ') : 'All';
+  if (el.summaryQuestionType) el.summaryQuestionType.textContent = state.selectedQuestionTypes.length ? state.selectedQuestionTypes.join(', ') : 'All types';
+  if (el.summarySetup) {
+    const nameDisplay = String(state.packName || '').trim() || getSuggestedPackName();
+    el.summarySetup.textContent = `${n} questions · PDF · ${nameDisplay}`;
   }
 
-  function populateCourseSelect(){
-    const accessible = COURSES.filter(c => COURSE_ACCESS[c.course_id]);
+  // Stats row (step 5)
+  const p2 = byId('poolCountValue2');
+  const s2 = byId('selectedCountValue');
+  if (p2) p2.textContent = poolCount;
+  if (s2) s2.textContent = Math.min(n, poolCount);
 
-    if (!accessible.length) {
-      el.emptyState.style.display = 'block';
-      return;
+  // Status box
+  if (el.statusBox) {
+    if (!state.courseId) {
+      el.statusBox.textContent = 'Choose a course to begin.';
+    } else if (!selectionIsValid()) {
+      el.statusBox.textContent = currentSelectionMode() === 'topics'
+        ? 'Select at least one topic or use all topics.'
+        : 'Choose at least one concept or type a concept keyword.';
+    } else if (poolCount === 0) {
+      el.statusBox.textContent = 'No questions match your current filters. Adjust difficulty or question type.';
+    } else if (countErr) {
+      el.statusBox.textContent = countErr;
+    } else {
+      el.statusBox.textContent = `Ready — ${Math.min(n, poolCount)} question${Math.min(n, poolCount) !== 1 ? 's' : ''} from a pool of ${poolCount}. Click "Create pack" to check your allowance and confirm.`;
     }
-
-    el.courseSelect.innerHTML = `<option value="">Select a course…</option>` +
-      accessible.map(c => `<option value="${escapeHtml(c.course_id)}">${escapeHtml(c.title)}</option>`).join('');
-
-    if (!state.courseId && accessible.length === 1) {
-      state.courseId = accessible[0].course_id;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const fromUrl = params.get('course') || '';
-    if (fromUrl && COURSE_ACCESS[fromUrl]) {
-      state.courseId = fromUrl;
-    }
-
-    syncFormFromState();
   }
 
-  async function handleCourseChange(skipModal){
-    const courseId = String(state.courseId || '').trim();
+  if (el.buildBtn) el.buildBtn.disabled = !buildReady();
+}
 
-    if (!courseId) {
-      CURRENT_ITEMS = [];
-      CURRENT_FILTER_OPTIONS = {};
-      renderAll();
-      return;
-    }
+function renderModePanes() {
+  const concept = currentSelectionMode() === 'concept';
+  el.topicsModePane.classList.toggle('hidden', concept);
+  el.conceptModePane.classList.toggle('hidden', !concept);
+}
 
-    if (!COURSE_ACCESS[courseId]) {
-      if (!skipModal) {
-        el.accessModal.style.display = 'flex';
-        el.accessModalText.textContent = `You do not have an active subscription for ${getCourseTitle(courseId)}.`;
-        el.courseModalBtn.href = `${LICENSURE.student}/course.html?id=${encodeURIComponent(courseId)}`;
-      }
-      return;
-    }
+function renderAll() {
+  renderModePanes();
+  renderDifficultyChecks();
+  renderQuestionTypeChecks();
+  renderTopics();
+  renderConcepts();
+  renderSummary();
+}
 
-    CURRENT_FILTER_OPTIONS = await getItemFilterOptions(courseId);
-    CURRENT_ITEMS = await getBuilderCourseItems(courseId);
+// ── Course dropdown ──
+function populateCourseSelect() {
+  const accessible = COURSES.filter(c => COURSE_ACCESS[c.course_id]);
 
-    state.selectedTopics = state.selectedTopics.filter(t => (CURRENT_FILTER_OPTIONS.maintopics || []).includes(t));
-    state.selectedConcepts = state.selectedConcepts.filter(t => (CURRENT_FILTER_OPTIONS.subtopics || []).includes(t));
-    state.selectedDifficulties = state.selectedDifficulties.filter(t => (CURRENT_FILTER_OPTIONS.difficulties || []).includes(t));
-    state.selectedQuestionTypes = state.selectedQuestionTypes.filter(t => (CURRENT_FILTER_OPTIONS.question_types || []).includes(t));
+  if (!accessible.length) {
+    byId('emptyState').style.display = 'block';
+    return;
+  }
 
-    if (!state.questionCount || state.questionCount > EFFECTIVE_LIMIT) {
-      state.questionCount = EFFECTIVE_LIMIT;
-    }
+  el.courseSelect.innerHTML = `<option value="">Select a course…</option>` +
+    accessible.map(c => `<option value="${escapeHtml(c.course_id)}">${escapeHtml(c.title)}</option>`).join('');
 
-    if (!String(state.packName || '').trim()) {
-      state.packName = getSuggestedPackName();
-      el.packName.value = state.packName;
-    }
+  if (!state.courseId && accessible.length === 1) state.courseId = accessible[0].course_id;
 
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get('course') || '';
+  if (fromUrl && COURSE_ACCESS[fromUrl]) state.courseId = fromUrl;
+
+  syncFormFromState();
+}
+
+function syncFormFromState() {
+  el.courseSelect.value = state.courseId || '';
+  document.querySelectorAll('input[name="selectionMode"]').forEach(r => {
+    r.checked = r.value === state.selectionMode;
+  });
+  updateSegmented();
+
+  if (el.useAllTopics) el.useAllTopics.checked = state.useAllTopics;
+  if (el.topicSearch) el.topicSearch.value = state.topicSearch || '';
+  if (el.conceptSearch) el.conceptSearch.value = state.conceptSearch || '';
+
+  const slider = el.questionCount;
+  if (slider) { slider.max = EFFECTIVE_LIMIT; slider.value = state.questionCount; }
+  const countDisplay = byId('countDisplay');
+  if (countDisplay) countDisplay.textContent = state.questionCount || '—';
+  const numInput = byId('questionCountInput');
+  if (numInput) numInput.value = state.questionCount || '';
+  if (el.packName) el.packName.value = state.packName || '';
+}
+
+async function handleCourseChange(skipModal) {
+  const courseId = String(state.courseId || '').trim();
+
+  if (!courseId) {
+    CURRENT_ITEMS = [];
+    CURRENT_FILTER_OPTIONS = {};
     renderAll();
+    return;
   }
 
-  function allowanceMessageForReason(reason, allowance){
-    const limit = allowance && allowance.downloads_per_course != null
-      ? Number(allowance.downloads_per_course)
-      : 3;
-
-    switch (String(reason || '').trim()) {
-      case 'not_subscribed':
-        return 'You do not currently have an active eligible subscription for this course.';
-      case 'renew_required':
-        return 'Your course subscription exists but is not currently active. Please renew before downloading offline packs.';
-      case 'trial_not_allowed':
-        return 'Offline packs are not available on trial access.';
-      case 'limit_reached':
-        return `You have already used your ${limit} offline pack allowance for this course in the current subscription period.`;
-      case 'allowance_check_failed':
-        return 'We could not confirm your allowance right now. Please try again.';
-      default:
-        return 'This offline pack cannot be created right now.';
+  if (!COURSE_ACCESS[courseId]) {
+    if (!skipModal) {
+      el.accessModal.style.display = 'flex';
+      el.accessModalText.textContent = `You do not have an active subscription for ${getCourseTitle(courseId)}.`;
+      el.courseModalBtn.href = `${LICENSURE.student}/course.html?id=${encodeURIComponent(courseId)}`;
     }
+    return;
   }
 
-async function openOfflineModal(){
+  CURRENT_FILTER_OPTIONS = await getItemFilterOptions(courseId);
+  CURRENT_ITEMS = await getBuilderCourseItems(courseId);
+
+  state.selectedTopics = state.selectedTopics.filter(t => (CURRENT_FILTER_OPTIONS.maintopics || []).includes(t));
+  state.selectedConcepts = state.selectedConcepts.filter(t => (CURRENT_FILTER_OPTIONS.subtopics || []).includes(t));
+  state.selectedDifficulties = state.selectedDifficulties.filter(t => (CURRENT_FILTER_OPTIONS.difficulties || []).includes(t));
+  state.selectedQuestionTypes = state.selectedQuestionTypes.filter(t => (CURRENT_FILTER_OPTIONS.question_types || []).includes(t));
+
+  const poolSize = CURRENT_ITEMS.length;
+  const cap = Math.min(poolSize || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
+  if (!state.questionCount || state.questionCount > cap) {
+    state.questionCount = cap;
+  }
+
+  if (!String(state.packName || '').trim()) {
+    state.packName = getSuggestedPackName();
+    if (el.packName) el.packName.value = state.packName;
+  }
+
+  renderAll();
+}
+
+// ── Offline modal ──
+function closeOfflineModal() {
+  el.offlineModal.style.display = 'none';
+  el.offlineModalError.textContent = '';
+  el.offlineCreateBtn.disabled = false;
+  el.offlineFreshnessPill.style.display = 'none';
+  el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
+}
+
+async function openOfflineModal() {
   const pool = getFilteredPool();
   const n = Number(state.questionCount || 0);
 
-  if (!pool.length || !n || !buildReady()) {
-    renderSummary();
-    return;
-  }
+  if (!pool.length || !n || !buildReady()) { renderSummary(); return; }
 
   el.buildBtn.disabled = true;
   el.statusBox.textContent = 'Checking your offline allowance…';
@@ -1234,36 +1321,32 @@ async function openOfflineModal(){
   el.offlineCoursePill.textContent = `Course: ${getCourseTitle(state.courseId)}`;
   el.offlineCountPill.textContent = `Questions: ${Math.min(n, pool.length)}`;
   el.offlineFreshnessPill.style.display = 'none';
-el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
+  el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
 
   if (allowance && allowance.ok) {
     el.offlineAllowancePill.textContent = `Allowance: ${allowance.remaining} left of ${allowance.downloads_per_course}`;
     el.offlineModalError.textContent = '';
     el.offlineCreateBtn.disabled = !allowance.allowed;
 
-if (!allowance.allowed) {
-  el.offlineModalError.textContent = allowanceMessageForReason('limit_reached', allowance);
-  el.offlineFreshnessPill.style.display = 'none';
-  el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
-  el.offlineModal.dataset.itemIds = '[]';
-  el.offlineModal.style.display = 'flex';
-  el.statusBox.textContent = 'Offline pack creation is currently blocked.';
-  el.buildBtn.disabled = false;
-  return;
-}
-} else {
-  const reason = allowance && allowance.blocked_reason ? allowance.blocked_reason : 'allowance_check_failed';
-  el.offlineAllowancePill.textContent = 'Allowance: blocked';
-  el.offlineModalError.textContent = allowanceMessageForReason(reason, allowance);
-  el.offlineCreateBtn.disabled = true;
-  el.offlineFreshnessPill.style.display = 'none';
-  el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
-  el.offlineModal.dataset.itemIds = '[]';
-  el.offlineModal.style.display = 'flex';
-  el.statusBox.textContent = 'Offline pack creation is currently blocked.';
-  el.buildBtn.disabled = false;
-  return;
-}
+    if (!allowance.allowed) {
+      el.offlineModalError.textContent = allowanceMessageForReason('limit_reached', allowance);
+      el.offlineModal.dataset.itemIds = '[]';
+      el.offlineModal.style.display = 'flex';
+      el.statusBox.textContent = 'Offline pack creation is currently blocked.';
+      el.buildBtn.disabled = false;
+      return;
+    }
+  } else {
+    const reason = allowance && allowance.blocked_reason ? allowance.blocked_reason : 'allowance_check_failed';
+    el.offlineAllowancePill.textContent = 'Allowance: blocked';
+    el.offlineModalError.textContent = allowanceMessageForReason(reason, allowance);
+    el.offlineCreateBtn.disabled = true;
+    el.offlineModal.dataset.itemIds = '[]';
+    el.offlineModal.style.display = 'flex';
+    el.statusBox.textContent = 'Offline pack creation is currently blocked.';
+    el.buildBtn.disabled = false;
+    return;
+  }
 
   el.statusBox.textContent = 'Choosing fresh questions for your offline pack…';
 
@@ -1286,259 +1369,251 @@ if (!allowance.allowed) {
     el.buildBtn.disabled = false;
     return;
   }
-el.offlineFreshnessPill.style.display = 'inline-flex';
-el.offlineFreshnessPill.textContent =
-  `Fresh: ${selection.unused_selected || 0} • Reused: ${selection.reused_selected || 0}`;
+
+  el.offlineFreshnessPill.style.display = 'inline-flex';
+  el.offlineFreshnessPill.textContent = `Fresh: ${selection.unused_selected || 0} • Reused: ${selection.reused_selected || 0}`;
   el.offlineModal.dataset.itemIds = JSON.stringify(chosen);
   el.offlineModal.style.display = 'flex';
 
   if (selection.reused_selected > 0) {
-    el.statusBox.textContent =
-      `Review the offline pack details. ${selection.unused_selected} fresh question(s) selected and ${selection.reused_selected} reused because the filtered pool is exhausted.`;
+    el.statusBox.textContent = `Review the offline pack details. ${selection.unused_selected} fresh question(s) selected and ${selection.reused_selected} reused because the filtered pool is exhausted.`;
   } else {
     el.statusBox.textContent = 'Review the offline pack details in the confirmation box.';
   }
 
   el.buildBtn.disabled = false;
 }
-function closeOfflineModal(){
-  el.offlineModal.style.display = 'none';
+
+async function createPackFromModal() {
+  let chosen = [];
+  try {
+    chosen = JSON.parse(el.offlineModal.dataset.itemIds || '[]');
+    if (!Array.isArray(chosen)) chosen = [];
+  } catch(_) { chosen = []; }
+
+  if (!chosen.length) {
+    el.offlineModalError.textContent = 'No items were selected for this pack.';
+    return;
+  }
+
+  const modalName = String(el.modalPackName.value || '').trim();
+  state.packName = modalName;
+  if (el.packName) el.packName.value = modalName;
+
+  el.offlineCreateBtn.disabled = true;
   el.offlineModalError.textContent = '';
-  el.offlineCreateBtn.disabled = false;
-  el.offlineFreshnessPill.style.display = 'none';
-  el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
+  el.statusBox.textContent = 'Creating your offline pack…';
+
+  const displayLabel = typeof buildOfflinePackDisplayLabel === 'function'
+    ? buildOfflinePackDisplayLabel({
+        selection_mode: currentSelectionMode(),
+        maintopics: getChosenMaintopics(),
+        difficulties: state.selectedDifficulties,
+        concepts: state.selectedConcepts,
+        concept_query: state.conceptSearch,
+        n: Number(state.questionCount || 0)
+      })
+    : modalName;
+
+  const res = await createOfflinePack(PROFILE.user_id, {
+    course_id: state.courseId,
+    item_ids: chosen,
+    question_count: chosen.length,
+    pack_name: modalName,
+    selection_mode: currentSelectionMode(),
+    maintopics: getChosenMaintopics(),
+    subtopics: state.selectedConcepts,
+    difficulties: state.selectedDifficulties,
+    question_types: state.selectedQuestionTypes,
+    concepts: state.selectedConcepts,
+    concept_query: state.conceptSearch,
+    display_label: displayLabel
+  });
+
+  if (!res || !res.success || !res.pack_id) {
+    const allowance = res && res.allowance ? res.allowance : null;
+    const reason = res && res.blocked_reason ? res.blocked_reason : 'create_failed';
+    el.offlineCreateBtn.disabled = false;
+    el.offlineModalError.textContent = (res && res.message) || allowanceMessageForReason(reason, allowance);
+    el.statusBox.textContent = 'We could not create your offline pack. Please review the message and try again.';
+    return;
+  }
+
+  saveRecentSetup();
+  closeOfflineModal();
+  el.statusBox.textContent = 'Offline pack ready. Opening renderer…';
+  window.location.href = `${OFFLINE_RENDERER_URL}?pack_id=${encodeURIComponent(res.pack_id)}`;
 }
 
-  async function createPackFromModal(){
-    let chosen = [];
-    try {
-      chosen = JSON.parse(el.offlineModal.dataset.itemIds || '[]');
-      if (!Array.isArray(chosen)) chosen = [];
-    } catch(_) {
-      chosen = [];
-    }
+// ── Bind events ──
+function bindEvents() {
+  el.courseSelect.addEventListener('change', async () => {
+    state.courseId = el.courseSelect.value || '';
+    await handleCourseChange();
+  });
 
-    if (!chosen.length) {
-      el.offlineModalError.textContent = 'No items were selected for this pack.';
-      return;
-    }
-
-    const modalName = String(el.modalPackName.value || '').trim();
-    state.packName = modalName;
-    el.packName.value = modalName;
-
-    el.offlineCreateBtn.disabled = true;
-    el.offlineModalError.textContent = '';
-    el.statusBox.textContent = 'Creating your offline pack…';
-
-    const displayLabel = buildOfflinePackDisplayLabel({
-      selection_mode: currentSelectionMode(),
-      maintopics: getChosenMaintopics(),
-      difficulties: state.selectedDifficulties,
-      concepts: state.selectedConcepts,
-      concept_query: state.conceptSearch,
-      n: Number(state.questionCount || 0)
-    });
-
-    const res = await createOfflinePack(PROFILE.user_id, {
-      course_id: state.courseId,
-      item_ids: chosen,
-      question_count: chosen.length,
-      pack_name: modalName,
-      selection_mode: currentSelectionMode(),
-      maintopics: getChosenMaintopics(),
-      subtopics: state.selectedConcepts,
-      difficulties: state.selectedDifficulties,
-      question_types: state.selectedQuestionTypes,
-      concepts: state.selectedConcepts,
-      concept_query: state.conceptSearch,
-      display_label: displayLabel
-    });
-
-    if (!res || !res.success || !res.pack_id) {
-      const allowance = res && res.allowance ? res.allowance : null;
-      const reason = res && res.blocked_reason ? res.blocked_reason : 'create_failed';
-      el.offlineCreateBtn.disabled = false;
-      el.offlineModalError.textContent =
-        (res && res.message) ||
-        allowanceMessageForReason(reason, allowance);
-      el.statusBox.textContent = 'We could not create your offline pack. Please review the message and try again.';
-      return;
-    }
-
-    saveRecentSetup();
-    closeOfflineModal();
-    el.statusBox.textContent = 'Offline pack ready. Opening renderer…';
-    window.location.href = `${OFFLINE_RENDERER_URL}?pack_id=${encodeURIComponent(res.pack_id)}`;
-  }
-
-  function bindEvents(){
-    el.courseSelect.addEventListener('change', async () => {
-      state.courseId = el.courseSelect.value || '';
-      await handleCourseChange();
-    });
-
-    document.querySelectorAll('input[name="selectionMode"]').forEach(r => {
-      r.addEventListener('change', () => {
-        state.selectionMode = r.value === 'concept' ? 'concept' : 'topics';
-        renderAll();
-      });
-    });
-
-    el.topicSearch.addEventListener('input', () => {
-      state.topicSearch = el.topicSearch.value || '';
-      renderTopics();
-    });
-
-    el.useAllTopics.addEventListener('change', () => {
-      state.useAllTopics = !!el.useAllTopics.checked;
+  document.querySelectorAll('input[name="selectionMode"]').forEach(r => {
+    r.addEventListener('change', () => {
+      state.selectionMode = r.value === 'concept' ? 'concept' : 'topics';
+      updateSegmented();
       renderAll();
     });
+  });
 
-    el.conceptSearch.addEventListener('input', () => {
-      state.conceptSearch = el.conceptSearch.value || '';
-      renderAll();
-    });
+  document.getElementById('segTopics').addEventListener('click', () => {
+    state.selectionMode = 'topics'; updateSegmented(); renderAll();
+  });
+  document.getElementById('segConcept').addEventListener('click', () => {
+    state.selectionMode = 'concept'; updateSegmented(); renderAll();
+  });
 
-    el.questionCount.addEventListener('input', () => {
-      const n = Number(el.questionCount.value || 0);
-      state.questionCount = Math.min(Math.max(n, 0), EFFECTIVE_LIMIT);
-      renderSummary();
-    });
+  el.topicSearch.addEventListener('input', () => {
+    state.topicSearch = el.topicSearch.value || '';
+    renderTopics();
+  });
 
-    el.packName.addEventListener('input', () => {
-      state.packName = el.packName.value || '';
-      renderSummary();
-    });
+  el.useAllTopics.addEventListener('change', () => {
+    state.useAllTopics = !!el.useAllTopics.checked;
+    renderAll();
+  });
 
-    el.selectAllTopicsBtn.addEventListener('click', () => {
-      const allTopics = (CURRENT_FILTER_OPTIONS.maintopics || []).filter(t =>
-        String(t).toLowerCase().includes(String(state.topicSearch || '').toLowerCase())
-      );
-      state.selectedTopics = normaliseArray([...state.selectedTopics, ...allTopics]);
-      renderAll();
-    });
+  el.conceptSearch.addEventListener('input', () => {
+    state.conceptSearch = el.conceptSearch.value || '';
+    renderAll();
+  });
 
-    el.clearTopicsBtn.addEventListener('click', () => {
-      state.selectedTopics = [];
-      state.useAllTopics = false;
-      renderAll();
-    });
+  el.packName.addEventListener('input', () => {
+    state.packName = el.packName.value || '';
+    renderSummary();
+  });
 
-    el.clearConceptsBtn.addEventListener('click', () => {
-      state.selectedConcepts = [];
-      state.conceptSearch = '';
-      el.conceptSearch.value = '';
-      renderAll();
-    });
+  el.selectAllTopicsBtn.addEventListener('click', () => {
+    const search = String(state.topicSearch || '').toLowerCase();
+    const visible = (CURRENT_FILTER_OPTIONS.maintopics || []).filter(t =>
+      !search || String(t).toLowerCase().includes(search)
+    );
+    state.selectedTopics = normaliseArray([...state.selectedTopics, ...visible]);
+    renderAll();
+  });
 
-    el.closeAccessModal.addEventListener('click', () => {
-      el.accessModal.style.display = 'none';
-      if (COURSE_ACCESS[state.courseId]) return;
-      state.courseId = '';
-      syncFormFromState();
-      renderAll();
-    });
+  el.clearTopicsBtn.addEventListener('click', () => {
+    state.selectedTopics = [];
+    state.useAllTopics = false;
+    if (el.useAllTopics) el.useAllTopics.checked = false;
+    renderAll();
+  });
 
-    el.buildBtn.addEventListener('click', openOfflineModal);
-    el.offlineCancelBtn.addEventListener('click', closeOfflineModal);
-    el.offlineCreateBtn.addEventListener('click', createPackFromModal);
+  el.clearConceptsBtn.addEventListener('click', () => {
+    state.selectedConcepts = [];
+    state.conceptSearch = '';
+    el.conceptSearch.value = '';
+    renderAll();
+  });
 
-    el.offlineModal.addEventListener('click', (e) => {
-      if (e.target === el.offlineModal) closeOfflineModal();
-    });
-  }
-
-  async function initPage(){
-    PROFILE = await guardPage('STUDENT');
-    if (!PROFILE) return;
-
-    Object.assign(el, {
-      pageContent: byId('pageContent'),
-      emptyState: byId('emptyState'),
-      userName: byId('userName'),
-      courseSelect: byId('courseSelect'),
-      courseError: byId('courseError'),
-      topicSearch: byId('topicSearch'),
-      useAllTopics: byId('useAllTopics'),
-      topicsBox: byId('topicsBox'),
-      selectedTopicChips: byId('selectedTopicChips'),
-      conceptSearch: byId('conceptSearch'),
-      conceptsBox: byId('conceptsBox'),
-      selectedConceptChips: byId('selectedConceptChips'),
-      selectionError: byId('selectionError'),
-      difficultyChecks: byId('difficultyChecks'),
-      questionTypeChecks: byId('questionTypeChecks'),
-      questionCount: byId('questionCount'),
-      packName: byId('packName'),
-      countError: byId('countError'),
-      limitHint: byId('limitHint'),
-      buildBtn: byId('buildBtn'),
-      statusBox: byId('statusBox'),
-      poolCountValue: byId('poolCountValue'),
-      selectedCountValue: byId('selectedCountValue'),
-      packTypeValue: byId('packTypeValue'),
-      summaryCourse: byId('summaryCourse'),
-      summaryMode: byId('summaryMode'),
-      summarySelection: byId('summarySelection'),
-      summaryDifficulty: byId('summaryDifficulty'),
-      summaryQuestionType: byId('summaryQuestionType'),
-      summarySetup: byId('summarySetup'),
-      heroLimitBadge: byId('heroLimitBadge'),
-      countPill: byId('countPill'),
-      coursePill: byId('coursePill'),
-      selectionPill: byId('selectionPill'),
-      filterPill: byId('filterPill'),
-      reviewPill: byId('reviewPill'),
-      recentCard: byId('recentCard'),
-      recentList: byId('recentList'),
-      recentCountPill: byId('recentCountPill'),
-      accessModal: byId('accessModal'),
-      accessModalText: byId('accessModalText'),
-      courseModalBtn: byId('courseModalBtn'),
-      closeAccessModal: byId('closeAccessModal'),
-      topicsModePane: byId('topicsModePane'),
-      conceptModePane: byId('conceptModePane'),
-      selectAllTopicsBtn: byId('selectAllTopicsBtn'),
-      clearTopicsBtn: byId('clearTopicsBtn'),
-      clearConceptsBtn: byId('clearConceptsBtn'),
-offlineModal: byId('offlineModal'),
-offlineCoursePill: byId('offlineCoursePill'),
-offlineCountPill: byId('offlineCountPill'),
-offlineAllowancePill: byId('offlineAllowancePill'),
-offlineFreshnessPill: byId('offlineFreshnessPill'),
-modalPackName: byId('modalPackName'),
-offlineModalError: byId('offlineModalError'),
-offlineCancelBtn: byId('offlineCancelBtn'),
-offlineCreateBtn: byId('offlineCreateBtn')
-    });
-
-    el.userName.textContent = PROFILE.forename || PROFILE.name || PROFILE.email;
-
-    CONFIG = await getConfig();
-    EFFECTIVE_LIMIT = effectiveOfflineLimit(CONFIG);
-
-    COURSE_ACCESS = await getStudentCourseAccess(PROFILE.user_id);
-    COURSES = await getCourses();
-    populateCourseSelect();
-    renderRecentSetups();
-
-    state.questionCount = EFFECTIVE_LIMIT;
+  el.closeAccessModal.addEventListener('click', () => {
+    el.accessModal.style.display = 'none';
+    if (COURSE_ACCESS[state.courseId]) return;
+    state.courseId = '';
     syncFormFromState();
+    renderAll();
+  });
 
-    bindEvents();
-    await handleCourseChange(true);
+  el.buildBtn.addEventListener('click', openOfflineModal);
+  el.offlineCancelBtn.addEventListener('click', closeOfflineModal);
+  el.offlineCreateBtn.addEventListener('click', createPackFromModal);
 
-    if (!String(state.packName || '').trim()) {
-      state.packName = getSuggestedPackName();
-      el.packName.value = state.packName;
-      renderSummary();
-    }
+  el.offlineModal.addEventListener('click', (e) => {
+    if (e.target === el.offlineModal) closeOfflineModal();
+  });
+}
 
-    el.pageContent.style.display = 'block';
+// ── Init ──
+async function initPage() {
+  PROFILE = await guardPage('STUDENT');
+  if (!PROFILE) return;
+
+  Object.assign(el, {
+    pageContent:          byId('pageContent'),
+    emptyState:           byId('emptyState'),
+    userName:             byId('userName'),
+    courseSelect:         byId('courseSelect'),
+    courseError:          byId('courseError'),
+    topicSearch:          byId('topicSearch'),
+    useAllTopics:         byId('useAllTopics'),
+    topicsBox:            byId('topicsBox'),
+    selectedTopicChips:   byId('selectedTopicChips'),
+    conceptSearch:        byId('conceptSearch'),
+    conceptsBox:          byId('conceptsBox'),
+    selectedConceptChips: byId('selectedConceptChips'),
+    selectionError:       byId('selectionError'),
+    difficultyChecks:     byId('difficultyChecks'),
+    questionTypeChecks:   byId('questionTypeChecks'),
+    questionCount:        byId('questionCount'),
+    packName:             byId('packName'),
+    countError:           byId('countError'),
+    limitHint:            byId('limitHint'),
+    buildBtn:             byId('buildBtn'),
+    statusBox:            byId('statusBox'),
+    poolCountValue:       byId('poolCountValue'),
+    selectedCountValue:   byId('selectedCountValue'),
+    packTypeValue:        byId('packTypeValue'),
+    summaryCourse:        byId('summaryCourse'),
+    summaryMode:          byId('summaryMode'),
+    summarySelection:     byId('summarySelection'),
+    summaryDifficulty:    byId('summaryDifficulty'),
+    summaryQuestionType:  byId('summaryQuestionType'),
+    summarySetup:         byId('summarySetup'),
+    recentCard:           byId('recentCard'),
+    recentList:           byId('recentList'),
+    recentCountPill:      byId('recentCountPill'),
+    accessModal:          byId('accessModal'),
+    accessModalText:      byId('accessModalText'),
+    courseModalBtn:       byId('courseModalBtn'),
+    closeAccessModal:     byId('closeAccessModal'),
+    topicsModePane:       byId('topicsModePane'),
+    conceptModePane:      byId('conceptModePane'),
+    selectAllTopicsBtn:   byId('selectAllTopicsBtn'),
+    clearTopicsBtn:       byId('clearTopicsBtn'),
+    clearConceptsBtn:     byId('clearConceptsBtn'),
+    offlineModal:         byId('offlineModal'),
+    offlineCoursePill:    byId('offlineCoursePill'),
+    offlineCountPill:     byId('offlineCountPill'),
+    offlineAllowancePill: byId('offlineAllowancePill'),
+    offlineFreshnessPill: byId('offlineFreshnessPill'),
+    modalPackName:        byId('modalPackName'),
+    offlineModalError:    byId('offlineModalError'),
+    offlineCancelBtn:     byId('offlineCancelBtn'),
+    offlineCreateBtn:     byId('offlineCreateBtn')
+  });
+
+  el.userName.textContent = PROFILE.forename || PROFILE.name || PROFILE.email;
+
+  CONFIG = await getConfig();
+  EFFECTIVE_LIMIT = effectiveOfflineLimit(CONFIG);
+
+  COURSE_ACCESS = await getStudentCourseAccess(PROFILE.user_id);
+  COURSES = await getCourses();
+
+  populateCourseDropdown(COURSE_ACCESS, COURSES);
+  populateCourseSelect();
+  renderRecentSetups();
+
+  state.questionCount = 0;
+  syncFormFromState();
+
+  bindEvents();
+  await handleCourseChange(true);
+
+  if (!String(state.packName || '').trim()) {
+    state.packName = getSuggestedPackName();
+    if (el.packName) el.packName.value = state.packName;
+    renderSummary();
   }
 
-  initPage();
+  el.pageContent.style.display = 'block';
+}
+
+initPage();
 </script>
 </body>
 </html>
