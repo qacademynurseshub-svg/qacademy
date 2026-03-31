@@ -42,6 +42,7 @@
           <a href="${S}/offline-pack-builder.html">Build New Pack</a>
         </div>
       </div>
+      <a href="${S}/procedures.html">🩺 NMC Procedures</a>
       <a href="${S}/messages.html">💬 Messages <span id="sidebarMsgBadge" class="sidebar-msg-badge" style="display:none;"></span></a>
   <a href="${S}/telegram.html">✈️ Telegram</a>
 

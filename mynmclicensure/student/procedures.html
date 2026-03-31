@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Practical Skills — Procedures | QAcademy</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .logout-btn {
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .logout-btn:hover { color: var(--danger); }
+
+    .proc-intro {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .proc-intro h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0 0 8px;
+    }
+    .proc-intro p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin: 0 0 6px;
+    }
+    .proc-intro .programme-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .proc-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .proc-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .proc-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .proc-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .proc-viewer {
+      width: 100%;
+      height: 80vh;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+    .proc-fallback {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .proc-fallback a {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .manual-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .manual-row-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .manual-row-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-toggle {
+      padding: 5px 12px;
+      font-size: 12px;
+      border-radius: 999px;
+      background: var(--bg);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-toggle:hover { background: var(--border); }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+  <div id="sidebar"></div>
+
+  <main class="main-content">
+
+    <div class="top-nav">
+      <div class="page-header" style="margin-bottom:0">
+        <h1>Practical Skills — Procedures</h1>
+        <p>NMC Ghana procedure manuals for OSCE preparation</p>
+      </div>
+      <div class="user-menu">
+        <span class="user-name" id="userName"></span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+    <div id="pageContent" style="display:none;">
+
+      <!-- Intro -->
+      <div class="proc-intro">
+        <h2>Practical Skills — Procedures</h2>
+        <p>
+          Official NMC Ghana procedure manuals to support your practical and OSCE preparation.
+          This page adapts to your programme and also gives you access to procedures from other programmes.
+        </p>
+        <p class="programme-label">Your programme: <span id="progLabel">Loading...</span></p>
+      </div>
+
+      <!-- Your Programme block -->
+      <div class="proc-card" id="progBlock">
+        <div class="proc-card-header">
+          <span class="proc-card-title">Your Programme Procedures</span>
+        </div>
+        <p id="progText" style="font-size:14px; color:var(--text-muted); margin:0 0 14px;"></p>
+        <div class="proc-actions">
+          <button class="btn btn-primary" id="viewMyBtn" onclick="viewMyProgram()">View Inside QAcademy</button>
+          <a id="openExternal" href="#" target="_blank" rel="noopener noreferrer">
+            <button class="btn btn-secondary">Open on NMC Website</button>
+          </a>
+        </div>
+      </div>
+
+      <!-- NAC/NAP block (hidden by default) -->
+      <div class="proc-card" id="nacnapBlock" style="display:none;">
+        <div class="proc-card-header">
+          <span class="proc-card-title">NAC/NAP Procedures</span>
+        </div>
+        <p style="font-size:14px; color:var(--text-muted); line-height:1.6; margin:0 0 8px;">
+          The NAC/NAP programme does <strong>not</strong> include an NMC Practical/OSCE examination,
+          and no official procedure manual is provided for NAC/NAP candidates.
+        </p>
+        <p style="font-size:14px; color:var(--text-muted); line-height:1.6; margin:0;">
+          You can still explore procedures from other programmes below, especially if you are planning to upgrade in the future.
+        </p>
+      </div>
+
+      <!-- Viewer (hidden until user clicks) -->
+      <div class="proc-card" id="viewerBlock" style="display:none;">
+        <div class="proc-card-header">
+          <span class="proc-card-title">Procedure Viewer</span>
+          <button class="btn-toggle" onclick="hideViewer()">Hide viewer</button>
+        </div>
+        <p id="viewerLabel" style="font-size:14px; color:var(--text-muted); margin:0 0 10px;"></p>
+        <iframe id="manualFrame" class="proc-viewer" src=""></iframe>
+        <p class="proc-fallback">
+          If the viewer does not load,
+          <a id="fallbackLink" href="#" target="_blank" rel="noopener noreferrer">open the procedures on the NMC website</a>.
+        </p>
+      </div>
+
+      <!-- Other Programme Procedures -->
+      <div class="proc-card">
+        <div class="proc-card-header">
+          <span class="proc-card-title">Other Programme Procedures</span>
+          <button class="btn-toggle" id="listToggleBtn" onclick="toggleManualList()">Hide list</button>
+        </div>
+        <p id="listDesc" style="font-size:13px; color:var(--text-muted); margin:0 0 14px;">
+          Explore procedure manuals from other NMC programmes. These are public and useful for reference, comparison, or upgrading.
+        </p>
+        <div id="manualList"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
+<script src="/js/mynmclicensure-api.js"></script>
+<script src="/js/paths.js"></script>
+<script src="/js/mynmclicensure-student-sidebar.js"></script>
+<script>
+
+// ── Manual mapping ──────────────────────────────────────
+const manuals = {
+  RN:   { name: 'Registered General Nursing (RGN)',         url: 'https://nmc.gov.gh/procedures/view/RGN' },
+  RM:   { name: 'Registered Midwifery (RM)',                url: 'https://nmc.gov.gh/procedures/view/RM' },
+  RPHN: { name: 'Public Health Nursing (RPHN)',             url: 'https://nmc.gov.gh/procedures/view/PHN' },
+  RMHN: { name: 'Mental Health Nursing (RMHN)',             url: 'https://nmc.gov.gh/procedures/view/RMN' },
+  RCMN: { name: 'Community/CHN/CMCN (RCMN)',               url: 'https://nmc.gov.gh/procedures/view/RCMN' },
+  PAED: { name: 'Paediatrics (PAED)',                       url: 'https://nmc.gov.gh/procedures/view/PAED' },
+  PM:   { name: 'Perioperative / PM',                       url: 'https://nmc.gov.gh/procedures/view/PM' },
+  CCN:  { name: 'Critical Care Nursing (Post-Basic)',       url: 'https://nmc.gov.gh/pb-procedures/view/CCN' },
+  ENT:  { name: 'ENT Nursing (Post-Basic)',                 url: 'https://nmc.gov.gh/pb-procedures/view/ENT' },
+  ENUR: { name: 'Emergency Nursing (Post-Basic)',           url: 'https://nmc.gov.gh/pb-procedures/view/ENUR' },
+  NP:   { name: 'Nurse Practitioner (Post-Basic)',          url: 'https://nmc.gov.gh/pb-procedures/view/NP' },
+  OPN:  { name: 'Ophthalmic Nursing (Post-Basic)',          url: 'https://nmc.gov.gh/pb-procedures/view/OPN' },
+  PON:  { name: 'Peri-Operative Nursing (Post-Basic)',      url: 'https://nmc.gov.gh/pb-procedures/view/PON' },
+};
+
+let myProgramCode = '';
+
+// ── Normalise programme code ────────────────────────────
+function normalizeProgramCode(raw) {
+  if (!raw) return '';
+  const t = raw.toUpperCase().replace(/\s+/g, '');
+  if (t.startsWith('RN'))   return 'RN';
+  if (t === 'RMHN' || t === 'RMN' || t === 'MHN' || t.startsWith('RMHN')) return 'RMHN';
+  if (t.startsWith('RM'))   return 'RM';
+  if (t.includes('RPHN') || t === 'PHN') return 'RPHN';
+  if (t.includes('RCMN'))  return 'RCMN';
+  if (t.includes('PAED'))  return 'PAED';
+  if (t === 'PM')           return 'PM';
+  if (t.includes('NAC') || t.includes('NAP')) return 'NACNAP';
+  // Post-basic codes
+  if (t === 'CCN')  return 'CCN';
+  if (t === 'ENT')  return 'ENT';
+  if (t === 'ENUR') return 'ENUR';
+  if (t === 'NP')   return 'NP';
+  if (t === 'OPN')  return 'OPN';
+  if (t === 'PON')  return 'PON';
+  return t;
+}
+
+// ── Build "other manuals" list ──────────────────────────
+function buildManualList() {
+  const list = document.getElementById('manualList');
+  list.innerHTML = '';
+  for (const code in manuals) {
+    const m = manuals[code];
+    const row = document.createElement('div');
+    row.className = 'manual-row';
+    row.innerHTML = `
+      <span class="manual-row-name">${m.name}</span>
+      <span class="manual-row-actions">
+        <button class="btn btn-primary" style="padding:6px 12px; font-size:12px;" onclick="switchManual('${code}')">View</button>
+        <a href="${m.url}" target="_blank" rel="noopener noreferrer">
+          <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px;">Open</button>
+        </a>
+      </span>`;
+    list.appendChild(row);
+  }
+}
+
+// ── Init procedures page ────────────────────────────────
+function initProcedures(programRaw) {
+  const code = normalizeProgramCode(programRaw);
+  myProgramCode = code;
+
+  document.getElementById('progLabel').textContent = programRaw || code || '—';
+
+  if (code === 'NACNAP') {
+    document.getElementById('progBlock').style.display = 'none';
+    document.getElementById('nacnapBlock').style.display = '';
+    document.getElementById('viewerBlock').style.display = 'none';
+  } else {
+    document.getElementById('nacnapBlock').style.display = 'none';
+    const data = manuals[code];
+    const viewMyBtn = document.getElementById('viewMyBtn');
+
+    if (code && viewMyBtn) {
+      viewMyBtn.textContent = 'View ' + code + ' Inside QAcademy';
+    }
+
+    if (data) {
+      document.getElementById('progText').innerHTML =
+        'Below is the official NMC Procedure Manual mapped for <strong>' + data.name + '</strong>.';
+      document.getElementById('openExternal').href = data.url;
+    } else {
+      document.getElementById('progText').innerHTML =
+        'No direct procedure manual is mapped for your programme. Please choose one from the list below.';
+      document.getElementById('openExternal').href = '#';
+    }
+  }
+
+  buildManualList();
+}
+
+// ── View my programme inside QAcademy ───────────────────
+function viewMyProgram() {
+  const block = document.getElementById('viewerBlock');
+  const iframe = document.getElementById('manualFrame');
+  const label = document.getElementById('viewerLabel');
+  const fallback = document.getElementById('fallbackLink');
+
+  if (!myProgramCode || !manuals[myProgramCode]) {
+    block.style.display = '';
+    label.textContent = 'Select a programme below to view its procedures.';
+    iframe.src = '';
+    fallback.href = '#';
+  } else {
+    const m = manuals[myProgramCode];
+    block.style.display = '';
+    iframe.src = m.url;
+    label.textContent = m.name;
+    fallback.href = m.url;
+  }
+
+  block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Switch to a different manual ────────────────────────
+function switchManual(code) {
+  const m = manuals[code];
+  if (!m) return;
+
+  const block = document.getElementById('viewerBlock');
+  const iframe = document.getElementById('manualFrame');
+  const label = document.getElementById('viewerLabel');
+  const fallback = document.getElementById('fallbackLink');
+
+  block.style.display = '';
+  iframe.src = m.url;
+  label.textContent = m.name;
+  fallback.href = m.url;
+
+  block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function hideViewer() {
+  document.getElementById('viewerBlock').style.display = 'none';
+}
+
+function toggleManualList() {
+  const list = document.getElementById('manualList');
+  const desc = document.getElementById('listDesc');
+  const btn  = document.getElementById('listToggleBtn');
+  const hidden = list.style.display === 'none';
+
+  list.style.display = hidden ? '' : 'none';
+  desc.style.display = hidden ? '' : 'none';
+  btn.textContent    = hidden ? 'Hide list' : 'Show list';
+}
+
+// ── Page init ───────────────────────────────────────────
+async function initPage() {
+  const profile = await guardPage('STUDENT');
+  if (!profile) return;
+
+  document.getElementById('userName').textContent = profile.forename || profile.name || profile.email;
+
+  // Get programme — try profile.program_id first, then look up full user
+  let programRaw = profile.program_id || '';
+
+  if (!programRaw) {
+    const fullUser = await getUserById(profile.user_id);
+    if (fullUser) programRaw = fullUser.program_id || '';
+  }
+
+  // If we have a program_id code, resolve to display name
+  if (programRaw) {
+    const programs = await getPrograms();
+    const prog = programs.find(p => p.program_id === programRaw);
+    if (prog) {
+      document.getElementById('progLabel').textContent = prog.program_name;
+    }
+  }
+
+  initProcedures(programRaw);
+
+  // Populate sidebar course dropdown
+  const courseAccessMap = await getStudentCourseAccess(profile.user_id);
+  const allCourses = await getCourses();
+  populateCourseDropdown(courseAccessMap, allCourses);
+
+  document.getElementById('pageContent').style.display = '';
+}
+
+initPage();
+
+</script>
+</body>
+</html>
