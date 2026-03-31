@@ -1152,7 +1152,7 @@ function buildBuilderDisplayLabel(meta = {}) {
       .filter(Boolean)
   )].sort((a, b) => order.indexOf(a) - order.indexOf(b));
 
-  let diffPart = 'Mixed';
+  let diffPart = 'All difficulties';
   if (canon.length === 1) {
     diffPart = `${canon[0]} only`;
   } else if (canon.length === 2) {
@@ -1412,7 +1412,7 @@ function buildOfflinePackDisplayLabel(meta = {}) {
     }
   }
 
-  let diffPart = 'Mixed';
+  let diffPart = 'All difficulties';
   const canon = [...new Set(difficulties)];
 
   if (canon.length === 1) diffPart = `${canon[0]} only`;
