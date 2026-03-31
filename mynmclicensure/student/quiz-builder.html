@@ -230,6 +230,11 @@
     .summary-item{background:var(--bg);border-radius:8px;padding:12px 14px;border:1px solid var(--border)}
     .summary-label{font-size:12px;color:var(--text-muted);margin-bottom:4px}
     .summary-value{font-size:13px;font-weight:600;color:var(--text)}
+    .review-edit{
+      border:none;background:transparent;color:var(--accent);
+      font-size:11px;font-weight:600;cursor:pointer;padding:0;
+    }
+    .review-edit:hover{text-decoration:underline}
     .status-box{
       font-size:13px;color:var(--text-muted);
       background:var(--bg);border:1px solid var(--border);
@@ -445,13 +450,22 @@
 
           <div class="count-display-row">
             <div>
-              <div class="count-big" id="countDisplay">20</div>
+              <div class="count-big" id="countDisplay">—</div>
               <div class="count-sub">questions</div>
             </div>
-            <input type="range" id="questionCount" min="1" max="50" value="20" step="1"
-              style="flex:1" oninput="onCountSlider(this.value)" />
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+              <input type="range" id="questionCount" min="1" max="50" value="1" step="1"
+                oninput="onCountSlider(this.value)" />
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="number" id="questionCountInput" min="1" max="50" value=""
+                  placeholder="Enter number"
+                  style="width:120px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none"
+                  oninput="onCountInput(this.value)" />
+                <span class="hint" style="margin:0">or use the slider</span>
+              </div>
+            </div>
           </div>
-          <div class="count-hint" id="limitHint">Max <span id="limitMax">50</span> questions · estimated <span id="estimatedTimeValue">—</span></div>
+          <div class="count-hint" id="limitHint">Max <span id="limitMax">50</span> questions · Pool: <span id="poolHintCount">—</span> available · Estimated <span id="estimatedTimeValue">—</span></div>
 
           <label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:10px">Mode</label>
           <div class="mode-grid">
@@ -503,27 +517,45 @@
 
           <div class="summary-grid">
             <div class="summary-item">
-              <div class="summary-label">Course</div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Course</div>
+                <button type="button" class="review-edit" onclick="goStep(0)">Edit</button>
+              </div>
               <div class="summary-value" id="summaryCourse">—</div>
             </div>
             <div class="summary-item">
-              <div class="summary-label">Selection mode</div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Selection mode</div>
+                <button type="button" class="review-edit" onclick="goStep(0)">Edit</button>
+              </div>
               <div class="summary-value" id="summaryMode">—</div>
             </div>
             <div class="summary-item">
-              <div class="summary-label">Topics / concept</div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Topics / concept</div>
+                <button type="button" class="review-edit" onclick="goStep(1)">Edit</button>
+              </div>
               <div class="summary-value" id="summarySelection">—</div>
             </div>
             <div class="summary-item">
-              <div class="summary-label">Difficulty</div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Difficulty</div>
+                <button type="button" class="review-edit" onclick="goStep(2)">Edit</button>
+              </div>
               <div class="summary-value" id="summaryDifficulty">—</div>
             </div>
             <div class="summary-item">
-              <div class="summary-label">Question type</div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Question type</div>
+                <button type="button" class="review-edit" onclick="goStep(2)">Edit</button>
+              </div>
               <div class="summary-value" id="summaryQuestionType">—</div>
             </div>
             <div class="summary-item">
-              <div class="summary-label">Mode</div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="summary-label">Mode</div>
+                <button type="button" class="review-edit" onclick="goStep(3)">Edit</button>
+              </div>
               <div class="summary-value" id="summarySetup">—</div>
             </div>
           </div>
@@ -649,9 +681,24 @@ function updatePane1Title() {
 }
 
 function onCountSlider(val) {
-  const n = Math.min(Math.max(Number(val), 1), EFFECTIVE_LIMIT);
+  const pool = getFilteredPool();
+  const cap = Math.min(pool.length || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
+  const n = Math.min(Math.max(Number(val), 1), cap);
   state.questionCount = n;
   document.getElementById('countDisplay').textContent = n;
+  const numInput = document.getElementById('questionCountInput');
+  if (numInput) numInput.value = n;
+  renderSummary();
+}
+
+function onCountInput(val) {
+  const pool = getFilteredPool();
+  const cap = Math.min(pool.length || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
+  const n = Math.min(Math.max(Number(val) || 0, 0), cap);
+  state.questionCount = n;
+  document.getElementById('countDisplay').textContent = n || '—';
+  const slider = document.getElementById('questionCount');
+  if (slider) slider.value = n || 1;
   renderSummary();
 }
 
@@ -1078,8 +1125,15 @@ function renderSummary() {
   const limitMaxEl = byId('limitMax');
   if (limitMaxEl) limitMaxEl.textContent = EFFECTIVE_LIMIT;
 
+  const poolHintEl = byId('poolHintCount');
+  if (poolHintEl) poolHintEl.textContent = poolSize;
+
+  const cap = Math.min(poolSize || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
   const sliderEl = el.questionCount;
-  if (sliderEl) { sliderEl.max = EFFECTIVE_LIMIT; sliderEl.value = n; }
+  if (sliderEl) { sliderEl.max = cap; sliderEl.value = n; }
+
+  const numInputEl = byId('questionCountInput');
+  if (numInputEl) { numInputEl.max = cap; }
 
   // Mode hint
   if (el.modeHint) {
@@ -1220,8 +1274,10 @@ async function handleCourseChange(skipModal) {
   state.selectedDifficulties = state.selectedDifficulties.filter(t => (CURRENT_FILTER_OPTIONS.difficulties || []).includes(t));
   state.selectedQuestionTypes = state.selectedQuestionTypes.filter(t => (CURRENT_FILTER_OPTIONS.question_types || []).includes(t));
 
-  if (!state.questionCount || state.questionCount > EFFECTIVE_LIMIT) {
-    state.questionCount = EFFECTIVE_LIMIT;
+  const poolSize = CURRENT_ITEMS.length;
+  const cap = Math.min(poolSize || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
+  if (!state.questionCount || state.questionCount > cap) {
+    state.questionCount = cap;
   }
 
   renderAll();
@@ -1419,7 +1475,7 @@ async function initPage() {
   populateCourseSelect();
   renderRecentSetups();
 
-  state.questionCount = EFFECTIVE_LIMIT;
+  state.questionCount = 0;
   state.mode = 'instant';
   syncFormFromState();
 
