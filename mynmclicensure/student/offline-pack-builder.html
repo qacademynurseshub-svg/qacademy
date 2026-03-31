@@ -386,15 +386,19 @@
 
           <div class="pack-name-section">
             <label for="packName">Pack name</label>
-            <input type="text" id="packName" placeholder="e.g. Cardio Revision Week 3" />
-            <span class="hint">This name appears on your downloads page. You can also edit it when confirming.</span>
+            <input type="text" id="packName" placeholder="Type a name or tap the suggestion below" oninput="onPackNameInput()" />
+            <div id="packNameSuggestion" style="margin-top:8px;display:none">
+              <span style="font-size:12px;color:var(--text-muted);">Suggestion: </span>
+              <button type="button" class="btn-lite" id="useSuggestionBtn" onclick="applySuggestedName()" style="font-size:12px;"></button>
+            </div>
+            <div id="packNameStatus" style="font-size:12px;margin-top:8px;"></div>
           </div>
 
           <div class="error-text" id="countError"></div>
 
           <div class="nav-bar">
             <button class="btn-back" onclick="goStep(2)">← Back</button>
-            <button class="btn-next" onclick="goStep(4)">Next →</button>
+            <button class="btn-next" id="step3NextBtn" onclick="goStep(4)">Next →</button>
           </div>
         </div>
       </div>
@@ -623,6 +627,51 @@ function onCountInput(val) {
   document.getElementById('countDisplay').textContent = n || '—';
   const slider = document.getElementById('questionCount');
   if (slider) slider.value = n || 1;
+  renderSummary();
+}
+
+function updatePackNameUI() {
+  const suggestionEl = byId('packNameSuggestion');
+  const suggestionBtn = byId('useSuggestionBtn');
+  const statusEl = byId('packNameStatus');
+  const nextBtn = byId('step3NextBtn');
+  const hasName = !!String(state.packName || '').trim();
+
+  // Show suggestion if course is selected
+  if (state.courseId && suggestionEl && suggestionBtn) {
+    const suggested = getSuggestedPackName();
+    suggestionBtn.textContent = suggested;
+    suggestionEl.style.display = '';
+  } else if (suggestionEl) {
+    suggestionEl.style.display = 'none';
+  }
+
+  // Validation message
+  if (statusEl) {
+    if (hasName) {
+      statusEl.textContent = '✓ Pack name set.';
+      statusEl.style.color = 'var(--accent)';
+    } else {
+      statusEl.textContent = 'Enter a pack name or tap the suggestion to continue.';
+      statusEl.style.color = 'var(--danger)';
+    }
+  }
+
+  // Disable Next if no name
+  if (nextBtn) nextBtn.disabled = !hasName;
+}
+
+function applySuggestedName() {
+  const suggested = getSuggestedPackName();
+  state.packName = suggested;
+  if (el.packName) el.packName.value = suggested;
+  updatePackNameUI();
+  renderSummary();
+}
+
+function onPackNameInput() {
+  state.packName = el.packName ? el.packName.value || '' : '';
+  updatePackNameUI();
   renderSummary();
 }
 
@@ -1148,12 +1197,8 @@ function renderSummary() {
     el.countError.textContent = countErr || '';
   }
 
-  // Pack name
-  const nameEl = el.packName;
-  if (nameEl && !state.packName && state.courseId) {
-    const suggested = getSuggestedPackName();
-    if (!nameEl.value) { nameEl.value = suggested; state.packName = suggested; }
-  }
+  // Pack name suggestion + validation
+  updatePackNameUI();
 
   // Summary values (step 5)
   if (el.summaryCourse) el.summaryCourse.textContent = getCourseTitle(state.courseId) || '—';
@@ -1286,11 +1331,6 @@ async function handleCourseChange(skipModal) {
   const cap = Math.min(poolSize || EFFECTIVE_LIMIT, EFFECTIVE_LIMIT);
   if (!state.questionCount || state.questionCount > cap) {
     state.questionCount = cap;
-  }
-
-  if (!String(state.packName || '').trim()) {
-    state.packName = getSuggestedPackName();
-    if (el.packName) el.packName.value = state.packName;
   }
 
   renderAll();
@@ -1482,10 +1522,7 @@ function bindEvents() {
     renderAll();
   });
 
-  el.packName.addEventListener('input', () => {
-    state.packName = el.packName.value || '';
-    renderSummary();
-  });
+  // packName input is handled by inline oninput="onPackNameInput()"
 
   el.selectAllTopicsBtn.addEventListener('click', () => {
     const search = String(state.topicSearch || '').toLowerCase();
@@ -1603,12 +1640,6 @@ async function initPage() {
 
   bindEvents();
   await handleCourseChange(true);
-
-  if (!String(state.packName || '').trim()) {
-    state.packName = getSuggestedPackName();
-    if (el.packName) el.packName.value = state.packName;
-    renderSummary();
-  }
 
   el.pageContent.style.display = 'block';
 }
