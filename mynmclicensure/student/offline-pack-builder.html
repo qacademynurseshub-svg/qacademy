@@ -1096,6 +1096,7 @@ function renderDifficultyChecks() {
       const idx = state.selectedDifficulties.indexOf(d);
       if (idx === -1) state.selectedDifficulties.push(d);
       else state.selectedDifficulties.splice(idx, 1);
+      clearPackName();
       renderDifficultyChecks();
       renderSummary();
     });
@@ -1125,6 +1126,7 @@ function renderQuestionTypeChecks() {
       const idx = state.selectedQuestionTypes.indexOf(qt);
       if (idx === -1) state.selectedQuestionTypes.push(qt);
       else state.selectedQuestionTypes.splice(idx, 1);
+      clearPackName();
       renderQuestionTypeChecks();
       renderSummary();
     });
