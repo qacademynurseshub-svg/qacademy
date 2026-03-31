@@ -13,7 +13,7 @@ Technical rebuild guide. Follow end-to-end to recreate the full environment from
 qacademy-gamma/
   mynmclicensure/          ← NMC Licensure product
     admin/                 ← 12 admin pages
-    student/               ← 14 student pages
+    student/               ← 16 student pages
     runner/                ← 2 quiz runner pages
   myteacher/               ← Teacher Assess product
     admin/                 ← 2 admin pages

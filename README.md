@@ -26,7 +26,7 @@ The project is organised into two independent products under a shared root:
 qacademy-gamma/
   mynmclicensure/          ← NMC Licensure product
     admin/                 ← 12 admin pages
-    student/               ← 14 student pages
+    student/               ← 16 student pages
     runner/                ← 2 quiz runner pages
   myteacher/               ← Teacher Assess product
     admin/                 ← 2 admin pages
@@ -246,19 +246,21 @@ Thread-based messaging system between admin and students.
 ### Licensure Student Pages (`mynmclicensure/student/`)
 | Page | Status | Notes |
 |---|---|---|
-| dashboard.html | ✅ Done | Courses, announcements, recent attempts |
+| dashboard.html | ✅ Done | Courses, announcements, recent attempts, quiz builder block, procedures block, floating portal guide bubble |
 | announcements.html | ✅ Done | 4 tabs, Mark as Read, Dismiss |
 | course.html | ✅ Done | Dynamic, access check |
 | fixed-quizzes.html | ✅ Done | Card state machine |
 | mock-exams.html | ✅ Done | Mock exam card list |
 | learning-history.html | ✅ Done | Filters, paginated, Resume/Review/Retake |
-| quiz-builder.html | ✅ Done | 5 steps, topic + concept modes |
+| quiz-builder.html | ✅ Done | 5-step wizard, topic + concept modes, counts on all filters |
 | upgrade.html | ✅ Done | Upgrade payment flow for logged-in students |
 | profile.html | ✅ Done | Personal details, academic details, subscription, avatar upload |
 | messages.html | ✅ Done | Thread-based messaging — inbox, reply, context-aware from quiz runners |
-| offline-pack-builder.html | ✅ Done | Build offline study packs |
+| offline-pack-builder.html | ✅ Done | 5-step wizard, topic + concept modes, counts, pack name suggestion |
 | my-offline-packs.html | ✅ Done | View downloaded packs |
 | offline-pack-renderer.html | ✅ Done | Render offline packs |
+| procedures.html | ✅ Done | NMC Ghana procedure manuals, programme-aware, iframe viewer |
+| portal-guide.html | ✅ Done | Platform help guide, right-side sticky nav, FAQ accordion |
 | telegram.html | ✅ Done | Telegram integration |
 
 ### Teacher Assess — Teacher Pages
