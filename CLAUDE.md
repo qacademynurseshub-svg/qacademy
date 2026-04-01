@@ -14,3 +14,10 @@
 ## Working With Me
 - I have no coding experience. Before writing or pushing any code, explain the rationale — what the code does, why it's structured that way, and what it changes. Do not assume I can read code.
 - Always push directly to main. No PRs or feature branches.
+
+## Two AI Assistants
+This repo is worked on by both Claude Code and ChatGPT. Each has its own instruction file:
+- `CLAUDE.md` — Claude Code instructions (this file)
+- `GPT.md` — ChatGPT instructions
+
+Both follow the same conventions and push to main. Check recent commits to see what the other assistant changed before starting work.
