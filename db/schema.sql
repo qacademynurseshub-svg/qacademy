@@ -33,7 +33,14 @@ CREATE TABLE courses (
 );
 -- status: active | draft | archived
 
--- 1.3 products
+-- 1.3 levels
+CREATE TABLE levels (
+  level_id   TEXT PRIMARY KEY,
+  label      TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 1.5 products
 CREATE TABLE products (
   product_id    TEXT PRIMARY KEY,
   name          TEXT NOT NULL,
@@ -49,7 +56,7 @@ CREATE TABLE products (
 );
 -- kind: PAID | TRIAL | FREE
 
--- 1.4 users
+-- 1.6 users
 CREATE TABLE users (
   user_id        UUID PRIMARY KEY,
   auth_id        UUID REFERENCES auth.users(id),
@@ -70,7 +77,7 @@ CREATE TABLE users (
 -- role: STUDENT | ADMIN | TEACHER
 -- signup_source: REGISTER | PAYSTACK_SETUP
 
--- 1.5 subscriptions
+-- 1.7 subscriptions
 CREATE TABLE subscriptions (
   subscription_id TEXT PRIMARY KEY,
   user_id         UUID REFERENCES users(user_id),
@@ -86,7 +93,7 @@ CREATE TABLE subscriptions (
 -- status: ACTIVE | EXPIRED | CANCELLED
 -- source: SELF_TRIAL_SIGNUP | ADMIN | PAYSTACK | IMPORT
 
--- 1.6 payments
+-- 1.8 payments
 CREATE TABLE payments (
   reference              TEXT PRIMARY KEY,
   status                 TEXT NOT NULL DEFAULT 'INIT',
@@ -111,7 +118,7 @@ CREATE TABLE payments (
 );
 -- status: INIT | PAID | ACTIVATED | SETUP_REQUIRED | FAILED
 
--- 1.7 announcements
+-- 1.9 announcements
 CREATE TABLE announcements (
   announcement_id TEXT PRIMARY KEY,
   title           TEXT NOT NULL,
@@ -135,7 +142,7 @@ CREATE TABLE announcements (
 );
 -- announcement_id: 'ANN_' + Date.now()
 
--- 1.8 user_notice_state
+-- 1.10 user_notice_state
 CREATE TABLE user_notice_state (
   id         BIGSERIAL PRIMARY KEY,
   user_id    UUID REFERENCES users(user_id),
@@ -147,7 +154,7 @@ CREATE TABLE user_notice_state (
 );
 -- state: read | clicked | dismissed
 
--- 1.9 config
+-- 1.11 config
 CREATE TABLE config (
   key         TEXT PRIMARY KEY,
   value       TEXT NOT NULL,
@@ -285,6 +292,28 @@ CREATE INDEX ON items_gp (subject);
 CREATE INDEX ON items_gp (difficulty);
 CREATE INDEX ON items_gp (question_type);
 CREATE INDEX ON items_gp (batch_id);
+
+-- 3.2 offline_packs
+CREATE TABLE offline_packs (
+  pack_id        TEXT NOT NULL PRIMARY KEY,
+  user_id        TEXT NOT NULL,
+  course_id      TEXT NOT NULL,
+  pack_name      TEXT NOT NULL,
+  selection_mode TEXT NOT NULL DEFAULT 'topics',
+  maintopics     TEXT[] NOT NULL DEFAULT '{}',
+  subtopics      TEXT[] NOT NULL DEFAULT '{}',
+  difficulties   TEXT[] NOT NULL DEFAULT '{}',
+  question_types TEXT[] NOT NULL DEFAULT '{}',
+  concept_query  TEXT,
+  display_label  TEXT,
+  item_ids       TEXT[] NOT NULL,
+  question_count INTEGER NOT NULL,
+  watermark      JSONB NOT NULL DEFAULT '{}',
+  status         TEXT NOT NULL DEFAULT 'active',
+  created_utc    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_utc    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- selection_mode: topics | concepts
 
 
 -- ────────────────────────────────────────────────────────────
