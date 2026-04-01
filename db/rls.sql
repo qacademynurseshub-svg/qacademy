@@ -33,14 +33,6 @@ $$;
 
 
 -- ────────────────────────────────────────────────────────────
--- GROUP A: REFERENCE / CATALOGUE DATA
--- (programs, courses, levels, products, config,
---  teacher_library_courses)
--- Status: dev_allow_all — pending Batch 2
--- ────────────────────────────────────────────────────────────
-
-
--- ────────────────────────────────────────────────────────────
 -- GROUP B: STUDENT-OWNED DATA
 -- ────────────────────────────────────────────────────────────
 
@@ -108,13 +100,6 @@ USING (
 
 
 -- ────────────────────────────────────────────────────────────
--- GROUP B (remaining): attempts, offline_packs,
---   user_notice_state
--- Status: dev_allow_all — pending Batch 3
--- ────────────────────────────────────────────────────────────
-
-
--- ────────────────────────────────────────────────────────────
 -- GROUP C: ADMIN-ONLY DATA
 -- ────────────────────────────────────────────────────────────
 
@@ -130,13 +115,6 @@ ON payments FOR SELECT
 USING (
   auth_user_role() = 'ADMIN'
 );
-
-
--- ────────────────────────────────────────────────────────────
--- GROUP D: CONTENT READABLE BY STUDENTS (ADMIN-MANAGED)
--- (announcements, quizzes, mock_quizzes, items_* x11)
--- Status: dev_allow_all — pending Batch 4
--- ────────────────────────────────────────────────────────────
 
 
 -- ────────────────────────────────────────────────────────────
@@ -406,31 +384,430 @@ USING (
 
 -- ────────────────────────────────────────────────────────────
 -- GROUP A: REFERENCE / CATALOGUE DATA
--- (programs, courses, levels, products, config,
---  teacher_library_courses)
--- Status: dev_allow_all — pending Batch 3
 -- ────────────────────────────────────────────────────────────
+
+-- 11. programs
+-- Public SELECT (needed before login on register + index page)
+-- Admin INSERT and UPDATE only
+
+DROP POLICY IF EXISTS "dev_allow_all" ON programs;
+
+CREATE POLICY "programs_select"
+ON programs FOR SELECT
+USING (true);
+
+CREATE POLICY "programs_insert"
+ON programs FOR INSERT
+WITH CHECK (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "programs_update"
+ON programs FOR UPDATE
+USING (auth_user_role() = 'ADMIN');
+
+
+-- 12. courses
+-- Any logged-in user can read
+-- Admin writes only
+
+DROP POLICY IF EXISTS "dev_allow_all" ON courses;
+
+CREATE POLICY "courses_select"
+ON courses FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "courses_insert"
+ON courses FOR INSERT
+WITH CHECK (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "courses_update"
+ON courses FOR UPDATE
+USING (auth_user_role() = 'ADMIN');
+
+
+-- 13. levels
+-- Any logged-in user can read (unused but keep open for future)
+-- Admin writes only
+
+DROP POLICY IF EXISTS "dev_allow_all" ON levels;
+
+CREATE POLICY "levels_select"
+ON levels FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "levels_insert"
+ON levels FOR INSERT
+WITH CHECK (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "levels_update"
+ON levels FOR UPDATE
+USING (auth_user_role() = 'ADMIN');
+
+
+-- 14. products
+-- Any logged-in user can read
+-- Admin writes only
+
+DROP POLICY IF EXISTS "dev_allow_all" ON products;
+
+CREATE POLICY "products_select"
+ON products FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "products_insert"
+ON products FOR INSERT
+WITH CHECK (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "products_update"
+ON products FOR UPDATE
+USING (auth_user_role() = 'ADMIN');
+
+
+-- 15. config
+-- Any logged-in user can read
+-- Admin INSERT, UPDATE, and DELETE
+
+DROP POLICY IF EXISTS "dev_allow_all" ON config;
+
+CREATE POLICY "config_select"
+ON config FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "config_insert"
+ON config FOR INSERT
+WITH CHECK (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "config_update"
+ON config FOR UPDATE
+USING (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "config_delete"
+ON config FOR DELETE
+USING (auth_user_role() = 'ADMIN');
+
+
+-- 16. teacher_library_courses
+-- Teachers and admins can read
+-- Admin writes only (no browser writes currently)
+
+DROP POLICY IF EXISTS "dev_allow_all" ON teacher_library_courses;
+
+CREATE POLICY "teacher_library_courses_select"
+ON teacher_library_courses FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "teacher_library_courses_insert"
+ON teacher_library_courses FOR INSERT
+WITH CHECK (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "teacher_library_courses_update"
+ON teacher_library_courses FOR UPDATE
+USING (auth_user_role() = 'ADMIN');
 
 
 -- ────────────────────────────────────────────────────────────
--- GROUP B (remaining): attempts, offline_packs,
---   user_notice_state
--- Status: dev_allow_all — pending Batch 3
+-- GROUP B (remaining): STUDENT-OWNED DATA
 -- ────────────────────────────────────────────────────────────
+
+-- 17. attempts
+-- Students read and write their own rows
+-- Admin reads all (stats on fixed-quizzes + mock-exams pages)
+-- No browser DELETE
+
+DROP POLICY IF EXISTS "dev_allow_all" ON attempts;
+
+CREATE POLICY "attempts_select"
+ON attempts FOR SELECT
+USING (
+  attempts.user_id = auth_user_id()
+  OR auth_user_role() = 'ADMIN'
+);
+
+CREATE POLICY "attempts_insert"
+ON attempts FOR INSERT
+WITH CHECK (
+  attempts.user_id = auth_user_id()
+);
+
+CREATE POLICY "attempts_update"
+ON attempts FOR UPDATE
+USING (
+  attempts.user_id = auth_user_id()
+);
+
+
+-- 18. offline_packs
+-- Students read and write their own rows only
+-- Admin reads all
+-- No browser DELETE (packs are deactivated not deleted)
+
+DROP POLICY IF EXISTS "dev_allow_all" ON offline_packs;
+
+CREATE POLICY "offline_packs_select"
+ON offline_packs FOR SELECT
+USING (
+  offline_packs.user_id = auth_user_id()
+  OR auth_user_role() = 'ADMIN'
+);
+
+CREATE POLICY "offline_packs_insert"
+ON offline_packs FOR INSERT
+WITH CHECK (
+  offline_packs.user_id = auth_user_id()
+);
+
+CREATE POLICY "offline_packs_update"
+ON offline_packs FOR UPDATE
+USING (
+  offline_packs.user_id = auth_user_id()
+);
+
+
+-- 19. user_notice_state
+-- Students read and upsert their own rows
+-- Admin reads all (announcement engagement stats)
+-- No browser DELETE
+
+DROP POLICY IF EXISTS "dev_allow_all" ON user_notice_state;
+
+CREATE POLICY "user_notice_state_select"
+ON user_notice_state FOR SELECT
+USING (
+  user_notice_state.user_id = auth_user_id()
+  OR auth_user_role() = 'ADMIN'
+);
+
+CREATE POLICY "user_notice_state_insert"
+ON user_notice_state FOR INSERT
+WITH CHECK (
+  user_notice_state.user_id = auth_user_id()
+);
+
+CREATE POLICY "user_notice_state_update"
+ON user_notice_state FOR UPDATE
+USING (
+  user_notice_state.user_id = auth_user_id()
+);
 
 
 -- ────────────────────────────────────────────────────────────
 -- GROUP D: CONTENT READABLE BY STUDENTS (ADMIN-MANAGED)
--- (announcements, quizzes, mock_quizzes, items_* x11)
--- Status: dev_allow_all — pending Batch 3
 -- ────────────────────────────────────────────────────────────
+
+-- 20. announcements
+-- Any logged-in user can read
+-- Admin full CRUD
+
+DROP POLICY IF EXISTS "dev_allow_all" ON announcements;
+
+CREATE POLICY "announcements_select"
+ON announcements FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "announcements_insert"
+ON announcements FOR INSERT
+WITH CHECK (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "announcements_update"
+ON announcements FOR UPDATE
+USING (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "announcements_delete"
+ON announcements FOR DELETE
+USING (auth_user_role() = 'ADMIN');
+
+
+-- 21. quizzes
+-- Any logged-in user can read
+-- Admin full CRUD
+
+DROP POLICY IF EXISTS "dev_allow_all" ON quizzes;
+
+CREATE POLICY "quizzes_select"
+ON quizzes FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "quizzes_insert"
+ON quizzes FOR INSERT
+WITH CHECK (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "quizzes_update"
+ON quizzes FOR UPDATE
+USING (auth_user_role() = 'ADMIN');
+
+
+-- 22. mock_quizzes
+-- Any logged-in user can read
+-- Admin full CRUD
+
+DROP POLICY IF EXISTS "dev_allow_all" ON mock_quizzes;
+
+CREATE POLICY "mock_quizzes_select"
+ON mock_quizzes FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "mock_quizzes_insert"
+ON mock_quizzes FOR INSERT
+WITH CHECK (auth_user_role() = 'ADMIN');
+
+CREATE POLICY "mock_quizzes_update"
+ON mock_quizzes FOR UPDATE
+USING (auth_user_role() = 'ADMIN');
+
+
+-- 23. items_* (all 11 tables — repeat this block for each)
+-- Any logged-in user can read (needed for quiz taking)
+-- Admin full CRUD including DELETE and UPSERT
+-- Tables: items_gp, items_rn_med, items_rn_surg,
+--   items_rm_ped_obs_hrn, items_rm_mid,
+--   items_rphn_pphn, items_rphn_disease_ctrl,
+--   items_rmhn_psych_nurs, items_rmhn_psych_ppharm,
+--   items_nac_basic_clin, items_nac_basic_prev
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_gp;
+CREATE POLICY "items_gp_select" ON items_gp FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_gp_insert" ON items_gp FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_gp_update" ON items_gp FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_gp_delete" ON items_gp FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_rn_med;
+CREATE POLICY "items_rn_med_select" ON items_rn_med FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_rn_med_insert" ON items_rn_med FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rn_med_update" ON items_rn_med FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rn_med_delete" ON items_rn_med FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_rn_surg;
+CREATE POLICY "items_rn_surg_select" ON items_rn_surg FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_rn_surg_insert" ON items_rn_surg FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rn_surg_update" ON items_rn_surg FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rn_surg_delete" ON items_rn_surg FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_rm_ped_obs_hrn;
+CREATE POLICY "items_rm_ped_obs_hrn_select" ON items_rm_ped_obs_hrn FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_rm_ped_obs_hrn_insert" ON items_rm_ped_obs_hrn FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rm_ped_obs_hrn_update" ON items_rm_ped_obs_hrn FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rm_ped_obs_hrn_delete" ON items_rm_ped_obs_hrn FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_rm_mid;
+CREATE POLICY "items_rm_mid_select" ON items_rm_mid FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_rm_mid_insert" ON items_rm_mid FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rm_mid_update" ON items_rm_mid FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rm_mid_delete" ON items_rm_mid FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_rphn_pphn;
+CREATE POLICY "items_rphn_pphn_select" ON items_rphn_pphn FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_rphn_pphn_insert" ON items_rphn_pphn FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rphn_pphn_update" ON items_rphn_pphn FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rphn_pphn_delete" ON items_rphn_pphn FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_rphn_disease_ctrl;
+CREATE POLICY "items_rphn_disease_ctrl_select" ON items_rphn_disease_ctrl FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_rphn_disease_ctrl_insert" ON items_rphn_disease_ctrl FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rphn_disease_ctrl_update" ON items_rphn_disease_ctrl FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rphn_disease_ctrl_delete" ON items_rphn_disease_ctrl FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_rmhn_psych_nurs;
+CREATE POLICY "items_rmhn_psych_nurs_select" ON items_rmhn_psych_nurs FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_rmhn_psych_nurs_insert" ON items_rmhn_psych_nurs FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rmhn_psych_nurs_update" ON items_rmhn_psych_nurs FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rmhn_psych_nurs_delete" ON items_rmhn_psych_nurs FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_rmhn_psych_ppharm;
+CREATE POLICY "items_rmhn_psych_ppharm_select" ON items_rmhn_psych_ppharm FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_rmhn_psych_ppharm_insert" ON items_rmhn_psych_ppharm FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rmhn_psych_ppharm_update" ON items_rmhn_psych_ppharm FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_rmhn_psych_ppharm_delete" ON items_rmhn_psych_ppharm FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_nac_basic_clin;
+CREATE POLICY "items_nac_basic_clin_select" ON items_nac_basic_clin FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_nac_basic_clin_insert" ON items_nac_basic_clin FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_nac_basic_clin_update" ON items_nac_basic_clin FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_nac_basic_clin_delete" ON items_nac_basic_clin FOR DELETE USING (auth_user_role() = 'ADMIN');
+
+DROP POLICY IF EXISTS "dev_allow_all" ON items_nac_basic_prev;
+CREATE POLICY "items_nac_basic_prev_select" ON items_nac_basic_prev FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "items_nac_basic_prev_insert" ON items_nac_basic_prev FOR INSERT WITH CHECK (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_nac_basic_prev_update" ON items_nac_basic_prev FOR UPDATE USING (auth_user_role() = 'ADMIN');
+CREATE POLICY "items_nac_basic_prev_delete" ON items_nac_basic_prev FOR DELETE USING (auth_user_role() = 'ADMIN');
 
 
 -- ────────────────────────────────────────────────────────────
 -- GROUP H: QUIZ SNAPSHOTS
--- (teacher_quiz_items, teacher_quiz_classes)
--- Status: dev_allow_all — pending Batch 3
 -- ────────────────────────────────────────────────────────────
+
+-- 24. teacher_quiz_items
+-- Teachers write (INSERT, DELETE) their own quiz snapshots
+-- Students and teachers read (quiz taking, review, results)
+-- Admin reads all
+
+DROP POLICY IF EXISTS "dev_allow_all" ON teacher_quiz_items;
+
+CREATE POLICY "teacher_quiz_items_select"
+ON teacher_quiz_items FOR SELECT
+USING (
+  auth_user_role() = 'ADMIN'
+  OR EXISTS (
+    SELECT 1 FROM teacher_quizzes q
+    WHERE q.teacher_quiz_id = teacher_quiz_items.teacher_quiz_id
+    AND (
+      q.teacher_id = auth_user_id()
+      OR q.status = 'PUBLISHED'
+    )
+  )
+);
+
+CREATE POLICY "teacher_quiz_items_insert"
+ON teacher_quiz_items FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM teacher_quizzes q
+    WHERE q.teacher_quiz_id = teacher_quiz_items.teacher_quiz_id
+    AND q.teacher_id = auth_user_id()
+  )
+);
+
+CREATE POLICY "teacher_quiz_items_delete"
+ON teacher_quiz_items FOR DELETE
+USING (
+  EXISTS (
+    SELECT 1 FROM teacher_quizzes q
+    WHERE q.teacher_quiz_id = teacher_quiz_items.teacher_quiz_id
+    AND q.teacher_id = auth_user_id()
+  )
+);
+
+
+-- 25. teacher_quiz_classes
+-- Teachers write their own quiz-class links
+-- Students read links for their classes (to see assigned quizzes)
+-- Teachers read their own links
+-- Admin reads all
+
+DROP POLICY IF EXISTS "dev_allow_all" ON teacher_quiz_classes;
+
+CREATE POLICY "teacher_quiz_classes_select"
+ON teacher_quiz_classes FOR SELECT
+USING (
+  auth_user_role() = 'ADMIN'
+  OR teacher_quiz_classes.teacher_id = auth_user_id()
+  OR EXISTS (
+    SELECT 1 FROM teacher_class_members m
+    WHERE m.class_id = teacher_quiz_classes.class_id
+    AND m.user_id = auth_user_id()
+    AND m.status = 'ACTIVE'
+  )
+);
+
+CREATE POLICY "teacher_quiz_classes_insert"
+ON teacher_quiz_classes FOR INSERT
+WITH CHECK (
+  teacher_quiz_classes.teacher_id = auth_user_id()
+);
+
+CREATE POLICY "teacher_quiz_classes_update"
+ON teacher_quiz_classes FOR UPDATE
+USING (
+  teacher_quiz_classes.teacher_id = auth_user_id()
+);
 
 
 -- ────────────────────────────────────────────────────────────

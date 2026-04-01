@@ -33,22 +33,22 @@
 
 ### 2c. Remaining tables
 
-- [ ] programs
-- [ ] courses
-- [ ] levels
-- [ ] products
-- [ ] announcements
-- [ ] user_notice_state
-- [ ] config
-- [ ] quizzes
-- [ ] mock_quizzes
-- [ ] attempts
-- [ ] items tables (11 tables, same policy)
-- [ ] offline_packs
+- [x] programs
+- [x] courses
+- [x] levels
+- [x] products
+- [x] announcements
+- [x] user_notice_state
+- [x] config
+- [x] quizzes
+- [x] mock_quizzes
+- [x] attempts
+- [x] items tables (11 tables, same policy)
+- [x] offline_packs
 - [ ] teacher_bank_items
-- [ ] teacher_quiz_items
-- [ ] teacher_quiz_classes
-- [ ] teacher_library_courses
+- [x] teacher_quiz_items
+- [x] teacher_quiz_classes
+- [x] teacher_library_courses
 
 ### 2d. RLS done when
 
@@ -202,3 +202,10 @@ _(update as we work)_
 | April 2026 | teacher_quiz_attempts | Replaced dev_allow_all with teacher_quiz_attempts_select, _insert, _update |
 | April 2026 | messages_threads | Replaced dev_allow_all with messages_threads_select, _insert, _update |
 | April 2026 | messages | Replaced dev_allow_all with messages_select, _insert, _update |
+| April 2026 | db/rls.sql | Batch 3 — all remaining tables locked down |
+| April 2026 | programs | Public SELECT, admin writes |
+| April 2026 | courses, levels, products, config, teacher_library_courses | Logged-in SELECT, admin writes |
+| April 2026 | attempts, offline_packs, user_notice_state | Student-owned rows, admin reads all |
+| April 2026 | announcements, quizzes, mock_quizzes | Logged-in SELECT, admin writes |
+| April 2026 | items_* (11 tables) | Logged-in SELECT, admin full CRUD |
+| April 2026 | teacher_quiz_items, teacher_quiz_classes | Teacher writes, students/teachers read |
