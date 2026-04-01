@@ -79,11 +79,21 @@ function corsHeaders(request, env) {
   const origin = request.headers.get('Origin') || '';
   const allowed = (env.APP_ORIGIN || '').trim();
 
-  const allowOrigin = origin && origin === allowed ? origin : allowed || '*';
+  if (!allowed) {
+    console.error('CORS: APP_ORIGIN env var is not set. Rejecting request.');
+    return { 'Content-Type': 'application/json' };
+  }
+
+  const allowOrigin = origin === allowed ? origin : null;
+
+  if (!allowOrigin) {
+    console.warn(`CORS: Origin rejected — got "${origin}", expected "${allowed}"`);
+    return { 'Content-Type': 'application/json' };
+  }
 
   return {
     'Access-Control-Allow-Origin': allowOrigin,
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
     'Content-Type': 'application/json'
@@ -98,6 +108,18 @@ function json(payload, status = 200, headers = {}) {
       ...headers
     }
   });
+}
+
+async function checkRateLimit(env, request) {
+  if (!env.RATE_LIMITER) return { ok: true };
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  try {
+    const { success } = await env.RATE_LIMITER.limit({ key: ip });
+    return { ok: success };
+  } catch (err) {
+    console.warn('Rate limiter error (fail open):', err?.message);
+    return { ok: true };
+  }
 }
 
 async function readJson(request) {
@@ -734,6 +756,15 @@ async function handleInitPublic(request, env) {
     );
   }
 
+  const rl = await checkRateLimit(env, request);
+  if (!rl.ok) {
+    return json(
+      { ok: false, error: 'rate_limited', message: 'Too many requests. Please wait a moment and try again.' },
+      429,
+      corsHeaders(request, env)
+    );
+  }
+
   const email = String(body.email || '').trim().toLowerCase();
   const productId = String(body.product_id || '').trim();
   const programId = String(body.program_id || '').trim();
@@ -868,6 +899,15 @@ async function handleInitUpgrade(request, env) {
     return json(
       { ok: false, error: 'invalid_json' },
       400,
+      corsHeaders(request, env)
+    );
+  }
+
+  const rl = await checkRateLimit(env, request);
+  if (!rl.ok) {
+    return json(
+      { ok: false, error: 'rate_limited', message: 'Too many requests. Please wait a moment and try again.' },
+      429,
       corsHeaders(request, env)
     );
   }
@@ -1098,6 +1138,15 @@ async function handleVerify(request, env) {
     );
   }
 
+  const rl = await checkRateLimit(env, request);
+  if (!rl.ok) {
+    return json(
+      { ok: false, error: 'rate_limited', message: 'Too many requests. Please wait a moment and try again.' },
+      429,
+      corsHeaders(request, env)
+    );
+  }
+
   let payment = await getPaymentByReference(env, reference);
   if (!payment) {
     return json(
@@ -1146,7 +1195,7 @@ async function handleVerify(request, env) {
     }
 
     // No user yet -> keep / move to SETUP_REQUIRED
-    const setupToken = payment.setup_token || makeSetupToken();
+    const setupToken = makeSetupToken();
 
     payment = await sbPatch(
       env,
@@ -1154,7 +1203,7 @@ async function handleVerify(request, env) {
       {
         status: 'SETUP_REQUIRED',
         setup_token: setupToken,
-        setup_created_utc: payment.setup_created_utc || nowIso()
+        setup_created_utc: nowIso()
       },
       { reference: `eq.${payment.reference}` }
     );
@@ -1281,7 +1330,7 @@ return json(
       );
     }
 
-    const setupToken = payment.setup_token || makeSetupToken();
+    const setupToken = makeSetupToken();
 
     payment = await sbPatch(
       env,
@@ -1289,7 +1338,7 @@ return json(
       {
         status: 'SETUP_REQUIRED',
         setup_token: setupToken,
-        setup_created_utc: payment.setup_created_utc || nowIso()
+        setup_created_utc: nowIso()
       },
       { reference: `eq.${payment.reference}` }
     );
@@ -1361,6 +1410,15 @@ async function handleSetupComplete(request, env) {
     return json(
       { ok: false, error: 'invalid_json' },
       400,
+      corsHeaders(request, env)
+    );
+  }
+
+  const rl = await checkRateLimit(env, request);
+  if (!rl.ok) {
+    return json(
+      { ok: false, error: 'rate_limited', message: 'Too many requests. Please wait a moment and try again.' },
+      429,
       corsHeaders(request, env)
     );
   }
@@ -1458,6 +1516,21 @@ async function handleSetupComplete(request, env) {
   if (String(payment.setup_token || '').trim() !== setupToken) {
     return json(
       { ok: false, error: 'invalid_setup_token' },
+      403,
+      corsHeaders(request, env)
+    );
+  }
+
+  const SETUP_TOKEN_LIFETIME_MS = 48 * 60 * 60 * 1000; // 48 hours
+  const setupCreatedAt = payment.setup_created_utc ? new Date(payment.setup_created_utc).getTime() : 0;
+  if (!setupCreatedAt || (Date.now() - setupCreatedAt) > SETUP_TOKEN_LIFETIME_MS) {
+    console.warn(`setup_token_expired: reference=${payment.reference}, created=${payment.setup_created_utc}`);
+    return json(
+      {
+        ok: false,
+        error: 'setup_token_expired',
+        message: 'This setup link has expired. Please contact support to get a new one sent to you.'
+      },
       403,
       corsHeaders(request, env)
     );

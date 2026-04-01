@@ -682,8 +682,9 @@ function openPanel(reference) {
     actions += `<button class="btn btn-ghost" onclick="viewStudent('${p.users.user_id}')">👤 View Student</button>`;
   }
 
-  // Retry Activation — only for PAID rows
-  if (p.status === 'PAID') {
+  // Retry Activation — for PAID and SETUP_REQUIRED rows
+  // For SETUP_REQUIRED: this refreshes the token so admin can copy a fresh setup link
+  if (p.status === 'PAID' || p.status === 'SETUP_REQUIRED') {
     actions += `<button class="btn btn-warn" id="retryBtn" onclick="retryActivation('${escAttr(p.reference)}')">⚡ Retry Activation</button>`;
   }
 
