@@ -166,7 +166,35 @@ USING (
 );
 
 
--- 5. teacher_classes
+-- 5. teacher_bank_items
+-- Teachers read and write their own items only
+-- Admin reads all
+-- No DELETE — items are soft-archived via status = 'ARCHIVED'
+-- No student access — students see snapshots in teacher_quiz_items
+
+DROP POLICY IF EXISTS "dev_allow_all" ON teacher_bank_items;
+
+CREATE POLICY "teacher_bank_items_select"
+ON teacher_bank_items FOR SELECT
+USING (
+  teacher_bank_items.teacher_id = auth_user_id()
+  OR auth_user_role() = 'ADMIN'
+);
+
+CREATE POLICY "teacher_bank_items_insert"
+ON teacher_bank_items FOR INSERT
+WITH CHECK (
+  teacher_bank_items.teacher_id = auth_user_id()
+);
+
+CREATE POLICY "teacher_bank_items_update"
+ON teacher_bank_items FOR UPDATE
+USING (
+  teacher_bank_items.teacher_id = auth_user_id()
+);
+
+
+-- 6. teacher_classes
 -- Teachers read and write their own classes.
 -- Any logged-in user can read active classes
 -- (covers student join_code lookup and class card display).

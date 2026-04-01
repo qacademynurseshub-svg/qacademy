@@ -45,7 +45,7 @@
 - [x] attempts
 - [x] items tables (11 tables, same policy)
 - [x] offline_packs
-- [ ] teacher_bank_items
+- [x] teacher_bank_items
 - [x] teacher_quiz_items
 - [x] teacher_quiz_classes
 - [x] teacher_library_courses
@@ -209,3 +209,4 @@ _(update as we work)_
 | April 2026 | announcements, quizzes, mock_quizzes | Logged-in SELECT, admin writes |
 | April 2026 | items_* (11 tables) | Logged-in SELECT, admin full CRUD |
 | April 2026 | teacher_quiz_items, teacher_quiz_classes | Teacher writes, students/teachers read |
+| April 2026 | teacher_bank_items | Teacher-owned rows, admin reads all |
