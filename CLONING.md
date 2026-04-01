@@ -585,12 +585,16 @@ CREATE POLICY "dev_allow_all" ON messages FOR ALL USING (true) WITH CHECK (true)
 ```
 
 ### 3.5 RLS
-All tables use `dev_allow_all` during build:
-```sql
-ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "dev_allow_all" ON table_name FOR ALL USING (true) WITH CHECK (true);
-```
-Replace with proper role-based policies before go-live.
+All 36 tables have proper role-based RLS policies. The complete policy definitions are in `db/rls.sql`.
+
+Two SECURITY DEFINER helper functions are required (run these first):
+- `auth_user_role()` — returns the current user's role without causing recursion on the users table
+- `auth_user_id()` — returns the current user's user_id (TEXT) without recursion
+
+When cloning, run `db/rls.sql` in the Supabase SQL Editor after creating all tables. The file includes all DROP/CREATE statements in the correct order.
+
+### 3.6 Safe UI Helpers
+`js/utils.js` provides `safeText()` and `safeAvatar()` — use these for any UI that displays user-controlled values. All pages that load a nav/sidebar script must also load `<script src="/js/utils.js"></script>` before it.
 
 ---
 
@@ -722,6 +726,7 @@ Key rules:
 ## 9. Test Accounts
 | Role | Email | Notes |
 |---|---|---|
-| ADMIN | samquatleumas@gmail.com | role=ADMIN |
-| STUDENT | Albert Owusu-Ansah | RN / L300 / 2024 cohort / TRIAL |
+| ADMIN | mybackpacc@gmail.com | role=ADMIN |
+| TEACHER | samquatleumas@gmail.com | role=TEACHER (corrected from STUDENT during Sprint 1) |
+| STUDENT | Albert Owusu-Ansah | role=STUDENT (corrected from TEACHER during Sprint 1), RN / L300 / 2024 cohort / TRIAL |
 | STUDENT | Justice Asiamah | RM / L100 / 2023 cohort / TRIAL |

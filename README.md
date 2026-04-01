@@ -425,8 +425,9 @@ These values are captured from the live quiz onto each attempt's `score_json` at
 ## Test Accounts
 | Role | Email | Notes |
 |---|---|---|
-| ADMIN | samquatleumas@gmail.com | role=ADMIN |
-| STUDENT | Albert Owusu-Ansah | RN / L300 / 2024 cohort / TRIAL |
+| ADMIN | mybackpacc@gmail.com | role=ADMIN |
+| TEACHER | samquatleumas@gmail.com | role=TEACHER (corrected from STUDENT during Sprint 1) |
+| STUDENT | Albert Owusu-Ansah | role=STUDENT (corrected from TEACHER during Sprint 1), RN / L300 / 2024 cohort / TRIAL |
 | STUDENT | Justice Asiamah | RM / L100 / 2023 cohort / TRIAL |
 
 ---
@@ -439,12 +440,27 @@ These values are captured from the live quiz onto each attempt's `score_json` at
 - Wrong role → redirected to `/router.html`; no session → redirected to `/login`
 
 ## RLS
-All tables use `dev_allow_all` policies during build. Replace with proper role-based policies before go-live.
+All 36 tables now have proper role-based RLS policies defined in `db/rls.sql`. Two helper functions bypass RLS safely:
+- `auth_user_role()` — returns current user's role (SECURITY DEFINER)
+- `auth_user_id()` — returns current user's user_id (SECURITY DEFINER)
+
+Policy groups: public-read (programs), logged-in read (courses, products, config, quizzes, items, announcements), student-owned (attempts, offline_packs, subscriptions, user_notice_state), teacher-owned (bank_items, classes, quizzes, profiles), shared teacher↔student (class_members, quiz_attempts), admin-only (payments), messaging (thread ownership).
+
+See `db/rls.sql` for the complete policy definitions and `sprints/sprint-1.md` for implementation notes and lessons learned.
+
+## XSS Hardening
+Four vulnerable locations patched (innerHTML with user-controlled data):
+- `js/myteacher-teacher-nav.js` — user chip
+- `js/myteacher-student-nav.js` — user chip
+- `js/mynmclicensure-student-sidebar.js` — avatar rendering
+- `router.html` — resubmit button onclick
+
+New shared helpers in `js/utils.js`: `safeText()` and `safeAvatar()`. All new UI that displays user data must use these instead of innerHTML.
 
 ---
 
 ## Before Going Live Checklist
-- [ ] Replace dev_allow_all RLS with proper role-based policies
+- [x] Replace dev_allow_all RLS with proper role-based policies ✅
 - [ ] Set up custom SMTP for emails
 - [ ] Turn on email confirmation in Supabase Auth
 - [ ] Set up custom domain on Cloudflare
