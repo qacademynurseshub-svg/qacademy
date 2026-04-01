@@ -1,17 +1,76 @@
 # Build List
 
-What we want to build next, roughly in priority order.
+**Status: Hardening phase** — no new features until sprints 1-4 are done.
 
-1. Teacher guidance / how-to pages (teachers first, then students)
-2. Notifications — quiz published, results released, join request approved
-3. MyTeacher messaging (teacher ↔ student within classes)
-4. RLS policies — tighten all tables before go-live
-5. `teacher_ref` column on `teacher_bank_items` — optional teacher-defined reference code per question. Surface in bank editor, bank list, CSV import/export, and teacher-api (create/update). Lets teachers tag questions with their own IDs for cross-referencing.
+Last updated: April 2026
 
-## Schema Issues to Investigate
-- **payments.created_at** — admin payments page (`admin/payments.html` line 637) tries to display `p.created_at` but that column doesn't exist in the live DB. Will show as blank/undefined in the timeline section.
-- **users.last_login_utc** — column exists in DB but nothing writes to it. Either wire it up (e.g. update on login) or drop it.
-- **users.username** — column exists in DB but no code references it. Drop if not planned.
+---
+
+## Sprint 1: Security Hardening
+
+The single biggest risk. With dev_allow_all RLS, any logged-in user can read/write every table from the browser console.
+
+- [ ] Replace dev_allow_all with proper RLS on every table (ownership rules per role)
+- [ ] Fix 4 XSS vulnerabilities (innerHTML with user data in myteacher-teacher-nav.js:362, myteacher-student-nav.js:229, mynmclicensure-student-sidebar.js:275, router.html:265)
+- [ ] Fix CORS wildcard fallback in payments worker (payments-worker/src/index.js:82)
+- [ ] Add payment timestamp validation (expire old setup tokens)
+- [ ] Replace Math.random() ID generation with crypto.getRandomValues() (register.html:107)
+- [ ] Add rate limiting on payment endpoints
+- [ ] Move sensitive writes behind trusted boundaries (worker/RPCs) where browser shouldn't mutate directly
+
+## Sprint 2: Service Boundaries
+
+Too much logic runs in the browser with no server-side validation.
+
+- [ ] Create Supabase RPCs or worker endpoints for: admin bulk ops, subscription assignment, quiz publish, result release
+- [ ] Move search/filter to database (replace client-side text search in getUsers(), recipient resolution)
+- [ ] Add pagination to all list queries (users, quizzes, attempts, bank items)
+- [ ] Narrow select('*') to only needed columns per context
+- [ ] Standardize error response shapes across both API files
+- [ ] Add database transactions for multi-step operations (publish quiz, set classes)
+- [ ] Add correlation IDs to payment, join, publish, and submission flows
+
+## Sprint 3: Code Refactor
+
+Giant files make every change risky. Refactor in place, don't rewrite.
+
+- [ ] Split API files by domain: auth, subscriptions, announcements, attempts, messaging, offline-packs
+- [ ] Extract inline script blocks from HTML pages into separate JS files
+- [ ] Move repeated inline CSS into shared stylesheets
+- [ ] Create shared UI helpers: loading states, empty states, error states, toasts, modals
+- [ ] Fix 14 silent catch blocks in myteacher-api.js — add proper error logging
+- [ ] Unify design tokens between MyTeacher and Licensure (or document the intentional split)
+
+## Sprint 4: Testing & Observability
+
+At this size, every patch is risky without tests.
+
+- [ ] Playwright smoke tests for 8 critical paths: login/register, router redirect, join class, fixed quiz flow, timed runner flow, payment verify/setup, result gating, offline packs
+- [ ] User-facing error states on all critical flows (not just console.error)
+- [ ] Audit/event logging for important actions (payment, publish, archive, grant subscription)
+- [ ] Admin diagnostics — failed payments view, failed operations log
+- [ ] Retry mechanisms on failed data loads
+
+## Sprint 5: Product Polish
+
+Only after the foundation is solid.
+
+- [ ] Empty state guidance on every page ("No quizzes yet — create your first one")
+- [ ] Skeleton loaders replacing "Loading..." text
+- [ ] Export/print — CSV for teachers, PDF results for students
+- [ ] Search — courses, questions, messages
+- [ ] Notifications — quiz published, results released, join approved
+- [ ] Student analytics — strength/weakness, progress trends
+- [ ] Teacher guidance / how-to pages
+- [ ] Accessibility basics — semantic HTML, aria labels, keyboard nav on key flows
+- [ ] teacher_ref column on teacher_bank_items
+
+## Schema Cleanup (slot into Sprint 1 or 2)
+
+- [ ] payments.created_at — admin payments page tries to display it but column doesn't exist in DB
+- [ ] users.last_login_utc — exists in DB but nothing writes to it. Wire up or drop.
+- [ ] users.username — exists in DB but no code references it. Drop if not planned.
 
 ## Intentionally Deferred
+
 - Sequential runner mode
