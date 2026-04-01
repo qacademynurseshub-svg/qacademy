@@ -479,7 +479,7 @@ DROP POLICY IF EXISTS "dev_allow_all" ON products;
 
 CREATE POLICY "products_select"
 ON products FOR SELECT
-USING (auth.uid() IS NOT NULL);
+USING (true);
 
 CREATE POLICY "products_insert"
 ON products FOR INSERT
