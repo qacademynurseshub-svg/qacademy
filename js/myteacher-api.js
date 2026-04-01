@@ -7,24 +7,48 @@
 // ============================================================
 
 
+// ── Secure ID, shuffle & code helpers ────────────────────────
+function makeSecureId(prefix, byteLength = 8) {
+  const bytes = crypto.getRandomValues(new Uint8Array(byteLength));
+  const hex = Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  return prefix + hex.toUpperCase();
+}
+
+function secureShuffle(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const bytes = crypto.getRandomValues(new Uint8Array(4));
+    const rand = (bytes[0] * 16777216 + bytes[1] * 65536 +
+                  bytes[2] * 256 + bytes[3]) / 4294967296;
+    const j = Math.floor(rand * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function makeSecureJoinCode(length = 6) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  return Array.from(bytes)
+    .map(b => chars[b % chars.length])
+    .join('');
+}
+
+
 // ── ID generators ────────────────────────────────────────────
 
 function makeClassId() {
-  return 'CLS_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  return 'CLS_' + Date.now() + '_' + makeSecureId('').slice(0, 8);
 }
 
 function makeJoinCode() {
-  // 6-character alphanumeric, uppercase, easy to read/type
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
+  return makeSecureJoinCode(6);
 }
 
 function makeClassMemberId() {
-  return 'MBR_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  return 'MBR_' + Date.now() + '_' + makeSecureId('').slice(0, 8);
 }
 
 
@@ -758,22 +782,19 @@ async function appendToDraftItems(teacherQuizId, bankItemIds) {
 // ── ID generators ───────────────────────────────────────────
 
 function makeQuizId() {
-  return 'TQ_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  return 'TQ_' + Date.now() + '_' + makeSecureId('').slice(0, 8);
 }
 
 function makeAccessCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
+  return makeSecureJoinCode(6);
 }
 
 function makeQuizItemId() {
-  return 'TQI_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  return 'TQI_' + Date.now() + '_' + makeSecureId('').slice(0, 8);
 }
 
 function makeQuizClassId() {
-  return 'TQC_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  return 'TQC_' + Date.now() + '_' + makeSecureId('').slice(0, 8);
 }
 
 
@@ -1526,7 +1547,7 @@ async function regenerateQuizAccessCode(quizId) {
 // ── ID generator ───────────────────────────────────────────
 
 function makeAttemptId() {
-  return 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  return 'ATT_' + Date.now() + '_' + makeSecureId('').slice(0, 7);
 }
 
 
@@ -2053,12 +2074,7 @@ function _buildAttemptItems(snapshotItems, shuffleQuestions, quizShuffleOptions)
     const shouldShuffle = quizShuffleOptions && snap.snap_shuffle_options !== false;
 
     if (shouldShuffle && snap.snap_question_type !== 'TF') {
-      // Fisher-Yates shuffle
-      const shuffled = [...availableLetters];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
+      const shuffled = secureShuffle(availableLetters);
       // optMap: display letter → original letter
       shuffled.forEach((origLetter, idx) => {
         optMap[availableLetters[idx]] = origLetter;
@@ -2079,10 +2095,9 @@ function _buildAttemptItems(snapshotItems, shuffleQuestions, quizShuffleOptions)
 
   // Shuffle question order if enabled
   if (shuffleQuestions) {
-    for (let i = items.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [items[i], items[j]] = [items[j], items[i]];
-    }
+    const shuffled = secureShuffle(items);
+    items.length = 0;
+    items.push(...shuffled);
     // Re-assign position after shuffle
     items.forEach((item, idx) => { item.position = idx + 1; });
   }

@@ -103,9 +103,17 @@ async function loadPrograms() {
     });
 }
 
-  // ── Generate a user ID ──────────────────────────────────
+  // ── Secure ID helper ────────────────────────────────────
+  function makeSecureId(prefix, byteLength = 8) {
+    const bytes = crypto.getRandomValues(new Uint8Array(byteLength));
+    const hex = Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    return prefix + hex.toUpperCase();
+  }
+
   function generateUserId() {
-    return 'U_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    return makeSecureId('U_');
   }
 
   // ── Handle form submission ──────────────────────────────
@@ -198,7 +206,7 @@ if (trialProductId) {
         const expires = new Date(start);
         expires.setDate(expires.getDate() + trialProduct.duration_days);
 
-        const subscriptionId = 'SUB_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        const subscriptionId = makeSecureId('SUB_');
 
         await db.from('subscriptions').insert({
             subscription_id : subscriptionId,

@@ -5,6 +5,28 @@
 // ============================================================
 
 
+// ── Secure ID & shuffle helpers ─────────────────────────────
+function makeSecureId(prefix, byteLength = 8) {
+  const bytes = crypto.getRandomValues(new Uint8Array(byteLength));
+  const hex = Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  return prefix + hex.toUpperCase();
+}
+
+function secureShuffle(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const bytes = crypto.getRandomValues(new Uint8Array(4));
+    const rand = (bytes[0] * 16777216 + bytes[1] * 65536 +
+                  bytes[2] * 256 + bytes[3]) / 4294967296;
+    const j = Math.floor(rand * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+
 // ------------------------------------------------------------
 // PROGRAMMES
 // Returns: array of { program_id, program_name }
@@ -243,7 +265,7 @@ async function assignSubscription(userId, productId, startDate = null) {
   const expires = new Date(start);
   expires.setDate(expires.getDate() + product.duration_days);
 
-  const subscriptionId = 'SUB_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+  const subscriptionId = makeSecureId('SUB_');
 
   const { error } = await db
     .from('subscriptions')
@@ -835,7 +857,7 @@ async function spawnMockAttempt(userId, quiz, mode) {
   let orderedIds = [...(quiz.item_ids || [])];
   if (quiz.shuffle) orderedIds = shuffleArray(orderedIds);
 
-  const attemptId = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const attemptId = 'ATT_' + Date.now() + '_' + makeSecureId('').slice(0, 7);
   const timeLimitSec = quiz.time_limit_sec || (quiz.n * 60);
 
   const { data: newAttempt, error } = await db
@@ -1069,7 +1091,7 @@ async function spawnFixedAttempt(userId, quiz, mode) {
   if (quiz.shuffle) orderedIds = shuffleArray(orderedIds);
 
   // Step 3 — generate attempt ID
-  const attemptId = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const attemptId = 'ATT_' + Date.now() + '_' + makeSecureId('').slice(0, 7);
 
   // Step 4 — calculate time limit
   const timeLimitSec = quiz.time_limit_sec || (quiz.n * 60);
@@ -1197,7 +1219,7 @@ async function spawnBuilderAttempt(userId, courseId, itemIds, mode, meta = {}) {
     return null;
   }
 
-  const attemptId = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const attemptId = 'ATT_' + Date.now() + '_' + makeSecureId('').slice(0, 7);
 
   // Default timed rule: 1 minute per question
   const defaultDurationMin = safeIds.length;
@@ -1262,7 +1284,7 @@ async function spawnBuilderAttempt(userId, courseId, itemIds, mode, meta = {}) {
 // OFFLINE HELPERS
 // ------------------------------------------------------------
 function makeOfflinePackId() {
-  return 'PACK_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8).toUpperCase();
+  return 'PACK_' + Date.now() + '_' + makeSecureId('').slice(0, 8);
 }
 
 function safeArray(values) {
@@ -2029,7 +2051,7 @@ async function finishAttempt(attemptId, answersJson, scoreRaw, scoreTotal, score
 //          student/learning-history.html
 // ------------------------------------------------------------
 async function retakeAttempt(originAttempt, userId) {
-  const attemptId    = 'ATT_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  const attemptId    = 'ATT_' + Date.now() + '_' + makeSecureId('').slice(0, 7);
   const timeLimitSec = originAttempt.duration_min * 60;
 
   const { data, error } = await db
@@ -2134,12 +2156,7 @@ async function getStudentAttempts(userId, courseId = null) {
 // Not exported — internal helper used by quiz engine functions
 // ------------------------------------------------------------
 function shuffleArray(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+  return secureShuffle(arr);
 }
 // ------------------------------------------------------------
 // GET QUIZ AVAILABILITY
@@ -2526,7 +2543,7 @@ async function bulkSend(adminId, subject, bodyText, scope, contextType = 'genera
   const userIds = await resolveRecipients(scope);
   if (!userIds.length) return { success: false, message: 'No matching recipients' };
 
-  const bulk_batch_id = 'BULK_' + new Date().toISOString().replace(/[^0-9TZ]/g, '') + '_' + Math.random().toString(16).slice(2, 6).toUpperCase();
+  const bulk_batch_id = 'BULK_' + new Date().toISOString().replace(/[^0-9TZ]/g, '') + '_' + makeSecureId('').slice(0, 6);
   const now = new Date().toISOString();
   let count = 0;
 
