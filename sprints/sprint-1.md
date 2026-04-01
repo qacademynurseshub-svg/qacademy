@@ -61,10 +61,10 @@
 
 ### 3a. Fix unsafe innerHTML injection
 
-- [ ] js/myteacher-teacher-nav.js:362
-- [ ] js/myteacher-student-nav.js:229
-- [ ] js/mynmclicensure-student-sidebar.js:275
-- [ ] router.html:265
+- [x] js/myteacher-teacher-nav.js:362
+- [x] js/myteacher-student-nav.js:229
+- [x] js/mynmclicensure-student-sidebar.js:275
+- [x] router.html:265
 
 ### 3b. Rules
 
@@ -74,8 +74,8 @@
 
 ### 3c. XSS done when
 
-- [ ] No user-controlled value is injected through string-built HTML in the flagged areas
-- [ ] All affected pages still render correctly for student, teacher, and admin
+- [x] No user-controlled value is injected through string-built HTML in the flagged areas
+- [x] All affected pages still render correctly for student, teacher, and admin
 
 ## 4. Payments Worker Hardening
 
@@ -210,3 +210,10 @@ _(update as we work)_
 | April 2026 | items_* (11 tables) | Logged-in SELECT, admin full CRUD |
 | April 2026 | teacher_quiz_items, teacher_quiz_classes | Teacher writes, students/teachers read |
 | April 2026 | teacher_bank_items | Teacher-owned rows, admin reads all |
+| April 2026 | js/utils.js | Created — safeText() and safeAvatar() helpers |
+| April 2026 | js/myteacher-teacher-nav.js | XSS fix — DOM methods replace innerHTML |
+| April 2026 | js/myteacher-student-nav.js | XSS fix — DOM methods replace innerHTML |
+| April 2026 | js/mynmclicensure-student-sidebar.js | XSS fix — DOM methods replace innerHTML |
+| April 2026 | router.html | XSS fix — addEventListener replaces onclick string injection |
+| April 2026 | 24 HTML pages | utils.js script tag added |
+| April 2026 | AGENTS.md | Security rules updated with safeText/safeAvatar convention |
