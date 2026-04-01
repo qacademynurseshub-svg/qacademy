@@ -8,6 +8,8 @@
 --   - When adding a new table, add it here first.
 --   - Run the relevant CREATE/ALTER in Supabase SQL editor.
 --   - All tables use dev_allow_all RLS during build.
+--   - 36 tables total (11 core + 3 quiz engine + 11 items
+--     + 1 offline packs + 2 messaging + 9 teacher assess)
 -- ============================================================
 
 
@@ -26,10 +28,9 @@ CREATE TABLE programs (
 CREATE TABLE courses (
   course_id     TEXT PRIMARY KEY,
   title         TEXT NOT NULL,
-  description   TEXT,
-  program_scope TEXT[],
+  program_scope TEXT[] NOT NULL,
   status        TEXT NOT NULL DEFAULT 'active',
-  sort_order    INTEGER DEFAULT 0
+  page_slug     TEXT
 );
 -- status: active | draft | archived
 
@@ -40,121 +41,125 @@ CREATE TABLE levels (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 1.5 products
+-- 1.4 products
 CREATE TABLE products (
-  product_id    TEXT PRIMARY KEY,
-  name          TEXT NOT NULL,
-  kind          TEXT NOT NULL DEFAULT 'PAID',
-  price_minor   INTEGER,
-  currency      TEXT NOT NULL DEFAULT 'GHS',
-  duration_days INTEGER,
-  course_ids    TEXT[],
-  telegram_keys TEXT[],
-  status        TEXT NOT NULL DEFAULT 'active',
-  description   TEXT,
-  created_at    TIMESTAMPTZ DEFAULT NOW()
+  product_id          TEXT PRIMARY KEY,
+  name                TEXT NOT NULL,
+  kind                TEXT NOT NULL DEFAULT 'PAID',
+  status              TEXT NOT NULL DEFAULT 'active',
+  courses_included    TEXT[] NOT NULL,
+  price_minor         INTEGER NOT NULL,
+  currency            TEXT NOT NULL DEFAULT 'GHS',
+  duration_days       INTEGER NOT NULL,
+  telegram_group_keys TEXT[]
 );
 -- kind: PAID | TRIAL | FREE
 
--- 1.6 users
+-- 1.5 users
 CREATE TABLE users (
-  user_id        UUID PRIMARY KEY,
-  auth_id        UUID REFERENCES auth.users(id),
-  email          TEXT,
-  forename       TEXT,
-  surname        TEXT,
-  name           TEXT,
-  program_id     TEXT REFERENCES programs(program_id),
-  level          TEXT,
-  cohort         TEXT,
-  role           TEXT NOT NULL DEFAULT 'STUDENT',
-  active         BOOLEAN NOT NULL DEFAULT true,
-  phone_number   TEXT,
-  avatar_url     TEXT,
-  signup_source  TEXT,
-  created_utc    TIMESTAMPTZ DEFAULT NOW()
+  user_id              TEXT PRIMARY KEY,
+  auth_id              UUID,
+  username             TEXT,
+  email                TEXT NOT NULL,
+  phone_number         TEXT,
+  name                 TEXT,
+  forename             TEXT,
+  surname              TEXT,
+  program_id           TEXT,
+  cohort               TEXT,
+  level                TEXT,
+  role                 TEXT NOT NULL DEFAULT 'STUDENT',
+  active               BOOLEAN NOT NULL DEFAULT true,
+  avatar_url           TEXT,
+  must_change_password BOOLEAN NOT NULL DEFAULT false,
+  signup_source        TEXT DEFAULT 'SUPABASE_AUTH',
+  created_utc          TIMESTAMPTZ DEFAULT NOW(),
+  last_login_utc       TIMESTAMPTZ
 );
+-- user_id: 'U_' + random string (TEXT, not UUID)
 -- role: STUDENT | ADMIN | TEACHER
--- signup_source: REGISTER | PAYSTACK_SETUP
+-- signup_source: SUPABASE_AUTH | PAYSTACK_SETUP
 
--- 1.7 subscriptions
+-- 1.6 subscriptions
 CREATE TABLE subscriptions (
   subscription_id TEXT PRIMARY KEY,
-  user_id         UUID REFERENCES users(user_id),
-  product_id      TEXT REFERENCES products(product_id),
+  user_id         TEXT NOT NULL,
+  product_id      TEXT NOT NULL,
+  start_utc       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_utc     TIMESTAMPTZ NOT NULL,
   status          TEXT NOT NULL DEFAULT 'ACTIVE',
-  source          TEXT,
-  source_ref      TEXT,
-  start_utc       TIMESTAMPTZ,
-  expires_utc     TIMESTAMPTZ,
-  expiry_reminded BOOLEAN DEFAULT false,
-  created_at      TIMESTAMPTZ DEFAULT NOW()
+  expiry_reminded BOOLEAN NOT NULL DEFAULT false,
+  source          TEXT NOT NULL DEFAULT 'PAYMENT',
+  source_ref      TEXT
 );
--- status: ACTIVE | EXPIRED | CANCELLED
--- source: SELF_TRIAL_SIGNUP | ADMIN | PAYSTACK | IMPORT
+-- status: ACTIVE | EXPIRED | REVOKED
+-- source: PAYMENT | PAYSTACK | ADMIN | SELF_TRIAL_SIGNUP
 
--- 1.8 payments
+-- 1.7 payments
 CREATE TABLE payments (
-  reference              TEXT PRIMARY KEY,
-  status                 TEXT NOT NULL DEFAULT 'INIT',
-  email                  TEXT,
-  user_id                UUID,
-  product_id             TEXT,
-  product_name           TEXT,
-  amount_minor_expected  INTEGER,
-  amount_minor_paid      INTEGER,
-  currency               TEXT,
-  paid_utc               TIMESTAMPTZ,
-  activated_utc          TIMESTAMPTZ,
-  subscription_id        TEXT,
-  failure_note           TEXT,
-  raw                    JSONB,
-  setup_token            TEXT,
-  setup_created_utc      TIMESTAMPTZ,
-  setup_completed_utc    TIMESTAMPTZ,
-  program_id             TEXT,
-  phone_number           TEXT,
-  created_at             TIMESTAMPTZ DEFAULT NOW()
+  reference             TEXT PRIMARY KEY,
+  status                TEXT NOT NULL,
+  email                 TEXT NOT NULL,
+  user_id               TEXT,
+  product_id            TEXT NOT NULL,
+  product_name          TEXT,
+  amount_minor_expected INTEGER NOT NULL,
+  currency              TEXT NOT NULL,
+  amount_minor_paid     INTEGER,
+  paid_utc              TIMESTAMPTZ,
+  activated_utc         TIMESTAMPTZ,
+  subscription_id       TEXT,
+  failure_note          TEXT,
+  raw                   JSONB,
+  setup_token           TEXT,
+  setup_created_utc     TIMESTAMPTZ,
+  setup_completed_utc   TIMESTAMPTZ,
+  program_id            TEXT,
+  phone_number          TEXT
 );
 -- status: INIT | PAID | ACTIVATED | SETUP_REQUIRED | FAILED
 
--- 1.9 announcements
+-- 1.8 announcements
 CREATE TABLE announcements (
-  announcement_id TEXT PRIMARY KEY,
-  title           TEXT NOT NULL,
-  body            TEXT NOT NULL,
-  cta_label       TEXT,
-  cta_url         TEXT,
-  priority        INTEGER DEFAULT 0,
-  pinned          BOOLEAN DEFAULT false,
-  status          TEXT NOT NULL DEFAULT 'active',
-  scope_audience  TEXT DEFAULT 'ALL',
-  scope_programme TEXT[],
-  scope_course    TEXT[],
-  scope_level     TEXT[],
-  scope_sub_kind  TEXT[],
-  scope_product   TEXT[],
-  scope_cohort    TEXT[],
-  scope_user_ids  TEXT[],
-  publish_at      TIMESTAMPTZ,
-  unpublish_at    TIMESTAMPTZ,
-  created_at      TIMESTAMPTZ DEFAULT NOW()
+  announcement_id         TEXT PRIMARY KEY,
+  title                   TEXT NOT NULL,
+  body_html               TEXT,
+  body_text               TEXT,
+  status                  TEXT NOT NULL DEFAULT 'draft',
+  created_at              TIMESTAMPTZ DEFAULT NOW(),
+  start_at                TIMESTAMPTZ,
+  end_at                  TIMESTAMPTZ,
+  pinned                  BOOLEAN NOT NULL DEFAULT false,
+  priority                INTEGER NOT NULL DEFAULT 0,
+  dismissible             BOOLEAN NOT NULL DEFAULT true,
+  scope_programs          TEXT[],
+  scope_courses           TEXT[],
+  scope_level             TEXT,
+  scope_subscription_kind TEXT,
+  scope_product_ids       TEXT[],
+  scope_audience          TEXT DEFAULT 'ALL',
+  scope_cohort            TEXT,
+  scope_user_ids          TEXT[]
 );
 -- announcement_id: 'ANN_' + Date.now()
+-- status: draft | active | archived
+-- scope_level and scope_cohort are single TEXT values, not arrays
+-- scope_subscription_kind: PAID | TRIAL | FREE (single value)
 
--- 1.10 user_notice_state
+-- 1.9 user_notice_state
 CREATE TABLE user_notice_state (
   id         BIGSERIAL PRIMARY KEY,
-  user_id    UUID REFERENCES users(user_id),
-  item_type  TEXT NOT NULL DEFAULT 'announcement',
+  user_id    TEXT NOT NULL,
+  item_type  TEXT NOT NULL DEFAULT 'ANNOUNCEMENT',
   item_id    TEXT NOT NULL,
   state      TEXT NOT NULL,
+  seen_at    TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT unique_user_notice UNIQUE (user_id, item_type, item_id)
 );
 -- state: read | clicked | dismissed
 
--- 1.11 config
+-- 1.10 config
 CREATE TABLE config (
   key         TEXT PRIMARY KEY,
   value       TEXT NOT NULL,
@@ -179,23 +184,21 @@ CREATE TABLE quizzes (
   quiz_id        TEXT PRIMARY KEY,
   course_id      TEXT NOT NULL,
   title          TEXT NOT NULL,
-  n              INTEGER NOT NULL,
   item_ids       TEXT[] NOT NULL DEFAULT '{}',
+  n              INTEGER NOT NULL DEFAULT 0,
   allowed_modes  TEXT NOT NULL DEFAULT 'BOTH',
   shuffle        BOOLEAN NOT NULL DEFAULT false,
   time_limit_sec INTEGER,
-  status         TEXT NOT NULL DEFAULT 'draft',
   published      BOOLEAN NOT NULL DEFAULT false,
-  visibility     TEXT NOT NULL DEFAULT 'ALL',
   publish_at     TIMESTAMPTZ,
   unpublish_at   TIMESTAMPTZ,
+  status         TEXT NOT NULL DEFAULT 'draft',
   notes          TEXT,
   created_at     TIMESTAMPTZ DEFAULT NOW(),
   updated_at     TIMESTAMPTZ DEFAULT NOW()
 );
 -- allowed_modes: BOTH | INSTANT_ONLY | TIMED_ONLY
 -- status: draft | active | archived
--- visibility: ALL | PAID | TRIAL
 
 -- 2.2 mock_quizzes
 CREATE TABLE mock_quizzes (
@@ -216,27 +219,30 @@ CREATE TABLE mock_quizzes (
   created_at     TIMESTAMPTZ DEFAULT NOW(),
   updated_at     TIMESTAMPTZ DEFAULT NOW()
 );
+-- allowed_modes: BOTH | INSTANT_ONLY | TIMED_ONLY
+-- status: draft | active | archived
+-- visibility: ALL | PAID | TRIAL
 
 -- 2.3 attempts
 CREATE TABLE attempts (
   attempt_id        TEXT PRIMARY KEY,
-  user_id           UUID REFERENCES users(user_id),
+  user_id           TEXT NOT NULL,
   quiz_id           TEXT,
   course_id         TEXT NOT NULL,
   mode              TEXT NOT NULL,
   source            TEXT NOT NULL,
-  n                 INTEGER,
+  item_ids          TEXT NOT NULL,
+  n                 INTEGER NOT NULL,
   seed              TEXT,
-  item_ids          TEXT,
+  duration_min      INTEGER,
   status            TEXT NOT NULL DEFAULT 'in_progress',
   score_raw         NUMERIC,
   score_total       NUMERIC,
   score_pct         NUMERIC,
-  time_taken_s      NUMERIC,
-  duration_min      INTEGER,
-  answers_json      TEXT,
-  display_label     TEXT,
+  time_taken_s      INTEGER,
   origin_attempt_id TEXT,
+  display_label     TEXT,
+  answers_json      TEXT NOT NULL DEFAULT '[]',
   ts_iso            TIMESTAMPTZ DEFAULT NOW()
 );
 -- mode: instant | timed
@@ -293,7 +299,12 @@ CREATE INDEX ON items_gp (difficulty);
 CREATE INDEX ON items_gp (question_type);
 CREATE INDEX ON items_gp (batch_id);
 
--- 3.2 offline_packs
+
+-- ────────────────────────────────────────────────────────────
+-- 3b. OFFLINE PACKS
+-- ────────────────────────────────────────────────────────────
+
+-- 3b.1 offline_packs
 CREATE TABLE offline_packs (
   pack_id        TEXT NOT NULL PRIMARY KEY,
   user_id        TEXT NOT NULL,
@@ -323,8 +334,8 @@ CREATE TABLE offline_packs (
 -- 4.1 messages_threads
 CREATE TABLE messages_threads (
   thread_id        TEXT PRIMARY KEY,
-  user_id          UUID REFERENCES users(user_id),
-  admin_id         TEXT,
+  user_id          TEXT NOT NULL,
+  admin_id         TEXT NOT NULL DEFAULT 'admin1',
   status           TEXT NOT NULL DEFAULT 'open',
   context_type     TEXT NOT NULL DEFAULT 'general',
   subject          TEXT,
@@ -334,9 +345,9 @@ CREATE TABLE messages_threads (
   attempt_id       TEXT,
   bulk_batch_id    TEXT,
   ref_text         TEXT,
-  created_at       TIMESTAMPTZ DEFAULT NOW(),
-  last_message_at  TIMESTAMPTZ DEFAULT NOW(),
-  last_sender_role TEXT
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_message_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_sender_role TEXT NOT NULL DEFAULT 'student'
 );
 -- thread_id: 'THR_' + Date.now() + random
 -- context_type: general | course | question
@@ -345,14 +356,14 @@ CREATE TABLE messages_threads (
 
 -- 4.2 messages
 CREATE TABLE messages (
-  message_id   TEXT PRIMARY KEY,
-  thread_id    TEXT REFERENCES messages_threads(thread_id),
-  sender_id    TEXT NOT NULL,
-  sender_role  TEXT NOT NULL,
-  body_text    TEXT NOT NULL,
-  read_by_user  BOOLEAN DEFAULT false,
-  read_by_admin BOOLEAN DEFAULT false,
-  created_at   TIMESTAMPTZ DEFAULT NOW()
+  message_id    TEXT PRIMARY KEY,
+  thread_id     TEXT NOT NULL,
+  sender_id     TEXT NOT NULL,
+  sender_role   TEXT NOT NULL,
+  body_text     TEXT NOT NULL,
+  read_by_user  BOOLEAN NOT NULL DEFAULT false,
+  read_by_admin BOOLEAN NOT NULL DEFAULT false,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- message_id: 'MSG_' + Date.now() + random
 -- sender_role: student | admin
@@ -364,46 +375,49 @@ CREATE TABLE messages (
 
 -- 5.1 teacher_profiles
 CREATE TABLE teacher_profiles (
-  teacher_id       TEXT NOT NULL PRIMARY KEY REFERENCES users(user_id),
-  display_name     TEXT,
-  email            TEXT,
-  phone_number     TEXT,
-  organisation     TEXT,
-  org_logo_url     TEXT,
-  role_requested   TEXT DEFAULT 'TEACHER',
-  plan_type        TEXT NOT NULL DEFAULT 'FREE',
-  active           BOOLEAN NOT NULL DEFAULT false,
-  request_status   TEXT NOT NULL DEFAULT 'PENDING',
-  request_note     TEXT,
-  request_count    INTEGER NOT NULL DEFAULT 0,
-  requested_at     TIMESTAMPTZ,
-  last_request_at  TIMESTAMPTZ,
-  created_at       TIMESTAMPTZ DEFAULT NOW(),
-  updated_at       TIMESTAMPTZ DEFAULT NOW()
+  teacher_id      TEXT NOT NULL PRIMARY KEY,
+  display_name    TEXT,
+  email           TEXT,
+  phone_number    TEXT,
+  organisation    TEXT,
+  role_requested  TEXT DEFAULT 'TEACHER',
+  plan_type       TEXT NOT NULL DEFAULT 'FREE',
+  active          BOOLEAN NOT NULL DEFAULT false,
+  request_status  TEXT NOT NULL DEFAULT 'PENDING',
+  request_note    TEXT,
+  request_count   INTEGER NOT NULL DEFAULT 0,
+  requested_at    TIMESTAMPTZ,
+  last_request_at TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW(),
+  avatar_url      TEXT,
+  org_tagline     TEXT,
+  org_region      TEXT,
+  org_logo_url    TEXT
 );
 -- request_status: PENDING | APPROVED | REJECTED
 -- plan_type: FREE | PRO
 
 -- 5.2 teacher_classes
 CREATE TABLE teacher_classes (
-  class_id          TEXT NOT NULL PRIMARY KEY,
-  teacher_id        TEXT NOT NULL REFERENCES users(user_id),
-  title             TEXT NOT NULL,
-  join_code         TEXT NOT NULL UNIQUE,
+  class_id           TEXT NOT NULL PRIMARY KEY,
+  teacher_id         TEXT NOT NULL,
+  title              TEXT NOT NULL,
+  join_code          TEXT NOT NULL UNIQUE,
   custom_fields_json JSONB NOT NULL DEFAULT '{"fields": []}',
-  status            TEXT NOT NULL DEFAULT 'ACTIVE',
-  require_approval  BOOLEAN NOT NULL DEFAULT false,
-  description       TEXT,
-  programme         TEXT,
-  course            TEXT,
-  academic_year     TEXT,
-  semester          TEXT,
-  max_capacity      INTEGER,
-  start_date        DATE,
-  end_date          DATE,
-  colour            TEXT,
-  created_at        TIMESTAMPTZ DEFAULT NOW(),
-  updated_at        TIMESTAMPTZ DEFAULT NOW()
+  status             TEXT NOT NULL DEFAULT 'ACTIVE',
+  created_at         TIMESTAMPTZ DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ DEFAULT NOW(),
+  require_approval   BOOLEAN DEFAULT false,
+  description        TEXT,
+  programme          TEXT,
+  course             TEXT,
+  academic_year      TEXT,
+  semester           TEXT,
+  max_capacity       INTEGER,
+  start_date         DATE,
+  end_date           DATE,
+  colour             TEXT
 );
 -- status: ACTIVE | ARCHIVED
 
@@ -413,9 +427,9 @@ CREATE INDEX ON teacher_classes (join_code);
 -- 5.3 teacher_class_members
 CREATE TABLE teacher_class_members (
   member_id          TEXT NOT NULL PRIMARY KEY,
-  class_id           TEXT NOT NULL REFERENCES teacher_classes(class_id),
-  user_id            TEXT NOT NULL REFERENCES users(user_id),
-  teacher_id         TEXT NOT NULL REFERENCES users(user_id),
+  class_id           TEXT NOT NULL,
+  user_id            TEXT NOT NULL,
+  teacher_id         TEXT NOT NULL,
   display_name       TEXT,
   email              TEXT,
   member_fields_json JSONB NOT NULL DEFAULT '{"fields": {}}',
@@ -433,7 +447,7 @@ CREATE INDEX ON teacher_class_members (teacher_id);
 -- 5.4 teacher_bank_items
 CREATE TABLE teacher_bank_items (
   bank_item_id     TEXT NOT NULL PRIMARY KEY,
-  teacher_id       TEXT NOT NULL REFERENCES users(user_id),
+  teacher_id       TEXT NOT NULL,
   status           TEXT NOT NULL DEFAULT 'ACTIVE',
   question_type    TEXT NOT NULL DEFAULT 'MCQ',
   stem             TEXT NOT NULL,
@@ -470,7 +484,7 @@ CREATE INDEX ON teacher_bank_items (source_type);
 -- 5.5 teacher_quizzes
 CREATE TABLE teacher_quizzes (
   teacher_quiz_id        TEXT NOT NULL PRIMARY KEY,
-  teacher_id             TEXT NOT NULL REFERENCES users(user_id),
+  teacher_id             TEXT NOT NULL,
   title                  TEXT NOT NULL,
   subject                TEXT,
   preset                 TEXT NOT NULL DEFAULT 'EXAM',
@@ -489,13 +503,13 @@ CREATE TABLE teacher_quizzes (
   access_code            TEXT,
   custom_fields_json     JSONB NOT NULL DEFAULT '{"fields": []}',
   draft_items_json       JSONB NOT NULL DEFAULT '{"items": []}',
-  sata_scoring_policy    TEXT NOT NULL DEFAULT 'ALL_OR_NOTHING',
   grading_policy         TEXT NOT NULL DEFAULT 'BANDS_PCT',
   grade_bands_json       JSONB NOT NULL DEFAULT '{"bands": []}',
   pass_threshold_pct     NUMERIC NOT NULL DEFAULT 50,
   score_display_policy   TEXT NOT NULL DEFAULT 'RAW_AND_PCT',
   created_at             TIMESTAMPTZ DEFAULT NOW(),
-  updated_at             TIMESTAMPTZ DEFAULT NOW()
+  updated_at             TIMESTAMPTZ DEFAULT NOW(),
+  sata_scoring_policy    TEXT NOT NULL DEFAULT 'ALL_OR_NOTHING'
 );
 -- status: DRAFT | PUBLISHED | ARCHIVED
 -- preset: EXAM | PRACTICE | HOMEWORK
@@ -509,28 +523,28 @@ CREATE INDEX ON teacher_quizzes (teacher_id, status);
 
 -- 5.6 teacher_quiz_items (snapshot at publish time)
 CREATE TABLE teacher_quiz_items (
-  quiz_item_id       TEXT NOT NULL PRIMARY KEY,
-  teacher_quiz_id    TEXT NOT NULL REFERENCES teacher_quizzes(teacher_quiz_id),
-  position           INTEGER NOT NULL,
-  bank_item_id       TEXT,
-  snap_stem          TEXT NOT NULL,
-  snap_option_a      TEXT, snap_fb_a TEXT,
-  snap_option_b      TEXT, snap_fb_b TEXT,
-  snap_option_c      TEXT, snap_fb_c TEXT,
-  snap_option_d      TEXT, snap_fb_d TEXT,
-  snap_option_e      TEXT, snap_fb_e TEXT,
-  snap_option_f      TEXT, snap_fb_f TEXT,
-  snap_correct       TEXT NOT NULL,
-  snap_rationale     TEXT,
-  snap_rationale_img TEXT,
-  snap_subject       TEXT,
-  snap_maintopic     TEXT,
-  snap_subtopic      TEXT,
-  snap_difficulty    TEXT,
-  snap_marks         INTEGER NOT NULL DEFAULT 1,
-  snap_question_type TEXT NOT NULL DEFAULT 'MCQ',
+  quiz_item_id         TEXT NOT NULL PRIMARY KEY,
+  teacher_quiz_id      TEXT NOT NULL,
+  position             INTEGER NOT NULL,
+  bank_item_id         TEXT,
+  snap_stem            TEXT NOT NULL,
+  snap_option_a        TEXT, snap_fb_a TEXT,
+  snap_option_b        TEXT, snap_fb_b TEXT,
+  snap_option_c        TEXT, snap_fb_c TEXT,
+  snap_option_d        TEXT, snap_fb_d TEXT,
+  snap_option_e        TEXT, snap_fb_e TEXT,
+  snap_option_f        TEXT, snap_fb_f TEXT,
+  snap_correct         TEXT NOT NULL,
+  snap_rationale       TEXT,
+  snap_rationale_img   TEXT,
+  snap_subject         TEXT,
+  snap_maintopic       TEXT,
+  snap_subtopic        TEXT,
+  snap_difficulty      TEXT,
+  snap_marks           INTEGER NOT NULL DEFAULT 1,
+  snap_question_type   TEXT NOT NULL DEFAULT 'MCQ',
   snap_shuffle_options BOOLEAN NOT NULL DEFAULT true,
-  snapped_at         TIMESTAMPTZ DEFAULT NOW()
+  snapped_at           TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX ON teacher_quiz_items (teacher_quiz_id);
@@ -539,9 +553,9 @@ CREATE INDEX ON teacher_quiz_items (teacher_quiz_id, position);
 -- 5.7 teacher_quiz_classes
 CREATE TABLE teacher_quiz_classes (
   tqc_id          TEXT NOT NULL PRIMARY KEY,
-  teacher_quiz_id TEXT NOT NULL REFERENCES teacher_quizzes(teacher_quiz_id),
-  class_id        TEXT NOT NULL REFERENCES teacher_classes(class_id),
-  teacher_id      TEXT NOT NULL REFERENCES users(user_id),
+  teacher_quiz_id TEXT NOT NULL,
+  class_id        TEXT NOT NULL,
+  teacher_id      TEXT NOT NULL,
   status          TEXT NOT NULL DEFAULT 'ACTIVE',
   created_at      TIMESTAMPTZ DEFAULT NOW(),
   updated_at      TIMESTAMPTZ DEFAULT NOW(),
@@ -554,31 +568,31 @@ CREATE INDEX ON teacher_quiz_classes (teacher_id);
 
 -- 5.8 teacher_quiz_attempts
 CREATE TABLE teacher_quiz_attempts (
-  attempt_id           TEXT NOT NULL PRIMARY KEY,
-  user_id              TEXT NOT NULL REFERENCES users(user_id),
-  teacher_quiz_id      TEXT NOT NULL REFERENCES teacher_quizzes(teacher_quiz_id),
-  teacher_id           TEXT NOT NULL REFERENCES users(user_id),
-  class_id             TEXT NOT NULL REFERENCES teacher_classes(class_id),
-  attempt_no           INTEGER NOT NULL DEFAULT 1,
-  mode                 TEXT NOT NULL,
-  duration_minutes     INTEGER NOT NULL DEFAULT 0,
-  status               TEXT NOT NULL DEFAULT 'IN_PROGRESS',
-  started_at           TIMESTAMPTZ DEFAULT NOW(),
-  due_at               TIMESTAMPTZ,
-  submitted_at         TIMESTAMPTZ,
-  updated_at           TIMESTAMPTZ DEFAULT NOW(),
-  items_json           JSONB NOT NULL DEFAULT '[]',
-  answers_json         JSONB NOT NULL DEFAULT '{}',
-  flags_json           JSONB NOT NULL DEFAULT '{}',
+  attempt_id            TEXT NOT NULL PRIMARY KEY,
+  user_id               TEXT NOT NULL,
+  teacher_quiz_id       TEXT NOT NULL,
+  teacher_id            TEXT NOT NULL,
+  class_id              TEXT NOT NULL,
+  attempt_no            INTEGER NOT NULL DEFAULT 1,
+  mode                  TEXT NOT NULL,
+  duration_minutes      INTEGER NOT NULL DEFAULT 0,
+  status                TEXT NOT NULL DEFAULT 'IN_PROGRESS',
+  started_at            TIMESTAMPTZ DEFAULT NOW(),
+  due_at                TIMESTAMPTZ,
+  submitted_at          TIMESTAMPTZ,
+  updated_at            TIMESTAMPTZ DEFAULT NOW(),
+  items_json            JSONB NOT NULL DEFAULT '[]',
+  answers_json          JSONB NOT NULL DEFAULT '{}',
+  flags_json            JSONB NOT NULL DEFAULT '{}',
   candidate_fields_json JSONB NOT NULL DEFAULT '{"fields": {}}',
-  score_raw            NUMERIC,
-  score_total          NUMERIC,
-  score_pct            NUMERIC,
-  time_taken_s         INTEGER,
-  score_json           JSONB,
-  grading_policy       TEXT,
-  grade_bands_json     JSONB,
-  score_display_policy TEXT
+  score_raw             NUMERIC,
+  score_total           NUMERIC,
+  score_pct             NUMERIC,
+  time_taken_s          INTEGER,
+  score_json            JSONB,
+  grading_policy        TEXT,
+  grade_bands_json      JSONB,
+  score_display_policy  TEXT
 );
 -- status: IN_PROGRESS | SUBMITTED
 
@@ -591,14 +605,14 @@ CREATE INDEX ON teacher_quiz_attempts (status);
 
 -- 5.9 teacher_library_courses
 CREATE TABLE teacher_library_courses (
-  course_id    TEXT NOT NULL PRIMARY KEY,
-  title        TEXT NOT NULL,
+  course_id     TEXT NOT NULL PRIMARY KEY,
+  title         TEXT NOT NULL,
   program_scope TEXT[] NOT NULL DEFAULT '{}',
-  status       TEXT NOT NULL DEFAULT 'active',
-  sort_order   INTEGER NOT NULL DEFAULT 0,
-  items_table  TEXT,
-  created_at   TIMESTAMPTZ DEFAULT NOW(),
-  updated_at   TIMESTAMPTZ DEFAULT NOW()
+  status        TEXT NOT NULL DEFAULT 'active',
+  sort_order    INTEGER NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW(),
+  items_table   TEXT
 );
 -- items_table: points to the actual items table (e.g. items_gp, items_rn_med)
 
