@@ -133,6 +133,11 @@ const MYTEACHER = {
   - `POST /payments/setup-complete` — creates account for new students post-payment
   - Payment statuses: `INIT → PAID → ACTIVATED` + `SETUP_REQUIRED` flow
   - `payments` table in Supabase for full audit trail
+  - CORS hardened — rejects requests if APP_ORIGIN is unset or origin does not match (no wildcard fallback)
+  - Rate limiting — 5 requests per 60 seconds per IP on all 4 public payment endpoints (RATE_LIMITER binding, namespace_id 1001)
+  - Setup token expiry — 48-hour lifetime on SETUP_REQUIRED tokens; expired tokens rejected with clear message
+  - Token refresh — handleVerify always issues a fresh token and timestamp when transitioning to SETUP_REQUIRED, so admin "Retry Activation" always produces a live setup link
+  - Admin payments panel — Retry Activation button now appears for both PAID and SETUP_REQUIRED rows (pre-existing gap fixed)
 - `subscribe.html` — public payment page for new students
 - `student/upgrade.html` — upgrade page for existing logged-in students
 - `payment-confirmation.html` — post-payment redirect handler, calls verify
@@ -465,6 +470,7 @@ New shared helpers in `js/utils.js`: `safeText()` and `safeAvatar()`. All new UI
 - [ ] Turn on email confirmation in Supabase Auth
 - [ ] Set up custom domain on Cloudflare
 - [x] Set up Paystack webhook (Cloudflare Worker) ✅
+- [x] Payments worker hardened (CORS, rate limiting, token expiry) ✅
 - [ ] Remove test accounts
 - [ ] Rotate Supabase anon key if ever committed publicly
 - [ ] Review and clean up question bank content before go-live

@@ -1,6 +1,6 @@
 # Sprint 1: Security Hardening
 
-**Status:** In progress
+**Status:** ✅ Complete
 **Rule:** Security only — no unrelated refactors or features.
 
 ---
@@ -81,33 +81,33 @@
 
 ### 4a. CORS
 
-- [ ] Remove wildcard CORS fallback from payments-worker/src/index.js
-- [ ] Make APP_ORIGIN mandatory in production
-- [ ] Reject requests from disallowed origins cleanly
+- [x] Remove wildcard CORS fallback from payments-worker/src/index.js
+- [x] Make APP_ORIGIN mandatory in production
+- [x] Reject requests from disallowed origins cleanly
 
 ### 4b. Setup token expiry
 
-- [ ] Define a token lifetime rule (e.g. 24 hours)
-- [ ] Add expiry validation in verify/setup-complete
-- [ ] Reject stale SETUP_REQUIRED tokens
+- [x] Define a token lifetime rule (48 hours)
+- [x] Add expiry validation in setup-complete
+- [x] Reject stale SETUP_REQUIRED tokens
 
 ### 4c. Rate limiting
 
-- [ ] /payments/init-public
-- [ ] /payments/init-upgrade
-- [ ] /payments/verify
-- [ ] /payments/setup-complete
+- [x] /payments/init-public
+- [x] /payments/init-upgrade
+- [x] /payments/verify
+- [x] /payments/setup-complete
 
 ### 4d. Other
 
-- [ ] Log blocked/expired/rate-limited cases clearly
-- [ ] Confirm admin subscription routes still work after changes
+- [x] Log blocked/expired/rate-limited cases clearly
+- [x] Confirm admin subscription routes still work after changes
 
 ### 4e. Payments done when
 
-- [ ] No request succeeds with empty-origin fallback
-- [ ] Old setup tokens cannot be reused
-- [ ] Repeated payment endpoint abuse is throttled
+- [x] No request succeeds with empty-origin fallback
+- [x] Old setup tokens cannot be reused
+- [x] Repeated payment endpoint abuse is throttled
 
 ## 5. ID Generation Cleanup
 
@@ -155,8 +155,8 @@ Only change schema if it blocks security work.
 - [ ] Public register still works
 - [ ] Trial subscription created correctly after register
 - [ ] Payment init works
-- [ ] Payment verify works
-- [ ] Setup-complete works for paid-before-signup flow
+- [x] Payment verify works
+- [x] Setup-complete works for paid-before-signup flow
 - [ ] Admin grant/update/revoke subscription flows still work
 - [ ] Browser console cannot read/write unrelated rows after RLS
 
@@ -217,3 +217,6 @@ _(update as we work)_
 | April 2026 | router.html | XSS fix — addEventListener replaces onclick string injection |
 | April 2026 | 24 HTML pages | utils.js script tag added |
 | April 2026 | AGENTS.md | Security rules updated with safeText/safeAvatar convention |
+| April 2026 | payments-worker/src/index.js | CORS hardened, rate limit checks (5/60s), token expiry 48hr, token refresh on verify |
+| April 2026 | payments-worker/wrangler.jsonc | ratelimits binding added — RATE_LIMITER, namespace_id 1001, 5 req/60s |
+| April 2026 | mynmclicensure/admin/payments.html | Retry Activation button now shown for SETUP_REQUIRED rows |

@@ -136,6 +136,21 @@ Worker routes:
 
 Payment status flow: `INIT → PAID → ACTIVATED` (or `SETUP_REQUIRED` if no account yet)
 
+### Rate Limiting
+The worker uses Cloudflare's built-in rate limiting.
+Configured in `wrangler.jsonc` under `"ratelimits"`:
+- Binding name: `RATE_LIMITER`
+- Namespace ID: `"1001"` (string)
+- Limit: 5 requests per 60 seconds per IP
+- Applied to: init-public, init-upgrade, verify, setup-complete
+- NOT applied to: /admin/subscriptions/* routes
+
+If cloning to a new worker account, the namespace_id can stay as "1001" — it is account-scoped so there is no conflict risk.
+
+### Setup Token Lifetime
+Tokens issued during SETUP_REQUIRED expire after 48 hours.
+Admin can refresh a token by clicking "Retry Activation" on the payment row in the admin payments panel, then copying the fresh setup link.
+
 In `subscribe.html`, `mynmclicensure/student/upgrade.html`, and `payment-confirmation.html` — set `PAYMENTS_WORKER_URL` to the deployed worker URL:
 ```
 https://qacademy-gamma-payment-workers.mybackpacc.workers.dev
