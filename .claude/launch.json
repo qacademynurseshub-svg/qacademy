@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", ".", "-l", "3000", "--no-clipboard"],
+      "port": 3000
+    },
+    {
+      "name": "payments-worker",
+      "runtimeExecutable": "wrangler",
+      "runtimeArgs": ["dev", "--port", "8787", "--config", "payments-worker/wrangler.jsonc"],
+      "port": 8787
+    }
+  ]
+}

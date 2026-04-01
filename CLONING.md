@@ -475,7 +475,7 @@ CREATE POLICY "dev_allow_all" ON items_gp FOR ALL USING (true) WITH CHECK (true)
 
 ### 3.4 Teacher Assess Tables
 
-Full schema is documented in `myteacher new schema.md`. Key tables:
+Full schema is documented in `docs/schema-reference.md`. Key tables:
 
 #### teacher_classes
 ```sql
