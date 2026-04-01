@@ -1,6 +1,6 @@
 # Sprint 1: Security Hardening
 
-**Status:** Not started
+**Status:** In progress
 **Rule:** Security only — no unrelated refactors or features.
 
 ---
@@ -14,15 +14,15 @@
 
 ### 2a. Access matrix
 
-- [ ] Inventory all tables from db/schema.sql
-- [ ] Group by access type: public-read, student-owned, teacher-owned, admin-only, worker-only
-- [ ] Write table-by-table access matrix
+- [x] Inventory all tables from db/schema.sql
+- [x] Group by access type: public-read, student-owned, teacher-owned, admin-only, worker-only
+- [x] Write table-by-table access matrix
 
 ### 2b. Implementation (high-risk tables first)
 
-- [ ] users
-- [ ] subscriptions
-- [ ] payments
+- [x] users
+- [x] subscriptions
+- [x] payments
 - [ ] teacher_profiles
 - [ ] teacher_classes
 - [ ] teacher_class_members
@@ -189,4 +189,8 @@ _(update as we work)_
 
 | Date | File | Change |
 |---|---|---|
-| | | |
+| April 2026 | db/rls.sql | Created — RLS policy source of truth |
+| April 2026 | db/schema.sql | No change — reference only |
+| April 2026 | users table | Replaced dev_allow_all with users_select, users_update |
+| April 2026 | subscriptions table | Replaced dev_allow_all with subscriptions_select, subscriptions_insert, subscriptions_update |
+| April 2026 | payments table | Replaced dev_allow_all with payments_select |
