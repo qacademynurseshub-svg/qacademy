@@ -23,13 +23,13 @@
 - [x] users
 - [x] subscriptions
 - [x] payments
-- [ ] teacher_profiles
-- [ ] teacher_classes
-- [ ] teacher_class_members
-- [ ] teacher_quizzes
-- [ ] teacher_quiz_attempts
-- [ ] messages_threads
-- [ ] messages
+- [x] teacher_profiles
+- [x] teacher_classes
+- [x] teacher_class_members
+- [x] teacher_quizzes
+- [x] teacher_quiz_attempts
+- [x] messages_threads
+- [x] messages
 
 ### 2c. Remaining tables
 
@@ -194,3 +194,11 @@ _(update as we work)_
 | April 2026 | users table | Replaced dev_allow_all with users_select, users_update |
 | April 2026 | subscriptions table | Replaced dev_allow_all with subscriptions_select, subscriptions_insert, subscriptions_update |
 | April 2026 | payments table | Replaced dev_allow_all with payments_select |
+| April 2026 | db/rls.sql | Added auth_user_id() helper, batch 2 policies, lessons learned |
+| April 2026 | teacher_profiles | Replaced dev_allow_all with teacher_profiles_select, _insert, _update |
+| April 2026 | teacher_classes | Replaced dev_allow_all with teacher_classes_select, _insert, _update |
+| April 2026 | teacher_class_members | Replaced dev_allow_all with teacher_class_members_select, _insert, _update |
+| April 2026 | teacher_quizzes | Replaced dev_allow_all with teacher_quizzes_select, _insert, _update |
+| April 2026 | teacher_quiz_attempts | Replaced dev_allow_all with teacher_quiz_attempts_select, _insert, _update |
+| April 2026 | messages_threads | Replaced dev_allow_all with messages_threads_select, _insert, _update |
+| April 2026 | messages | Replaced dev_allow_all with messages_select, _insert, _update |
