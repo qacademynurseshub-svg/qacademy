@@ -8,15 +8,17 @@ Last updated: April 2026
 
 ## Sprint 1: Security Hardening
 
+**✅ Complete — April 2026**
+
 The single biggest risk. With dev_allow_all RLS, any logged-in user can read/write every table from the browser console.
 
-- [ ] Replace dev_allow_all with proper RLS on every table (ownership rules per role)
-- [ ] Fix 4 XSS vulnerabilities (innerHTML with user data in myteacher-teacher-nav.js:362, myteacher-student-nav.js:229, mynmclicensure-student-sidebar.js:275, router.html:265)
-- [ ] Fix CORS wildcard fallback in payments worker (payments-worker/src/index.js:82)
-- [ ] Add payment timestamp validation (expire old setup tokens)
-- [ ] Replace Math.random() ID generation with crypto.getRandomValues() (register.html:107)
-- [ ] Add rate limiting on payment endpoints
-- [ ] Move sensitive writes behind trusted boundaries (worker/RPCs) where browser shouldn't mutate directly
+- [x] Replace dev_allow_all with proper RLS on every table (ownership rules per role)
+- [x] Fix 4 XSS vulnerabilities (innerHTML with user data in myteacher-teacher-nav.js:362, myteacher-student-nav.js:229, mynmclicensure-student-sidebar.js:275, router.html:265)
+- [x] Fix CORS wildcard fallback in payments worker (payments-worker/src/index.js:82)
+- [x] Add payment timestamp validation (expire old setup tokens)
+- [x] Replace Math.random() ID generation with crypto.getRandomValues() (register.html:107)
+- [x] Add rate limiting on payment endpoints
+- [x] Move sensitive writes behind trusted boundaries (worker/RPCs) where browser shouldn't mutate directly
 
 ## Sprint 2: Service Boundaries
 

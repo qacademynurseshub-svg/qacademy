@@ -1,14 +1,14 @@
 # Sprint 1: Security Hardening
 
-**Status:** ✅ Complete
+**Status:** ✅ Complete — April 2026
 **Rule:** Security only — no unrelated refactors or features.
 
 ---
 
 ## 1. Lock the Scope
 
-- [ ] Freeze major feature work until Sprint 1 is complete
-- [ ] Keep a running log of every file touched (bottom of this file)
+- [x] Freeze major feature work until Sprint 1 is complete
+- [x] Keep a running log of every file touched (bottom of this file)
 
 ## 2. RLS Replacement
 
@@ -52,10 +52,10 @@
 
 ### 2d. RLS done when
 
-- [ ] A logged-in student cannot read or mutate other users' rows from the browser
-- [ ] A teacher cannot reach admin-only data
-- [ ] Worker/server-side flows still function after policies are applied
-- [ ] Document final RLS rules in repo
+- [x] A logged-in student cannot read or mutate other users' rows from the browser
+- [x] A teacher cannot reach admin-only data
+- [x] Worker/server-side flows still function after policies are applied
+- [x] Document final RLS rules in repo
 
 ## 3. XSS Cleanup
 
@@ -111,54 +111,54 @@
 
 ## 5. ID Generation Cleanup
 
-- [ ] Replace generateUserId() in register.html with crypto.getRandomValues()
-- [ ] Replace trial subscription_id generation in register.html
-- [ ] Search repo for other Math.random() ID generation
-- [ ] Keep ID prefix conventions (U_, SUB_) unchanged
-- [ ] Prefer crypto-based generation everywhere new IDs are created in browser
+- [x] Replace generateUserId() in register.html with crypto.getRandomValues()
+- [x] Replace trial subscription_id generation in register.html
+- [x] Search repo for other Math.random() ID generation
+- [x] Keep ID prefix conventions (U_, SUB_) unchanged
+- [x] Prefer crypto-based generation everywhere new IDs are created in browser
 
 ### Done when
 
-- [ ] No security-sensitive ID in active flows uses Math.random()
-- [ ] Existing prefix conventions still match app expectations
+- [x] No security-sensitive ID in active flows uses Math.random()
+- [x] Existing prefix conventions still match app expectations
 
 ## 6. Trusted-Boundary Map
 
 No code moves in Sprint 1 — just the analysis.
 
-- [ ] List all direct browser writes to sensitive tables
-- [ ] Mark each as: safe under RLS / should move to worker / should move to RPC
-- [ ] Prioritize highest-risk write paths
-- [ ] Define first migration targets for Sprint 2
+- [x] List all direct browser writes to sensitive tables
+- [x] Mark each as: safe under RLS / should move to worker / should move to RPC
+- [x] Prioritize highest-risk write paths
+- [x] Define first migration targets for Sprint 2
 
 ### Done when
 
-- [ ] Written trusted-boundary map exists
-- [ ] First high-risk candidates identified for Sprint 2
+- [x] Written trusted-boundary map exists
+- [x] First high-risk candidates identified for Sprint 2
 
 ## 7. Schema Cleanup Triage
 
 Only change schema if it blocks security work.
 
-- [ ] Decide: payments.created_at — needed now or defer?
-- [ ] Decide: users.last_login_utc — wire up or drop?
-- [ ] Decide: users.username — future scope or dead weight?
+- [x] Decide: payments.created_at — needed now or defer?
+- [x] Decide: users.last_login_utc — wire up or drop?
+- [x] Decide: users.username — future scope or dead weight?
 
 ## 8. Final Verification Checklist
 
-- [ ] Student login still works
-- [ ] Teacher login still works
-- [ ] Admin login still works
-- [ ] Router sends users to correct area
-- [ ] Teacher top nav renders correctly
-- [ ] Student sidebar renders correctly
-- [ ] Public register still works
-- [ ] Trial subscription created correctly after register
-- [ ] Payment init works
+- [x] Student login still works
+- [x] Teacher login still works
+- [x] Admin login still works
+- [x] Router sends users to correct area
+- [x] Teacher top nav renders correctly
+- [x] Student sidebar renders correctly
+- [x] Public register still works
+- [x] Trial subscription created correctly after register
+- [x] Payment init works
 - [x] Payment verify works
 - [x] Setup-complete works for paid-before-signup flow
-- [ ] Admin grant/update/revoke subscription flows still work
-- [ ] Browser console cannot read/write unrelated rows after RLS
+- [x] Admin grant/update/revoke subscription flows still work
+- [x] Browser console cannot read/write unrelated rows after RLS
 
 ---
 
@@ -220,3 +220,8 @@ _(update as we work)_
 | April 2026 | payments-worker/src/index.js | CORS hardened, rate limit checks (5/60s), token expiry 48hr, token refresh on verify |
 | April 2026 | payments-worker/wrangler.jsonc | ratelimits binding added — RATE_LIMITER, namespace_id 1001, 5 req/60s |
 | April 2026 | mynmclicensure/admin/payments.html | Retry Activation button now shown for SETUP_REQUIRED rows |
+| April 2026 | register.html | Replaced Math.random() with makeSecureId() and crypto.getRandomValues() |
+| April 2026 | js/mynmclicensure-api.js | Replaced Math.random() with makeSecureId(), secureShuffle() |
+| April 2026 | js/myteacher-api.js | Replaced Math.random() with makeSecureId(), secureShuffle(), makeSecureJoinCode() |
+| April 2026 | db/rls.sql | products_select changed to USING(true) — public read for subscribe.html |
+| April 2026 | docs/product/ | Created — 8 plain English product documentation files |
