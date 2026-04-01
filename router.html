@@ -384,7 +384,14 @@
         byId('taIcon').textContent = '⏳';
         byId('taDesc').textContent = 'Your teacher access request is waiting for admin approval.';
         setTAInfoBox('You can still use My Classes as a student while you wait.', 'warn');
-        setTAActions(`<button class="btn-go secondary" id="btnResubmit" onclick="resubmit('${userId}')">Resubmit request</button>`);
+        // Build button safely — never inject userId into onclick string
+        const resubmitBtn = document.createElement('button');
+        resubmitBtn.className = 'btn-go secondary';
+        resubmitBtn.id = 'btnResubmit';
+        resubmitBtn.textContent = 'Resubmit request';
+        resubmitBtn.addEventListener('click', function() { resubmit(userId); });
+        byId('taActions').innerHTML = '';
+        byId('taActions').appendChild(resubmitBtn);
         setPill('Pending', 'pending');
 
       } else if (reqStatus === 'DISABLED') {
@@ -428,5 +435,6 @@
   boot();
 
 </script>
+<script src="/js/utils.js"></script>
 </body>
 </html>

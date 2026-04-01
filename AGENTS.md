@@ -52,7 +52,7 @@ QAcademy Nurses Hub is a web-based LMS for nursing students in Ghana preparing f
 ## Security Rules
 - Never trust frontend guards alone — they are UX convenience, not protection. Security lives in RLS and server-side code.
 - Do not widen CORS on the payments worker.
-- Never use innerHTML with user-controlled content (names, URLs, free text). Use textContent or DOM methods.
+- Never use innerHTML with user-controlled values. Use safeText() and safeAvatar() from js/utils.js instead. These helpers are the established pattern — use them for any new UI that displays names, emails, URLs, or any user-supplied text.
 - Do not expose Supabase service role key in browser code — anon key only.
 - All sensitive writes should go through trusted boundaries (workers/RPCs), not direct browser mutations.
 

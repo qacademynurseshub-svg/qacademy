@@ -226,7 +226,24 @@
     const avatarHtml = avatarUrl
       ? `<img class="mt-user-chip-avatar" src="${avatarUrl}" alt="" />`
       : `<span class="mt-user-chip-initials">${initials}</span>`;
-    chip.innerHTML = `${avatarHtml}<span class="mt-user-chip-name">${name}</span>`;
+    // Build avatar safely
+    const avatarImg = document.createElement('img');
+    avatarImg.className = 'mt-user-chip-avatar';
+    const avatarFallback = document.createElement('span');
+    avatarFallback.className = 'mt-user-chip-initials';
+    safeText(avatarFallback, name ? name.charAt(0).toUpperCase() : '?');
+    safeAvatar(avatarImg, avatarUrl, avatarFallback);
+
+    // Build name safely
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'mt-user-chip-name';
+    safeText(nameSpan, name);
+
+    // Clear chip and append safe elements
+    chip.innerHTML = '';
+    chip.appendChild(avatarImg);
+    chip.appendChild(avatarFallback);
+    chip.appendChild(nameSpan);
   };
 
   // ── Sign out ────────────────────────────────────────────

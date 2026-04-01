@@ -268,12 +268,25 @@
     const labelEl  = document.getElementById('sidebarAccountLabel');
     if (labelEl) labelEl.textContent = name || 'My Account';
     if (avatarEl) {
-      if (profile.avatar_url) {
-        avatarEl.innerHTML = '<img class="sidebar-account-avatar" src="' + profile.avatar_url + '" alt="" />';
-      } else {
-        var initials = (name || '?').split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
-        avatarEl.innerHTML = '<span class="sidebar-account-initials">' + initials + '</span>';
-      }
+      var initials = (name || '?').split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+
+      // Build avatar image safely
+      const avatarImg = document.createElement('img');
+      avatarImg.className = 'sidebar-account-avatar';
+      avatarImg.alt = '';
+
+      // Build initials fallback safely
+      const initialsSpan = document.createElement('span');
+      initialsSpan.className = 'sidebar-account-initials';
+      safeText(initialsSpan, initials);
+
+      // Clear container and append safe elements
+      avatarEl.innerHTML = '';
+      avatarEl.appendChild(avatarImg);
+      avatarEl.appendChild(initialsSpan);
+
+      // safeAvatar handles which one is visible
+      safeAvatar(avatarImg, profile.avatar_url, initialsSpan);
     }
   };
 })();
