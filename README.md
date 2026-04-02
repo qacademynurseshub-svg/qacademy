@@ -444,6 +444,9 @@ These values are captured from the live quiz onto each attempt's `score_json` at
 - Licensure student pages (`mynmclicensure/student/*`) — guarded by sidebar auth check
 - Wrong role → redirected to `/router.html`; no session → redirected to `/login`
 
+## Device Sessions
+Concurrent login control limits each user to 2 active device sessions. On login, a session row is created in the `sessions` table with a 7-day expiry. If a 3rd login occurs, the oldest session is automatically deactivated. On every page load, `guardPage()` verifies the session is still active via `verifySession()`. On logout, `deactivateCurrentSession()` marks the session inactive. Session ID is stored in `localStorage` as `qa_session_id`.
+
 ## RLS
 All 36 tables now have proper role-based RLS policies defined in `db/rls.sql`. Two helper functions bypass RLS safely:
 - `auth_user_role()` — returns current user's role (SECURITY DEFINER)
