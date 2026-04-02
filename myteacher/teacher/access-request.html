@@ -185,6 +185,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/config.js"></script>
+<script src="/js/guard.js"></script>
 <script src="/js/paths.js"></script>
 <script>
 
@@ -212,6 +213,7 @@
       .maybeSingle();
 
     if (!profile || !profile.active) {
+      await deactivateCurrentSession();
       await db.auth.signOut();
       window.location.href = '/login.html';
       return;
@@ -308,6 +310,7 @@
 
   // ── Sign out ──────────────────────────────────────────────
   byId('btnSignOut').addEventListener('click', async () => {
+    await deactivateCurrentSession();
     await db.auth.signOut();
     window.location.href = '/login.html';
   });

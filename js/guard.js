@@ -17,6 +17,77 @@
 // regardless of requiredRole. Admin can access all pages.
 // ============================================================
 
+// ── Session helpers ─────────────────────────────────────────
+
+function buildDeviceLabel() {
+  const ua = navigator.userAgent || '';
+  let os = 'Unknown OS';
+  let browser = 'Unknown Browser';
+
+  if (/windows/i.test(ua))           os = 'Windows';
+  else if (/iphone|ipad/i.test(ua))  os = 'iOS';
+  else if (/android/i.test(ua))      os = 'Android';
+  else if (/mac os/i.test(ua))       os = 'macOS';
+  else if (/linux/i.test(ua))        os = 'Linux';
+
+  if (/edg\//i.test(ua))             browser = 'Edge';
+  else if (/chrome/i.test(ua))       browser = 'Chrome';
+  else if (/firefox/i.test(ua))      browser = 'Firefox';
+  else if (/safari/i.test(ua))       browser = 'Safari';
+  else if (/opr\//i.test(ua))        browser = 'Opera';
+
+  return os + ' · ' + browser;
+}
+
+async function deactivateCurrentSession() {
+  try {
+    const sessionId = localStorage.getItem('qa_session_id');
+    if (!sessionId) return;
+    await db
+      .from('sessions')
+      .update({ active: false })
+      .eq('session_id', sessionId);
+    localStorage.removeItem('qa_session_id');
+  } catch (err) {
+    console.error('deactivateCurrentSession:', err);
+  }
+}
+
+async function verifySession(userId) {
+  try {
+    const sessionId = localStorage.getItem('qa_session_id');
+    if (!sessionId) return false;
+
+    const now = new Date().toISOString();
+
+    const { data: session, error } = await db
+      .from('sessions')
+      .select('session_id')
+      .eq('session_id', sessionId)
+      .eq('user_id', userId)
+      .eq('active', true)
+      .gt('expires_utc', now)
+      .maybeSingle();
+
+    if (error || !session) {
+      localStorage.removeItem('qa_session_id');
+      return false;
+    }
+
+    // Fire and forget — don't slow down page load
+    db.from('sessions')
+      .update({ last_seen_utc: now })
+      .eq('session_id', sessionId)
+      .then(() => {}).catch(() => {});
+
+    return true;
+
+  } catch (err) {
+    console.error('verifySession:', err);
+    return false;
+  }
+}
+
 async function guardPage(requiredRole = null) {
 
   // ── 1. Check session ──────────────────────────────────────
@@ -46,17 +117,25 @@ async function guardPage(requiredRole = null) {
     return null;
   }
 
-  // ── 4. ADMIN bypass ───────────────────────────────────────
+  // ── 4. Verify device session is still active ──────────────
+  const sessionValid = await verifySession(profile.user_id);
+  if (!sessionValid) {
+    await db.auth.signOut();
+    window.location.href = '/login.html';
+    return null;
+  }
+
+  // ── 5. ADMIN bypass ───────────────────────────────────────
   // Admin can access any page regardless of requiredRole
   if (profile.role === 'ADMIN') {
     _notifySidebar(profile);
     return profile;
   }
 
-  // ── 5. Role check ─────────────────────────────────────────
+  // ── 6. Role check ─────────────────────────────────────────
   if (requiredRole) {
 
-    // ── 5a. TEACHER — two-level check ───────────────────────
+    // ── 6a. TEACHER — two-level check ───────────────────────
     if (requiredRole === 'TEACHER') {
 
       // First level: role must be TEACHER
@@ -83,7 +162,7 @@ async function guardPage(requiredRole = null) {
       return profile;
     }
 
-    // ── 5b. STUDENT check ───────────────────────────────────
+    // ── 6b. STUDENT check ───────────────────────────────────
     if (requiredRole === 'STUDENT') {
       if (profile.role !== 'STUDENT' && profile.role !== 'TEACHER') {
         // TEACHER can also access student-facing myteacher pages
@@ -95,7 +174,7 @@ async function guardPage(requiredRole = null) {
       return profile;
     }
 
-    // ── 5c. Any other role mismatch ─────────────────────────
+    // ── 6c. Any other role mismatch ─────────────────────────
     if (profile.role !== requiredRole) {
       window.location.href = '/router.html';
       return null;
@@ -135,6 +214,7 @@ async function _loadMsgBadge(profile) {
 // Called by all pages via onclick="logout()"
 // ============================================================
 async function logout() {
+  await deactivateCurrentSession();
   await db.auth.signOut();
   window.location.href = '/login.html';
 }

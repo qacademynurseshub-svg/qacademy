@@ -248,6 +248,7 @@
 
   // ── Sign out ────────────────────────────────────────────
   async function signOut() {
+    await deactivateCurrentSession();
     await db.auth.signOut();
     window.location.href = '/login.html';
   }

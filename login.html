@@ -108,6 +108,82 @@
       return;
     }
 
+    // ── Session control ─────────────────────────────────────────
+    // 1. Get the user's profile to find their user_id
+    const { data: userRow } = await db
+      .from('users')
+      .select('user_id')
+      .eq('auth_id', data.user.id)
+      .maybeSingle();
+
+    if (userRow) {
+      const now = new Date();
+      const expires = new Date(now);
+      expires.setDate(expires.getDate() + 7);
+      const nowIso     = now.toISOString();
+      const expiresIso = expires.toISOString();
+
+      // 2. Count active non-expired sessions for this user
+      const { count } = await db
+        .from('sessions')
+        .select('session_id', { count: 'exact', head: true })
+        .eq('user_id', userRow.user_id)
+        .eq('active', true)
+        .gt('expires_utc', nowIso);
+
+      if (count >= 2) {
+        // Block login — too many active sessions
+        await db.auth.signOut();
+        errorAlert.textContent =
+          'You are already logged in on 2 devices. ' +
+          'Please log out from another device first.';
+        errorAlert.classList.add('show');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+        return;
+      }
+
+      // 3. Create new session row
+      const sessionId = 'SESS_' + crypto.randomUUID()
+        .replace(/-/g, '').toUpperCase();
+
+      const ua = navigator.userAgent || '';
+      // Simple hash for ua and ip (we don't have IP client-side,
+      // so ua_hash only — ip_hash left null)
+      let ua_hash = null;
+      try {
+        const encoded = new TextEncoder().encode(ua);
+        const hashBuf = await crypto.subtle.digest('SHA-256', encoded);
+        ua_hash = Array.from(new Uint8Array(hashBuf))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('').slice(0, 32);
+      } catch (_) {}
+
+      // buildDeviceLabel is defined in guard.js which may not be
+      // loaded on this page — use fallback if not available
+      const deviceLabel = (typeof buildDeviceLabel === 'function')
+        ? buildDeviceLabel()
+        : (ua.includes('Mobile') ? 'Mobile' : 'Desktop');
+
+      await db.from('sessions').insert({
+        session_id:    sessionId,
+        user_id:       userRow.user_id,
+        kind:          'LOGIN',
+        issued_utc:    nowIso,
+        expires_utc:   expiresIso,
+        last_seen_utc: nowIso,
+        device_label:  deviceLabel,
+        ua_hash:       ua_hash,
+        ip_hash:       null,
+        login_via:     'EMAIL',
+        active:        true
+      });
+
+      // 4. Store session_id in localStorage for guardPage() checks
+      localStorage.setItem('qa_session_id', sessionId);
+    }
+    // ── End session control ─────────────────────────────────────
+
     // Redirect based on role
     await redirectByRole(data.user.id);
   });
