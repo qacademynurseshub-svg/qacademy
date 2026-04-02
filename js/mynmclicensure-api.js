@@ -177,11 +177,34 @@ async function getUsers(searchTerm = '', roleFilter = '', programFilter = '', pa
 
 
 // ------------------------------------------------------------
+// USERS — BATCH BY IDS
+// Returns: array of user objects for the given user_id array
+// Reason: pages that join payments → users need user details
+//         for a small batch without loading the full users table
+// Used by: admin/payments.html (attach user to each payment row)
+// ------------------------------------------------------------
+async function getUsersByIds(userIds) {
+  if (!userIds || userIds.length === 0) return [];
+
+  // Deduplicate
+  const unique = [...new Set(userIds)];
+
+  const { data, error } = await db
+    .from('users')
+    .select('user_id, name, forename, surname, email, program_id')
+    .in('user_id', unique);
+
+  if (error) { console.error('getUsersByIds:', error); return []; }
+  return data || [];
+}
+
+
+// ------------------------------------------------------------
 // PAYMENTS — PAGINATED LIST
-// Returns: paginated payment rows with joined user details
+// Returns: paginated payment rows (no user join — no FK exists)
 // Reason: payments table grows unbounded; loading all at once
 //         is wasteful and slow for admins resolving issues
-// searchTerm: matches reference, email, or user name
+// searchTerm: matches reference or email (user search is client-side)
 // statusFilter: 'ACTIVATED' | 'PAID' | 'SETUP_REQUIRED' | 'FAILED' | 'INIT' | ''
 // productFilter: product_id | '' for all
 // programFilter: program_id | '' for all (filtered client-side via joined user)
@@ -214,8 +237,7 @@ async function getPaymentsPaginated(searchTerm = '', statusFilter = '', productF
       failure_note,
       raw,
       program_id,
-      created_at,
-      users(user_id, name, forename, surname, email, program_id)
+      created_at
     `, { count: 'exact' })
     .order('paid_utc', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false });
@@ -225,9 +247,10 @@ async function getPaymentsPaginated(searchTerm = '', statusFilter = '', productF
   if (dateFrom)      query = query.gte('paid_utc', dateFrom);
   if (dateTo)        query = query.lte('paid_utc', dateTo);
 
+  // Search reference and email only (no FK join to users table)
   if (searchTerm) {
     const term = `%${searchTerm}%`;
-    query = query.or(`reference.ilike.${term},email.ilike.${term},users.name.ilike.${term},users.forename.ilike.${term},users.surname.ilike.${term}`);
+    query = query.or(`reference.ilike.${term},email.ilike.${term}`);
   }
 
   query = query.range(page * pageSize, (page + 1) * pageSize - 1);

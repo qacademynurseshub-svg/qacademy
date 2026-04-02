@@ -503,10 +503,21 @@ async function loadPayments(append = false) {
   );
   totalPayments = result.total;
 
-  // Attach product name from allProducts to each row (no products join in query)
+  // Batch-fetch users for this page (no FK join — payments ↔ users has no FK)
+  const userIds = result.payments.map(p => p.user_id).filter(Boolean);
+  const usersArr = await getUsersByIds(userIds);
+  const usersById = {};
+  usersArr.forEach(u => { usersById[u.user_id] = u; });
+
+  // Attach matched user and product name to each row
   let payments = result.payments.map(p => {
+    const matchedUser    = (p.user_id && usersById[p.user_id]) || null;
     const matchedProduct = allProducts.find(x => x.product_id === p.product_id) || null;
-    return { ...p, products: matchedProduct ? { name: matchedProduct.name } : null };
+    return {
+      ...p,
+      users:    matchedUser    ? { user_id: matchedUser.user_id, name: matchedUser.name, forename: matchedUser.forename, surname: matchedUser.surname, email: matchedUser.email, program_id: matchedUser.program_id } : null,
+      products: matchedProduct ? { name: matchedProduct.name } : null
+    };
   });
 
   // Programme filter is client-side (programme lives on the joined user)
