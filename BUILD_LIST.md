@@ -5,8 +5,13 @@
 Last updated: April 2026
 
 ---
+## Sam's Next plan
 
-## Must Do
+- [ ] Check seesions valid period
+- [ ] Rate limit on login
+- [ ] 
+      
+## Must Do(suggetsd by agents review)
 
 ### Security & Data Integrity
 - [ ] DB transactions for multi-step ops (quiz publish, subscription assign) — revisit before go-live
