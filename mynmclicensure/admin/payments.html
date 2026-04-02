@@ -359,6 +359,11 @@
       </div>
     </div>
 
+    <!-- Load More -->
+    <div style="text-align:center; margin:16px 0; display:none;" id="loadMoreBtn">
+      <button class="btn btn-ghost" onclick="loadMore()">Load More</button>
+    </div>
+
     <!-- Revenue Summary -->
     <div class="revenue-card" id="revenueCard" style="display:none;">
       <h3>Revenue Summary — Activated Payments Only</h3>
@@ -392,11 +397,26 @@
 <script>
 'use strict';
 
-let allPayments    = [];   // full dataset from Supabase
-let allProducts    = [];   // for filter dropdown
+let allProducts    = [];   // for filter dropdown + revenue
 let allPrograms    = [];   // for filter dropdown
 let workerUrl      = '';   // from config table
 let selectedRef    = null; // currently open panel reference
+
+// Pagination & filter state
+let currentPage    = 0;
+let totalPayments  = 0;
+let isLoading      = false;
+let searchTimer    = null;
+let currentSearch  = '';
+let currentStatus  = '';
+let currentProduct = '';
+let currentProgram = '';
+let currentDateFrom = '';
+let currentDateTo   = '';
+
+// Row lookup map — keyed by reference, populated during render
+// so openPanel() can find the full payment object without allPayments
+let rowMap = {};
 
 // ─── Init ─────────────────────────────────────────
 async function init() {
@@ -426,115 +446,127 @@ async function init() {
     progSel.innerHTML += `<option value="${p.program_id}">${p.program_id} — ${p.program_name}</option>`;
   });
 
-  await loadData();
-}
+  // Load stats and first page of payments in parallel
+  await Promise.all([loadStats(), loadPayments(false)]);
 
-// ─── Load all payments ────────────────────────────
-async function loadData() {
-  // Load payments and users separately — no FK join
-  const [paymentsResult, users] = await Promise.all([
-db.from('payments').select('*').order('paid_utc', { ascending: false, nullsFirst: false }),
-    getUsers()
-  ]);
-
-  if (paymentsResult.error) {
-    console.error('loadData:', paymentsResult.error);
-    document.getElementById('tableArea').innerHTML =
-      `<div class="empty-state">Error loading payments: ${paymentsResult.error.message}</div>`;
-    return;
-  }
-
-  // Build email → user lookup map for fast client-side matching
-  const usersByEmail = {};
-  const usersById    = {};
-  users.forEach(u => {
-    if (u.email) usersByEmail[u.email.toLowerCase()] = u;
-    if (u.user_id) usersById[u.user_id] = u;
-  });
-
-  // Attach matched user and product name to each payment row
-  allPayments = (paymentsResult.data || []).map(p => {
-    const matchedUser =
-      (p.user_id && usersById[p.user_id]) ||
-      (p.email   && usersByEmail[p.email.toLowerCase()]) ||
-      null;
-
-    // Also find product name from allProducts (already loaded)
-    const matchedProduct = allProducts.find(x => x.product_id === p.product_id) || null;
-
-    return {
-      ...p,
-      users:    matchedUser   ? { user_id: matchedUser.user_id, name: matchedUser.name, forename: matchedUser.forename, surname: matchedUser.surname, email: matchedUser.email, program_id: matchedUser.program_id } : null,
-      products: matchedProduct ? { name: matchedProduct.name } : null
-    };
-  });
-
-  updateStats();
-  applyFilters();
+  // Revenue summary uses allProducts + a separate query — render after payments load
   renderRevenue();
 }
 
 // ─── Stats ────────────────────────────────────────
-function updateStats() {
+async function loadStats() {
+  const counts = await getPaymentStatusCounts();
+
+  const total = counts.ACTIVATED + counts.PAID + counts.SETUP_REQUIRED + counts.FAILED + counts.INIT;
+
+  document.getElementById('statTotal').textContent     = total;
+  document.getElementById('statActivated').textContent = counts.ACTIVATED;
+  document.getElementById('statPaid').textContent      = counts.PAID;
+  document.getElementById('statSetup').textContent     = counts.SETUP_REQUIRED;
+  document.getElementById('statFailed').textContent    = counts.FAILED;
+  document.getElementById('statInit').textContent      = counts.INIT;
+
+  // Today's revenue — lightweight query for ACTIVATED payments paid today
   const todayStr = new Date().toISOString().substring(0, 10);
+  const todayStart = todayStr + 'T00:00:00';
+  const todayEnd   = todayStr + 'T23:59:59';
 
-  let activated = 0, paid = 0, setup = 0, failed = 0, init = 0, todayRev = 0;
+  const { data: todayRows, error } = await db
+    .from('payments')
+    .select('amount_minor_paid, currency')
+    .eq('status', 'ACTIVATED')
+    .gte('paid_utc', todayStart)
+    .lte('paid_utc', todayEnd);
 
-  allPayments.forEach(p => {
-    if (p.status === 'ACTIVATED')      activated++;
-    else if (p.status === 'PAID')      paid++;
-    else if (p.status === 'SETUP_REQUIRED') setup++;
-    else if (p.status === 'FAILED')    failed++;
-    else if (p.status === 'INIT')      init++;
+  if (!error && todayRows && todayRows.length > 0) {
+    let todayRev = 0;
+    let currency = 'GHS';
+    todayRows.forEach(r => {
+      todayRev += Number(r.amount_minor_paid || 0);
+      if (r.currency) currency = r.currency;
+    });
+    document.getElementById('statToday').textContent =
+      todayRev > 0 ? formatMoney(todayRev, currency) : '—';
+  } else {
+    document.getElementById('statToday').textContent = '—';
+  }
+}
 
-    // Today's revenue: activated payments where activated_utc is today
-    if (p.status === 'ACTIVATED' && p.activated_utc) {
-      const actDay = p.activated_utc.substring(0, 10);
-      if (actDay === todayStr && p.amount_minor_paid) {
-        todayRev += Number(p.amount_minor_paid);
-      }
-    }
+// ─── Load payments (paginated) ───────────────────
+async function loadPayments(append = false) {
+  if (isLoading) return;
+  isLoading = true;
+
+  const result = await getPaymentsPaginated(
+    currentSearch, currentStatus, currentProduct, currentProgram,
+    currentDateFrom, currentDateTo, currentPage, 50
+  );
+  totalPayments = result.total;
+
+  // Attach product name from allProducts to each row (no products join in query)
+  let payments = result.payments.map(p => {
+    const matchedProduct = allProducts.find(x => x.product_id === p.product_id) || null;
+    return { ...p, products: matchedProduct ? { name: matchedProduct.name } : null };
   });
 
-  document.getElementById('statTotal').textContent     = allPayments.length;
-  document.getElementById('statActivated').textContent = activated;
-  document.getElementById('statPaid').textContent      = paid;
-  document.getElementById('statSetup').textContent     = setup;
-  document.getElementById('statFailed').textContent    = failed;
-  document.getElementById('statInit').textContent      = init;
-  document.getElementById('statToday').textContent     = todayRev > 0
-    ? formatMoney(todayRev, allPayments.find(p => p.amount_minor_paid && p.activated_utc?.substring(0,10) === new Date().toISOString().substring(0,10))?.currency || 'GHS')
-    : '—';
+  // Programme filter is client-side (programme lives on the joined user)
+  if (currentProgram) {
+    payments = payments.filter(p => (p.users?.program_id || '') === currentProgram);
+  }
+
+  if (append) {
+    const tbody = document.querySelector('#tableArea tbody');
+    if (tbody) tbody.innerHTML += buildPaymentRows(payments);
+  } else {
+    renderTable(payments);
+  }
+
+  // Update result count
+  const shown = document.querySelectorAll('#tableArea tbody tr').length;
+  document.getElementById('resultCount').textContent =
+    `Showing ${shown} of ${totalPayments} payment${totalPayments !== 1 ? 's' : ''}`;
+
+  // Show/hide Load More button
+  document.getElementById('loadMoreBtn').style.display =
+    shown < totalPayments ? 'block' : 'none';
+
+  isLoading = false;
 }
 
 // ─── Filters ──────────────────────────────────────
 function applyFilters() {
-  const search    = document.getElementById('filterSearch').value.toLowerCase().trim();
-  const status    = document.getElementById('filterStatus').value;
-  const product   = document.getElementById('filterProduct').value;
-  const programme = document.getElementById('filterProgramme').value;
-  const from      = document.getElementById('filterFrom').value;
-  const to        = document.getElementById('filterTo').value;
+  const search  = document.getElementById('filterSearch').value.trim();
+  const status  = document.getElementById('filterStatus').value;
+  const product = document.getElementById('filterProduct').value;
+  const prog    = document.getElementById('filterProgramme').value;
+  const from    = document.getElementById('filterFrom').value;
+  const to      = document.getElementById('filterTo').value;
 
-  let filtered = allPayments.filter(p => {
-    const email    = (p.email || '').toLowerCase();
-    const ref      = (p.reference || '').toLowerCase();
-    const name     = getUserName(p).toLowerCase();
-    const progId   = p.users?.program_id || p.program_id || '';
+  // Debounce search input (300ms)
+  if (search !== currentSearch) {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      currentSearch   = search;
+      currentStatus   = status;
+      currentProduct  = product;
+      currentProgram  = prog;
+      currentDateFrom = from;
+      currentDateTo   = to;
+      currentPage     = 0;
+      loadPayments(false);
+    }, 300);
+    return;
+  }
 
-    if (search    && !email.includes(search) && !ref.includes(search) && !name.includes(search)) return false;
-    if (status    && p.status !== status)     return false;
-    if (product   && p.product_id !== product) return false;
-    if (programme && progId !== programme)    return false;
-    if (from && p.paid_utc && p.paid_utc.substring(0,10) < from) return false;
-if (to   && p.paid_utc && p.paid_utc.substring(0,10) > to)   return false;
-    return true;
-  });
-
-  document.getElementById('resultCount').textContent =
-    `${filtered.length} payment${filtered.length !== 1 ? 's' : ''}`;
-
-  renderTable(filtered);
+  // Non-search filter changed — apply immediately
+  currentSearch   = search;
+  currentStatus   = status;
+  currentProduct  = product;
+  currentProgram  = prog;
+  currentDateFrom = from;
+  currentDateTo   = to;
+  currentPage     = 0;
+  loadPayments(false);
 }
 
 function clearFilters() {
@@ -544,31 +576,36 @@ function clearFilters() {
   document.getElementById('filterProgramme').value = '';
   document.getElementById('filterFrom').value     = '';
   document.getElementById('filterTo').value       = '';
-  applyFilters();
+  currentSearch = ''; currentStatus = ''; currentProduct = '';
+  currentProgram = ''; currentDateFrom = ''; currentDateTo = '';
+  currentPage = 0;
+  loadPayments(false);
 }
 
-// ─── Table ────────────────────────────────────────
-function renderTable(payments) {
-  const area = document.getElementById('tableArea');
+// ─── Load More ───────────────────────────────────
+function loadMore() {
+  currentPage += 1;
+  loadPayments(true);
+}
 
-  if (payments.length === 0) {
-    area.innerHTML = '<div class="empty-state">No payments match your filters.</div>';
-    return;
-  }
-
+// ─── Build row HTML ──────────────────────────────
+function buildPaymentRows(payments) {
   let rows = '';
   payments.forEach(p => {
+    // Store in rowMap so openPanel() can look it up
+    rowMap[p.reference] = p;
+
     const name    = getUserName(p);
     const email   = p.email || '—';
-    const product = p.products?.name || p.product_name || '—';
+    const product = p.products?.name || '—';
     const amount  = p.amount_minor_paid
       ? formatMoney(p.amount_minor_paid, p.currency)
       : p.amount_minor_expected
         ? `(${formatMoney(p.amount_minor_expected, p.currency)})`
         : '—';
     const date = p.paid_utc
-  ? new Date(p.paid_utc).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
-  : '—';
+      ? new Date(p.paid_utc).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+      : '—';
 
     rows += `
       <tr onclick="openPanel('${escAttr(p.reference)}')">
@@ -583,6 +620,20 @@ function renderTable(payments) {
         <td style="font-size:12px; color:var(--text-muted); white-space:nowrap;">${date}</td>
       </tr>`;
   });
+  return rows;
+}
+
+// ─── Table ────────────────────────────────────────
+function renderTable(payments) {
+  const area = document.getElementById('tableArea');
+
+  // Clear rowMap for fresh render
+  rowMap = {};
+
+  if (payments.length === 0) {
+    area.innerHTML = '<div class="empty-state">No payments match your filters.</div>';
+    return;
+  }
 
   area.innerHTML = `
     <table class="data-table">
@@ -593,16 +644,16 @@ function renderTable(payments) {
           <th>Product</th>
           <th>Amount</th>
           <th>Status</th>
-<th>Paid</th>
-</tr>
+          <th>Paid</th>
+        </tr>
       </thead>
-      <tbody>${rows}</tbody>
+      <tbody>${buildPaymentRows(payments)}</tbody>
     </table>`;
 }
 
 // ─── Side Panel ───────────────────────────────────
 function openPanel(reference) {
-  const p = allPayments.find(x => x.reference === reference);
+  const p = rowMap[reference];
   if (!p) return;
   selectedRef = reference;
 
@@ -749,13 +800,13 @@ async function retryActivation(reference) {
       sucEl.textContent = '✅ Activation successful! Subscription has been created.';
       sucEl.classList.add('show');
       btn.textContent = 'Activated ✓';
-      await loadData();
+      await Promise.all([loadStats(), loadPayments(false)]);
     } else if (data.status === 'SETUP_REQUIRED') {
       wrnEl.textContent = 'Payment verified but no account found yet. Student needs to complete setup.';
       wrnEl.classList.add('show');
       btn.disabled = false;
       btn.textContent = '⚡ Retry Activation';
-      await loadData();
+      await Promise.all([loadStats(), loadPayments(false)]);
     } else {
       wrnEl.textContent = `Status returned: ${data.status || 'unknown'}. Check Paystack dashboard.`;
       wrnEl.classList.add('show');
@@ -794,9 +845,16 @@ function viewStudent(userId) {
 }
 
 // ─── Revenue Summary ──────────────────────────────
-function renderRevenue() {
-  const activated = allPayments.filter(p => p.status === 'ACTIVATED' && p.amount_minor_paid);
-  if (activated.length === 0) return;
+// Fetches all ACTIVATED payments with amounts for the revenue breakdown.
+// This is a separate lightweight query — no user joins needed.
+async function renderRevenue() {
+  const { data: activated, error } = await db
+    .from('payments')
+    .select('product_id, amount_minor_paid, currency')
+    .eq('status', 'ACTIVATED')
+    .gt('amount_minor_paid', 0);
+
+  if (error || !activated || activated.length === 0) return;
 
   // Group by product
   const byProduct = {};
@@ -804,9 +862,11 @@ function renderRevenue() {
   let currency    = 'GHS';
 
   activated.forEach(p => {
-    const key   = p.products?.name || p.product_name || p.product_id || 'Unknown';
-    const amt   = Number(p.amount_minor_paid || 0);
-    currency    = p.currency || currency;
+    // Look up product name from allProducts (already loaded)
+    const prod = allProducts.find(x => x.product_id === p.product_id);
+    const key  = prod?.name || p.product_id || 'Unknown';
+    const amt  = Number(p.amount_minor_paid || 0);
+    currency   = p.currency || currency;
     grandTotal += amt;
     if (!byProduct[key]) byProduct[key] = { total: 0, count: 0 };
     byProduct[key].total += amt;

@@ -177,6 +177,97 @@ async function getUsers(searchTerm = '', roleFilter = '', programFilter = '', pa
 
 
 // ------------------------------------------------------------
+// PAYMENTS — PAGINATED LIST
+// Returns: paginated payment rows with joined user details
+// Reason: payments table grows unbounded; loading all at once
+//         is wasteful and slow for admins resolving issues
+// searchTerm: matches reference, email, or user name
+// statusFilter: 'ACTIVATED' | 'PAID' | 'SETUP_REQUIRED' | 'FAILED' | 'INIT' | ''
+// productFilter: product_id | '' for all
+// programFilter: program_id | '' for all (filtered client-side via joined user)
+// dateFrom / dateTo: ISO date strings | '' for no limit
+// page: page index starting at 0 (default 0)
+// pageSize: rows per page (default 50)
+// Returns: { payments, total }
+// Used by: admin/payments.html
+// ------------------------------------------------------------
+async function getPaymentsPaginated(searchTerm = '', statusFilter = '', productFilter = '', programFilter = '', dateFrom = '', dateTo = '', page = 0, pageSize = 50) {
+  let query = db
+    .from('payments')
+    .select(`
+      payment_id,
+      reference,
+      email,
+      user_id,
+      product_id,
+      status,
+      amount_minor_paid,
+      amount_minor_expected,
+      currency,
+      paid_utc,
+      activated_utc,
+      setup_token,
+      setup_created_utc,
+      setup_completed_utc,
+      subscription_id,
+      phone_number,
+      failure_note,
+      raw,
+      program_id,
+      created_at,
+      users(user_id, name, forename, surname, email, program_id)
+    `, { count: 'exact' })
+    .order('paid_utc', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false });
+
+  if (statusFilter)  query = query.eq('status', statusFilter);
+  if (productFilter) query = query.eq('product_id', productFilter);
+  if (dateFrom)      query = query.gte('paid_utc', dateFrom);
+  if (dateTo)        query = query.lte('paid_utc', dateTo);
+
+  if (searchTerm) {
+    const term = `%${searchTerm}%`;
+    query = query.or(`reference.ilike.${term},email.ilike.${term},users.name.ilike.${term},users.forename.ilike.${term},users.surname.ilike.${term}`);
+  }
+
+  query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+  const { data, count, error } = await query;
+  if (error) { console.error('getPaymentsPaginated:', error); return { payments: [], total: 0 }; }
+
+  return { payments: data || [], total: count || 0 };
+}
+
+
+// ------------------------------------------------------------
+// PAYMENTS — STATUS COUNTS
+// Returns: { ACTIVATED, PAID, SETUP_REQUIRED, FAILED, INIT }
+// Each value is the count of payments with that status.
+// Uses head:true so zero rows are transferred — only counts.
+// Used by: admin/payments.html stats row
+// ------------------------------------------------------------
+async function getPaymentStatusCounts() {
+  const statuses = ['ACTIVATED', 'PAID', 'SETUP_REQUIRED', 'FAILED', 'INIT'];
+
+  const results = await Promise.all(
+    statuses.map(s =>
+      db.from('payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', s)
+        .then(({ count, error }) => {
+          if (error) { console.error(`getPaymentStatusCounts(${s}):`, error); return 0; }
+          return count || 0;
+        })
+    )
+  );
+
+  const counts = {};
+  statuses.forEach((s, i) => { counts[s] = results[i]; });
+  return counts;
+}
+
+
+// ------------------------------------------------------------
 // USER — SINGLE (FULL DETAIL)
 // Returns: complete user object including:
 //   - all user profile fields
