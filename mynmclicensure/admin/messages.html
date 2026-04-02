@@ -221,7 +221,7 @@
           <option value="open">Open</option>
           <option value="closed">Closed</option>
         </select>
-        <select id="filterRead" onchange="applyFilters()">
+        <select id="filterRead" onchange="applyReadFilter()">
           <option value="">All</option>
           <option value="unread">Unread only</option>
         </select>
@@ -593,29 +593,45 @@ async function fetchDistinctFilters() {
 }
 
 // ── Load threads ────────────────────────────────────────
+let threadSearchTimer = null;
+
 async function loadThreads() {
-  allThreads = await getAdminThreads();
-  applyFilters();
+  const search  = byId('filterSearch').value.trim();
+  const context = byId('filterContext').value;
+  const status  = byId('filterStatus').value;
+
+  // DB-side filters: search (user name/email), context_type, status
+  allThreads = await getAdminThreads({
+    search:       search || '',
+    context_type: context || '',
+    status:       status  || ''
+  });
+
+  // Read filter stays client-side (_unread depends on message data)
+  applyReadFilter();
 }
 
 // ── Filters ─────────────────────────────────────────────
 function applyFilters() {
-  const search  = byId('filterSearch').value.trim().toLowerCase();
-  const context = byId('filterContext').value;
-  const status  = byId('filterStatus').value;
-  const read    = byId('filterRead').value;
+  const search = byId('filterSearch').value.trim();
+
+  // Debounce search input (300ms), immediate for dropdowns
+  if (search !== (applyFilters._lastSearch || '')) {
+    clearTimeout(threadSearchTimer);
+    applyFilters._lastSearch = search;
+    threadSearchTimer = setTimeout(() => loadThreads(), 300);
+    return;
+  }
+
+  loadThreads();
+}
+
+// Client-side read filter (applied after DB query)
+function applyReadFilter() {
+  const read = byId('filterRead').value;
 
   filtered = allThreads.filter(t => {
-    if (context && t.context_type !== context) return false;
-    if (status && t.status !== status) return false;
     if (read === 'unread' && !t._unread) return false;
-    if (search) {
-      const u = t._user;
-      const userParts = u ? [u.name, u.forename, u.surname, u.email].filter(Boolean) : [];
-      const threadParts = [t.question_id, t.ref_text].filter(Boolean);
-      const haystack = userParts.concat(threadParts).join(' ').toLowerCase();
-      if (!haystack.includes(search)) return false;
-    }
     return true;
   });
 
