@@ -2685,44 +2685,46 @@ async function reopenThread(threadId) {
 
 // ------------------------------------------------------------
 // ADMIN: RESOLVE RECIPIENTS (for bulk send)
-// AND across filter types, OR within each
+// AND across filter types, OR within each.
+// programme, cohort, level are filtered DB-side on the users
+// table. subscription_kinds and course_ids are filtered via a
+// second query on subscriptions → products (joined), scoped
+// to the already-narrowed user set.
 // Returns: array of user_ids
 // ------------------------------------------------------------
 async function resolveRecipients(scope) {
-  // Fetch all active users
-  const { data: allUsers } = await db
+  // Build a single users query with DB-side filters
+  let q = db
     .from('users')
-    .select('user_id, program_id, cohort, level, active')
-    .eq('active', true);
+    .select('user_id')
+    .eq('active', true)
+    .eq('role', 'STUDENT');
 
-  let users = allUsers || [];
-
-  // Programme filter
   if (scope.program_ids && scope.program_ids.length) {
-    const want = new Set(scope.program_ids);
-    users = users.filter(u => want.has(u.program_id));
+    q = q.in('program_id', scope.program_ids);
   }
-
-  // Cohort filter
   if (scope.cohort_ids && scope.cohort_ids.length) {
-    const want = new Set(scope.cohort_ids);
-    users = users.filter(u => want.has(String(u.cohort || '')));
+    q = q.in('cohort', scope.cohort_ids);
+  }
+  if (scope.level_ids && scope.level_ids.length) {
+    q = q.in('level', scope.level_ids);
   }
 
-  // Level filter
-  if (scope.level_ids && scope.level_ids.length) {
-    const want = new Set(scope.level_ids);
-    users = users.filter(u => want.has(String(u.level || '')));
-  }
+  const { data: matchedUsers, error } = await q;
+  if (error) { console.error('resolveRecipients:', error); return []; }
+
+  let userIds = (matchedUsers || []).map(u => u.user_id);
+  if (!userIds.length) return [];
 
   // Subscription kind filter (PAID / TRIAL / FREE)
+  // Requires join through subscriptions → products — filtered on
+  // the narrowed user set, not all users
   if (scope.subscription_kinds && scope.subscription_kinds.length) {
-    const uids = users.map(u => u.user_id);
     const { data: subs } = await db
       .from('subscriptions')
-      .select('user_id, product_id, products ( kind )')
+      .select('user_id, products ( kind )')
       .eq('status', 'ACTIVE')
-      .in('user_id', uids);
+      .in('user_id', userIds);
 
     const wantKinds = new Set(scope.subscription_kinds.map(k => k.toUpperCase()));
     const matchedIds = new Set();
@@ -2730,17 +2732,18 @@ async function resolveRecipients(scope) {
       const kind = (s.products && s.products.kind || '').toUpperCase();
       if (wantKinds.has(kind)) matchedIds.add(s.user_id);
     });
-    users = users.filter(u => matchedIds.has(u.user_id));
+    userIds = userIds.filter(id => matchedIds.has(id));
+    if (!userIds.length) return [];
   }
 
   // Course entitlement filter
+  // Also requires subscriptions → products join
   if (scope.course_ids && scope.course_ids.length) {
-    const uids = users.map(u => u.user_id);
     const { data: subs } = await db
       .from('subscriptions')
-      .select('user_id, product_id, products ( courses_included )')
+      .select('user_id, products ( courses_included )')
       .eq('status', 'ACTIVE')
-      .in('user_id', uids);
+      .in('user_id', userIds);
 
     const wantCourses = new Set(scope.course_ids);
     const matchedIds = new Set();
@@ -2750,10 +2753,10 @@ async function resolveRecipients(scope) {
         : [];
       if (courses.some(c => wantCourses.has(c))) matchedIds.add(s.user_id);
     });
-    users = users.filter(u => matchedIds.has(u.user_id));
+    userIds = userIds.filter(id => matchedIds.has(id));
   }
 
-  return users.map(u => u.user_id);
+  return userIds;
 }
 
 // ------------------------------------------------------------
