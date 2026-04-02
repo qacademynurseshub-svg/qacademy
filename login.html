@@ -132,15 +132,23 @@
         .gt('expires_utc', nowIso);
 
       if (count >= 2) {
-        // Block login — too many active sessions
-        await db.auth.signOut();
-        errorAlert.textContent =
-          'You are already logged in on 2 devices. ' +
-          'Please log out from another device first.';
-        errorAlert.classList.add('show');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Sign In';
-        return;
+        // Too many sessions — kick the oldest one to make room.
+        // The kicked device will be redirected to login on next
+        // page load when guardPage() → verifySession() fails.
+        const { data: oldest } = await db
+          .from('sessions')
+          .select('session_id')
+          .eq('user_id', userRow.user_id)
+          .eq('active', true)
+          .order('issued_utc', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (oldest) {
+          await db.from('sessions')
+            .update({ active: false })
+            .eq('session_id', oldest.session_id);
+        }
       }
 
       // 3. Create new session row
