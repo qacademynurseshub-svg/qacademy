@@ -23,6 +23,7 @@ QAcademy Nurses Hub is a web-based LMS for nursing students in Ghana preparing f
 2. Push to main
 3. Update `BUILD_LIST.md` if items were completed or new ones discovered
 4. Update `README.md` if new pages, features, or conventions were added
+5. Update Product.md where appropraite.
 
 ## Working With Me
 - I have no coding experience. Before writing or pushing any code, explain the rationale — what the code does, why it's structured that way, and what it changes. Do not assume I can read code.
