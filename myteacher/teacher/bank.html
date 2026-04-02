@@ -789,6 +789,10 @@ body {
         </div>
       </div>
 
+      <div style="text-align:center; margin:16px 0; display:none;" id="bankLoadMoreBtn">
+        <button class="btn btn-ghost" onclick="loadMoreItems()">Load More</button>
+      </div>
+
     </div><!-- /list card -->
 
     <!-- RIGHT: Editor -->
@@ -983,6 +987,12 @@ let selectedSet   = new Set();   // picker mode: selected bank_item_ids
 
 let searchDebounce = null;
 
+// Pagination state
+let bankPage        = 0;
+let bankTotal       = 0;
+let bankSearchTimer = null;
+let isBankLoading   = false;
+
 // ── Helpers ────────────────────────────────────────────────
 const $  = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1051,14 +1061,17 @@ async function boot() {
   applyPickerLayout();
 
   // Wire filter events
-  // Keyword: client-side debounced — fast live feedback over loaded results
+  // Keyword: debounced DB search (300ms)
   $('fKeyword').addEventListener('input', () => {
-    clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(applyFilters, 220);
+    clearTimeout(bankSearchTimer);
+    bankSearchTimer = setTimeout(() => {
+      bankPage = 0;
+      loadItems(false);
+    }, 300);
   });
   // All other filters: re-query the server with updated filter state
   ['fStatus','fDifficulty','fSubject','fMaintopic','fSubtopic'].forEach(id => {
-    $(id).addEventListener('change', loadItems);
+    $(id).addEventListener('change', () => { bankPage = 0; loadItems(false); });
   });
 
   // Load filter options then items
@@ -1139,13 +1152,41 @@ function populateSelect(selectEl, values, preserve) {
   });
 }
 
-// ── Load items ─────────────────────────────────────────────
-async function loadItems() {
-  $('qList').innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading questions…</p></div>';
+// ── Load items (paginated) ─────────────────────────────────
+async function loadItems(append = false) {
+  if (isBankLoading) return;
+  isBankLoading = true;
+
+  if (!append) {
+    $('qList').innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading questions…</p></div>';
+  }
 
   const filters = buildFilters();
-  allItems = await getBankItems(TEACHER_ID, filters);
+  const result = await getBankItemsPaginated(TEACHER_ID, filters, bankPage, 50);
+  bankTotal = result.total;
+
+  if (append) {
+    allItems = allItems.concat(result.items);
+  } else {
+    allItems = result.items;
+  }
+
   applyFilters();
+
+  // Update count display
+  $('countPill').textContent = `${allItems.length} of ${bankTotal} question${bankTotal !== 1 ? 's' : ''}`;
+
+  // Show/hide Load More button
+  $('bankLoadMoreBtn').style.display =
+    allItems.length < bankTotal ? 'block' : 'none';
+
+  isBankLoading = false;
+}
+
+// ── Load More ─────────────────────────────────────────────
+function loadMoreItems() {
+  bankPage += 1;
+  loadItems(true);
 }
 
 function buildFilters() {
@@ -1166,22 +1207,20 @@ function clearFilters() {
   $('fSubject').value    = '';
   $('fMaintopic').value  = '';
   $('fSubtopic').value   = '';
-  loadItems();
+  bankPage = 0;
+  loadItems(false);
 }
 
 // ── Apply client-side filters ──────────────────────────────
-// Note: server already filters by status/subject/maintopic/subtopic/difficulty/keyword.
-// applyFilters here re-renders from allItems (already server-filtered on load).
-// For status / tag filter changes we reload from server. Keyword is live client-side.
+// Note: server already filters by status/subject/maintopic/subtopic/
+// difficulty/keyword. applyFilters here re-renders from allItems
+// (already server-filtered on load). Status guard kept for cases
+// where an archive action changes status without a full reload.
 function applyFilters() {
-  const keyword = $('fKeyword').value.trim().toLowerCase();
-  const status  = $('fStatus').value;
+  const status = $('fStatus').value;
 
   filteredItems = allItems.filter(item => {
-    // status (in case it drifted after archive action without full reload)
     if (status && status !== 'ALL' && item.status !== status) return false;
-    // keyword client-side for fast feedback
-    if (keyword && !item.stem.toLowerCase().includes(keyword)) return false;
     return true;
   });
 

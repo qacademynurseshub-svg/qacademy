@@ -571,6 +571,70 @@ async function getBankItems(teacherId, filters = {}) {
 
 
 // ------------------------------------------------------------
+// BANK ITEMS — PAGINATED LIST
+// Returns: { items, total } — paginated bank items for list view
+// Reason: question banks grow fast; paginate to keep list snappy
+// Same filters as getBankItems() — status, subject, maintopic,
+// subtopic, difficulty, keyword
+// Selects all card-visible columns (options, correct, rationale)
+// but omits editor-only columns (shuffle_options, source_course_id,
+// source_item_id, imported_at, created_at)
+// page: page index starting at 0 (default 0)
+// pageSize: rows per page (default 50)
+// Returns: { items, total }
+// Used by: myteacher/teacher/bank.html
+// ------------------------------------------------------------
+async function getBankItemsPaginated(teacherId, filters = {}, page = 0, pageSize = 50) {
+  const {
+    status     = 'ACTIVE',
+    subject    = '',
+    maintopic  = '',
+    subtopic   = '',
+    difficulty = '',
+    keyword    = ''
+  } = filters;
+
+  let query = db
+    .from('teacher_bank_items')
+    .select(`
+      bank_item_id,
+      teacher_id,
+      stem,
+      question_type,
+      status,
+      subject,
+      maintopic,
+      subtopic,
+      difficulty,
+      marks,
+      correct,
+      option_a, option_b, option_c, option_d, option_e, option_f,
+      fb_a, fb_b, fb_c, fb_d, fb_e, fb_f,
+      rationale,
+      rationale_img,
+      source_type,
+      updated_at
+    `, { count: 'exact' })
+    .eq('teacher_id', teacherId)
+    .order('updated_at', { ascending: false });
+
+  if (status && status !== 'ALL') query = query.eq('status', status);
+  if (subject)    query = query.eq('subject',   subject);
+  if (maintopic)  query = query.eq('maintopic', maintopic);
+  if (subtopic)   query = query.eq('subtopic',  subtopic);
+  if (difficulty)  query = query.eq('difficulty', difficulty);
+  if (keyword)    query = query.ilike('stem', `%${keyword}%`);
+
+  query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+  const { data, count, error } = await query;
+  if (error) { console.error('getBankItemsPaginated:', error); return { items: [], total: 0 }; }
+
+  return { items: data || [], total: count || 0 };
+}
+
+
+// ------------------------------------------------------------
 // GET SINGLE BANK ITEM
 // Fetches one full row by bank_item_id.
 // Called when opening the editor for an existing item —
