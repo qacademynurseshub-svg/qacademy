@@ -370,8 +370,27 @@ async function getStudentClasses(userId) {
   const { data, error } = await db
     .from('teacher_class_members')
     .select(`
-      *,
-      teacher_classes (*)
+      class_id,
+      user_id,
+      teacher_id,
+      status,
+      joined_at,
+      member_fields_json,
+      teacher_classes (
+        class_id,
+        teacher_id,
+        title,
+        status,
+        colour,
+        programme,
+        course,
+        description,
+        academic_year,
+        semester,
+        end_date,
+        require_approval,
+        custom_fields_json
+      )
     `)
     .eq('user_id', userId)
     .in('status', ['ACTIVE', 'PENDING'])
