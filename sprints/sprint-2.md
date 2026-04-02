@@ -20,19 +20,19 @@ Chunk size: 50 rows per page for admin lists, 20 rows for student-facing lists.
 Pages that need pagination (work through in this order):
 
 ### Admin pages
-- [ ] admin/users.html — paginate user list, 50 per page, newest registered first
-- [ ] admin/payments.html — already sorted by paid_utc, add formal pagination (currently loads all)
-- [ ] mynmclicensure/admin/fixed-quizzes.html — paginate quiz list if large
-- [ ] myteacher/teacher/bank.html — paginate question bank, 50 per page, newest first
+- [x] admin/users.html — paginate user list, 50 per page, newest registered first
+- [x] admin/payments.html — already sorted by paid_utc, add formal pagination (currently loads all)
+- [x] mynmclicensure/admin/fixed-quizzes.html — paginate quiz list if large
+- [x] myteacher/teacher/bank.html — paginate question bank, 50 per page, newest first
 
 ### Student pages
-- [ ] mynmclicensure/student/learning-history.html — paginate attempts, 20 per page, newest first
-- [ ] myteacher/student/my-classes.html — paginate if student has many classes
+- [x] mynmclicensure/student/learning-history.html — paginate attempts, 20 per page, newest first
+- [x] myteacher/student/my-classes.html — narrow select (small list, pagination deferred)
 
 ### Done when
-- [ ] No page loads more than 50 rows in a single query on initial load
-- [ ] Each paginated page has a clear Load More button or page controls
-- [ ] Total count is shown so user knows how many records exist
+- [x] No page loads more than 50 rows in a single query on initial load
+- [x] Each paginated page has a clear Load More button or page controls
+- [x] Total count is shown so user knows how many records exist
 
 ---
 
@@ -42,15 +42,15 @@ Move search from browser JavaScript to Supabase queries.
 Only apply to lists that could realistically grow large.
 Leave small static lists (programmes, products, courses) as browser-side — they will always be small.
 
-- [ ] admin/users.html — move name/email search to Supabase ilike query instead of client-side filter
-- [ ] myteacher/teacher/bank.html — move topic/stem search to Supabase instead of client-side filter
-- [ ] admin/messages.html — move student name/email search to Supabase instead of client-side filter
-- [ ] Recipient resolution in bulk announcement send — move to Supabase query with AND filters instead of client-side intersection
+- [x] admin/users.html — move name/email search to Supabase ilike query instead of client-side filter
+- [x] myteacher/teacher/bank.html — move topic/stem search to Supabase instead of client-side filter
+- [x] admin/messages.html — move student name/email search to Supabase instead of client-side filter
+- [x] Recipient resolution in bulk announcement send — move to Supabase query with AND filters instead of client-side intersection
 
 ### Done when
-- [ ] Search on users page queries Supabase directly
-- [ ] Search on question bank queries Supabase directly
-- [ ] No large list filtering happens entirely in the browser
+- [x] Search on users page queries Supabase directly
+- [x] Search on question bank queries Supabase directly
+- [x] No large list filtering happens entirely in the browser
 
 ---
 
@@ -60,18 +60,19 @@ Replace select('*') with only the columns each page needs.
 Priority: pages that load many rows or sensitive tables.
 
 High priority (admin pages seeing all rows):
-- [ ] admin/users.html — select only: user_id, name, forename, surname, email, program_id, role, active, created_utc, cohort, level
-- [ ] admin/payments.html — already loads payments.*, narrow to needed columns only
-- [ ] admin/subscriptions.html — narrow subscription and joined product columns
-- [ ] myteacher/teacher/bank.html — narrow to columns shown in the list view
+- [x] admin/users.html — select only: user_id, name, forename, surname, email, program_id, role, active, created_utc, cohort, level
+- [x] admin/payments.html — narrow to needed columns only
+- [x] admin/subscriptions.html — narrow subscription and joined product columns
+- [x] admin/messages.html — narrow messages_threads to explicit columns
+- [x] myteacher/teacher/bank.html — narrow to columns shown in the list view
 
 Lower priority (student pages — RLS already limits rows):
-- [ ] mynmclicensure/student/learning-history.html — narrow attempts columns
-- [ ] myteacher/student/my-classes.html — narrow class columns
+- [x] mynmclicensure/student/learning-history.html — narrow attempts columns (omit answers_json, item_ids)
+- [x] myteacher/student/my-classes.html — narrow class + membership columns
 
 ### Done when
-- [ ] No admin list page uses select('*') on a large table
-- [ ] Each query only fetches columns the page displays or uses in logic
+- [x] No admin list page uses select('*') on a large table
+- [x] Each query only fetches columns the page displays or uses in logic
 
 ---
 
@@ -151,4 +152,13 @@ Sprint 2 is complete only when:
 
 | Date | File | Change |
 |---|---|---|
-| | | |
+| 2026-04-02 | js/mynmclicensure-api.js | Added getUsers() pagination + ilike search, getPaymentsPaginated(), getPaymentStatusCounts(), getUsersByIds(), getAllQuizzesPaginated(), getStudentAttemptsPaginated(); DB-side search on getAdminThreads(); DB-side resolveRecipients(); narrow selects throughout |
+| 2026-04-02 | js/myteacher-api.js | Added getBankItemsPaginated(); narrowed getStudentClasses() select |
+| 2026-04-02 | js/utils.js | Added escapeHtml() string helper for template literals |
+| 2026-04-02 | mynmclicensure/admin/users.html | Paginated loading, Load More, 300ms search debounce, escapeHtml on user data |
+| 2026-04-02 | mynmclicensure/admin/payments.html | Paginated loading, Load More, status count queries, revenue query, rowMap for panel |
+| 2026-04-02 | mynmclicensure/admin/fixed-quizzes.html | Paginated loading, Load More, client-side filters preserved |
+| 2026-04-02 | mynmclicensure/admin/messages.html | DB-side search + context/status filters, read filter stays client-side, 300ms debounce |
+| 2026-04-02 | mynmclicensure/admin/subscriptions.html | Narrowed select to explicit columns |
+| 2026-04-02 | mynmclicensure/student/learning-history.html | Paginated loading, Load More, omit answers_json/item_ids |
+| 2026-04-02 | myteacher/teacher/bank.html | Paginated loading, Load More, 300ms keyword debounce |

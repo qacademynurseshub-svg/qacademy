@@ -22,15 +22,17 @@ The single biggest risk. With dev_allow_all RLS, any logged-in user can read/wri
 
 ## Sprint 2: Service Boundaries
 
+**In progress — April 2026**
+
 Too much logic runs in the browser with no server-side validation.
 
-- [ ] Create Supabase RPCs or worker endpoints for: admin bulk ops, subscription assignment, quiz publish, result release
-- [ ] Move search/filter to database (replace client-side text search in getUsers(), recipient resolution)
-- [ ] Add pagination to all list queries (users, quizzes, attempts, bank items)
-- [ ] Narrow select('*') to only needed columns per context
+- [x] Move search/filter to database (replace client-side text search in getUsers(), recipient resolution, messages, bank)
+- [x] Add pagination to all list queries (users, payments, quizzes, attempts, bank items)
+- [x] Narrow select('*') to only needed columns per context (all admin + student list pages done)
 - [ ] Standardize error response shapes across both API files
 - [ ] Add database transactions for multi-step operations (publish quiz, set classes)
 - [ ] Add correlation IDs to payment, join, publish, and submission flows
+- [ ] Create Supabase RPCs or worker endpoints for: admin bulk ops, subscription assignment, quiz publish, result release
 
 ## Sprint 3: Code Refactor
 
@@ -69,7 +71,7 @@ Only after the foundation is solid.
 
 ## Schema Cleanup (slot into Sprint 1 or 2)
 
-- [ ] payments.created_at — admin payments page tries to display it but column doesn't exist in DB
+- [x] payments.created_at — admin payments page tried to display/order by it but column doesn't exist. Removed references in Sprint 2.
 - [ ] users.last_login_utc — exists in DB but nothing writes to it. Wire up or drop.
 - [ ] users.username — exists in DB but no code references it. Drop if not planned.
 
