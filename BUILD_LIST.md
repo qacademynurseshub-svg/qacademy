@@ -1,66 +1,34 @@
 # Build List
 
-**Status: Hardening phase** — no new features until sprints 1-4 are done.
+**Status: Active development. Sprint hardening complete. Working from Must Do list.**
 
 Last updated: April 2026
 
 ---
 
-## Sprint 1: Security Hardening
+## Must Do
 
-**✅ Complete — April 2026**
+### Security & Data Integrity
+- [ ] DB transactions for multi-step ops (quiz publish, subscription assign) — revisit before go-live
+- [ ] Correlation IDs on key flows (payment, join, publish, submission) — revisit before go-live
+- [ ] Create Supabase RPCs or worker endpoints for admin bulk ops, subscription assignment, quiz publish, result release — revisit before go-live
 
-The single biggest risk. With dev_allow_all RLS, any logged-in user can read/write every table from the browser console.
+### Code Quality
+- [ ] Fix 14 silent catch blocks in myteacher-api.js
+- [ ] Standardise error response shapes across both API files
+- [ ] Consolidate escapeHtml() and safeText() in utils.js
+- [ ] Stats bar on learning-history reflects loaded page only — needs separate count query for true totals
+- [ ] users.last_login_utc — exists in DB but nothing writes to it. Wire up or drop.
+- [ ] users.username — exists in DB but no code references it. Drop if not planned.
 
-- [x] Replace dev_allow_all with proper RLS on every table (ownership rules per role)
-- [x] Fix 4 XSS vulnerabilities (innerHTML with user data in myteacher-teacher-nav.js:362, myteacher-student-nav.js:229, mynmclicensure-student-sidebar.js:275, router.html:265)
-- [x] Fix CORS wildcard fallback in payments worker (payments-worker/src/index.js:82)
-- [x] Add payment timestamp validation (expire old setup tokens)
-- [x] Replace Math.random() ID generation with crypto.getRandomValues() (register.html:107)
-- [x] Add rate limiting on payment endpoints
-- [x] Move sensitive writes behind trusted boundaries (worker/RPCs) where browser shouldn't mutate directly
-
-## Sprint 2: Service Boundaries
-
-**✅ Core complete — April 2026. Sections 1, 2, 3 done. Sections 4, 5, 6 parked.**
-
-Too much logic runs in the browser with no server-side validation.
-
-- [x] Move search/filter to database (replace client-side text search in getUsers(), recipient resolution, messages, bank)
-- [x] Add pagination to all list queries (users, payments, quizzes, attempts, bank items)
-- [x] Narrow select('*') to only needed columns per context (all admin + student list pages done)
-- ⏸️ Parked — revisit before go-live: Add database transactions for multi-step operations (publish quiz, set classes)
-- ⏸️ Parked — revisit before go-live: Add correlation IDs to payment, join, publish, and submission flows
-- ⏸️ Parked — revisit before go-live: Create Supabase RPCs or worker endpoints for admin bulk ops, subscription assignment, quiz publish, result release
-
-## Sprint 3: Code Refactor
-
-**In progress — April 2026**
-
-Giant files make every change risky. Refactor in place, don't rewrite.
-
-- [ ] Split API files by domain: auth, subscriptions, announcements, attempts, messaging, offline-packs
-- [ ] Extract inline script blocks from HTML pages into separate JS files
-- [ ] Move repeated inline CSS into shared stylesheets
-- [ ] Create shared UI helpers: loading states, empty states, error states, toasts, modals
-- [ ] Fix 14 silent catch blocks in myteacher-api.js — add proper error logging
-- [ ] Standardise error response shapes across both API files (moved from Sprint 2)
-- [ ] Unify design tokens between MyTeacher and Licensure (or document the intentional split)
-
-## Sprint 4: Testing & Observability
-
-At this size, every patch is risky without tests.
-
+### Testing & Observability
 - [ ] Playwright smoke tests for 8 critical paths: login/register, router redirect, join class, fixed quiz flow, timed runner flow, payment verify/setup, result gating, offline packs
 - [ ] User-facing error states on all critical flows (not just console.error)
 - [ ] Audit/event logging for important actions (payment, publish, archive, grant subscription)
-- [ ] Admin diagnostics — failed payments view, failed operations log
+- [ ] Admin diagnostics — failed payments view, failed ops log
 - [ ] Retry mechanisms on failed data loads
 
-## Sprint 5: Product Polish
-
-Only after the foundation is solid.
-
+### Product Polish (do after must-do)
 - [ ] Empty state guidance on every page ("No quizzes yet — create your first one")
 - [ ] Skeleton loaders replacing "Loading..." text
 - [ ] Export/print — CSV for teachers, PDF results for students
@@ -70,13 +38,26 @@ Only after the foundation is solid.
 - [ ] Teacher guidance / how-to pages
 - [ ] Accessibility basics — semantic HTML, aria labels, keyboard nav on key flows
 - [ ] teacher_ref column on teacher_bank_items
+- [ ] Sequential runner mode
 
-## Schema Cleanup (slot into Sprint 1 or 2)
+### Things to Consider
+- [ ] README and CLONING files need updating to reflect current folder structure and My Teacher naming
+- [ ] Remove test accounts (MANUAL_TEST rows) before go-live
+- [ ] Set up custom SMTP for emails
+- [ ] Turn on email confirmation in Supabase Auth
+- [ ] Set up custom domain on Cloudflare
+- [ ] Rotate Supabase anon key if ever committed publicly
+- [ ] Review and clean up question bank content before go-live
+- [ ] My Teacher payment model — define tiers when platform has real users
+- [ ] Beta v2 rebuild in React + Next.js — planned, not started
+- [ ] Admin Users page Stage 2 — Quiz History and Payment History panels in user side panel
 
-- [x] payments.created_at — admin payments page tried to display/order by it but column doesn't exist. Removed references in Sprint 2.
-- [ ] users.last_login_utc — exists in DB but nothing writes to it. Wire up or drop.
-- [ ] users.username — exists in DB but no code references it. Drop if not planned.
+---
 
-## Intentionally Deferred
+## Completed Work
 
-- Sequential runner mode
+### Sprint 1: Security Hardening (April 2026)
+RLS on all 36 tables, XSS fixes (4 locations + safeText/escapeHtml helpers), CORS fix on payments worker, payment timestamp validation, crypto.getRandomValues() for IDs, rate limiting on payment endpoints, sensitive writes moved behind trusted boundaries.
+
+### Sprint 2: Service Boundaries (April 2026)
+Pagination on all admin and student list pages (users, payments, fixed-quizzes, bank, learning-history). DB-side search replacing client-side filtering (users, bank, messages, recipient resolution). Narrow select replacing select('*') on all list queries (users, payments, subscriptions, quizzes, bank, attempts, classes, messages). Fixed payments.created_at schema mismatch.
