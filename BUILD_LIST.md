@@ -22,19 +22,20 @@ The single biggest risk. With dev_allow_all RLS, any logged-in user can read/wri
 
 ## Sprint 2: Service Boundaries
 
-**In progress — April 2026**
+**✅ Core complete — April 2026. Sections 1, 2, 3 done. Sections 4, 5, 6 parked.**
 
 Too much logic runs in the browser with no server-side validation.
 
 - [x] Move search/filter to database (replace client-side text search in getUsers(), recipient resolution, messages, bank)
 - [x] Add pagination to all list queries (users, payments, quizzes, attempts, bank items)
 - [x] Narrow select('*') to only needed columns per context (all admin + student list pages done)
-- [ ] Standardize error response shapes across both API files
-- [ ] Add database transactions for multi-step operations (publish quiz, set classes)
-- [ ] Add correlation IDs to payment, join, publish, and submission flows
-- [ ] Create Supabase RPCs or worker endpoints for: admin bulk ops, subscription assignment, quiz publish, result release
+- ⏸️ Parked — revisit before go-live: Add database transactions for multi-step operations (publish quiz, set classes)
+- ⏸️ Parked — revisit before go-live: Add correlation IDs to payment, join, publish, and submission flows
+- ⏸️ Parked — revisit before go-live: Create Supabase RPCs or worker endpoints for admin bulk ops, subscription assignment, quiz publish, result release
 
 ## Sprint 3: Code Refactor
+
+**In progress — April 2026**
 
 Giant files make every change risky. Refactor in place, don't rewrite.
 
@@ -43,6 +44,7 @@ Giant files make every change risky. Refactor in place, don't rewrite.
 - [ ] Move repeated inline CSS into shared stylesheets
 - [ ] Create shared UI helpers: loading states, empty states, error states, toasts, modals
 - [ ] Fix 14 silent catch blocks in myteacher-api.js — add proper error logging
+- [ ] Standardise error response shapes across both API files (moved from Sprint 2)
 - [ ] Unify design tokens between MyTeacher and Licensure (or document the intentional split)
 
 ## Sprint 4: Testing & Observability
