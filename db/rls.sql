@@ -891,3 +891,44 @@ USING (
 -- samquatleumas@gmail.com — corrected from STUDENT to TEACHER
 -- All MyTeacher data reassigned from Albert to Sam.
 -- Old test class/quiz data cleared. Sam starts fresh.
+
+
+-- ────────────────────────────────────────────────────────────
+-- sessions
+-- ────────────────────────────────────────────────────────────
+-- Users read and update their own session rows only.
+-- Admins can read all sessions.
+-- No browser DELETE — set active=FALSE instead.
+
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "sessions_select"
+ON sessions FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM users u
+    WHERE u.auth_id = auth.uid()
+    AND u.user_id = sessions.user_id
+  )
+  OR auth_user_role() = 'ADMIN'
+);
+
+CREATE POLICY "sessions_insert"
+ON sessions FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM users u
+    WHERE u.auth_id = auth.uid()
+    AND u.user_id = sessions.user_id
+  )
+);
+
+CREATE POLICY "sessions_update"
+ON sessions FOR UPDATE
+USING (
+  EXISTS (
+    SELECT 1 FROM users u
+    WHERE u.auth_id = auth.uid()
+    AND u.user_id = sessions.user_id
+  )
+);

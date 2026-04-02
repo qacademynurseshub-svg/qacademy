@@ -620,6 +620,29 @@ CREATE INDEX ON teacher_library_courses (status);
 CREATE INDEX ON teacher_library_courses (sort_order);
 
 
+-- 1.11 sessions
+-- Tracks active device sessions for concurrent login control.
+-- Max 2 active sessions per user at any time.
+-- Never delete rows — set active=FALSE on logout.
+-- TODO: add pg_cron cleanup job when user base grows.
+CREATE TABLE sessions (
+  session_id    TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL,
+  kind          TEXT NOT NULL DEFAULT 'LOGIN',
+  issued_utc    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_utc   TIMESTAMPTZ NOT NULL,
+  last_seen_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  device_label  TEXT,
+  ua_hash       TEXT,
+  ip_hash       TEXT,
+  login_via     TEXT NOT NULL DEFAULT 'EMAIL',
+  active        BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE INDEX ON sessions (user_id);
+CREATE INDEX ON sessions (user_id, active, expires_utc);
+
+
 -- ────────────────────────────────────────────────────────────
 -- 6. RLS (dev mode — replace before go-live)
 -- ────────────────────────────────────────────────────────────
