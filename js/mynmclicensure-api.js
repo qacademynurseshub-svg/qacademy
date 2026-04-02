@@ -830,6 +830,44 @@ async function getQuizzes(courseId, adminMode = false) {
 
 
 // ------------------------------------------------------------
+// QUIZZES — PAGINATED LIST
+// Returns: { quizzes, total } — paginated quiz rows for admin list
+// Reason: quiz table will grow; paginate to keep list view fast
+// searchTerm: matches title or quiz_id (leave blank for all)
+// page: page index starting at 0 (default 0)
+// pageSize: rows per page (default 50)
+// Used by: admin/fixed-quizzes.html pane 1
+// ------------------------------------------------------------
+async function getAllQuizzesPaginated(searchTerm = '', page = 0, pageSize = 50) {
+  let query = db
+    .from('quizzes')
+    .select(`
+      quiz_id,
+      course_id,
+      title,
+      status,
+      published,
+      allowed_modes,
+      n,
+      created_at
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false });
+
+  if (searchTerm) {
+    const term = `%${searchTerm}%`;
+    query = query.or(`title.ilike.${term},quiz_id.ilike.${term}`);
+  }
+
+  query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+  const { data, count, error } = await query;
+  if (error) { console.error('getAllQuizzesPaginated:', error); return { quizzes: [], total: 0 }; }
+
+  return { quizzes: data || [], total: count || 0 };
+}
+
+
+// ------------------------------------------------------------
 // GET ALL QUIZZES (ADMIN — ALL COURSES)
 // Returns: all quiz rows regardless of course or status
 //

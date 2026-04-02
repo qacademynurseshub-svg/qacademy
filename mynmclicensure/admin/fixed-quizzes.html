@@ -451,6 +451,10 @@
         </div>
         <div id="qTableArea"><div class="empty-state">Loading quizzes…</div></div>
       </div>
+
+      <div style="text-align:center; margin:16px 0; display:none;" id="quizLoadMoreBtn">
+        <button class="btn btn-ghost" onclick="loadMoreQuizzes()">Load More</button>
+      </div>
     </div>
 
     <!-- ══ PANE 2: QUIZ DETAILS ═══════════════════════════ -->
@@ -704,6 +708,13 @@ let pickerAllItems = [];
 let pickerFiltered = [];
 let pickerSelected = {};     // { item_id: item }
 
+// Pagination & search state (pane 1)
+let currentQuizPage   = 0;
+let totalQuizzes      = 0;
+let quizSearchTimer   = null;
+let currentQuizSearch = '';
+let isLoadingQuizzes  = false;
+
 // ── Init ───────────────────────────────────────────────────────
 async function initPage() {
   const profile = await guardPage('ADMIN');
@@ -713,8 +724,7 @@ async function initPage() {
   allCourses = await getAllCourses();
   populateCourseDropdowns();
 
-  allQuizzes = await getAllQuizzes();
-  applyQuizFilters();
+  await loadQuizList(false);
 }
 
 function populateCourseDropdowns() {
@@ -758,42 +768,103 @@ function goToPane(n) {
 
 // ══ PANE 1 ════════════════════════════════════════════════════
 
+// ── Load quiz list (paginated) ────────────────────────────────
+async function loadQuizList(append = false) {
+  if (isLoadingQuizzes) return;
+  isLoadingQuizzes = true;
+
+  const result = await getAllQuizzesPaginated(currentQuizSearch, currentQuizPage, 50);
+  totalQuizzes = result.total;
+
+  // Store in allQuizzes so pane 2/3/4 logic still works
+  if (append) {
+    allQuizzes = allQuizzes.concat(result.quizzes);
+  } else {
+    allQuizzes = result.quizzes;
+  }
+
+  // Note: totalQuizzes reflects the DB count (search-filtered).
+  // Client-side filters (course, status, mode, published) may reduce
+  // the displayed count further. "Showing X of Y" where Y is the
+  // DB total is intentional and consistent with payments.html.
+  const displayed = applyClientFilters(allQuizzes);
+
+  if (append) {
+    const tbody = document.querySelector('#qTableArea tbody');
+    if (tbody) tbody.innerHTML += buildQuizRows(displayed.slice(displayed.length - result.quizzes.length));
+  } else {
+    renderQuizTable(displayed);
+  }
+
+  // Update result count
+  const shown = document.querySelectorAll('#qTableArea tbody tr').length;
+  document.getElementById('qResultCount').textContent =
+    `Showing ${shown} of ${totalQuizzes} quiz${totalQuizzes !== 1 ? 'zes' : ''}`;
+
+  // Show/hide Load More button
+  document.getElementById('quizLoadMoreBtn').style.display =
+    allQuizzes.length < totalQuizzes ? 'block' : 'none';
+
+  isLoadingQuizzes = false;
+}
+
+// ── Load More ─────────────────────────────────────────────────
+function loadMoreQuizzes() {
+  currentQuizPage += 1;
+  loadQuizList(true);
+}
+
+// ── Filters ───────────────────────────────────────────────────
 function applyQuizFilters() {
-  const search    = document.getElementById('qFilterSearch').value.toLowerCase().trim();
+  const search = document.getElementById('qFilterSearch').value.trim();
+
+  // Title/ID search triggers a DB query with debounce
+  if (search !== currentQuizSearch) {
+    clearTimeout(quizSearchTimer);
+    quizSearchTimer = setTimeout(() => {
+      currentQuizSearch = search;
+      currentQuizPage = 0;
+      loadQuizList(false);
+    }, 300);
+    return;
+  }
+
+  // Course, status, mode, published — client-side filter of loaded data
+  const displayed = applyClientFilters(allQuizzes);
+  const shown = displayed.length;
+  document.getElementById('qResultCount').textContent =
+    `Showing ${shown} of ${totalQuizzes} quiz${totalQuizzes !== 1 ? 'zes' : ''}`;
+  renderQuizTable(displayed);
+}
+
+// Client-side filters (applied on top of the DB-paginated data)
+function applyClientFilters(quizzes) {
   const course    = document.getElementById('qFilterCourse').value;
   const status    = document.getElementById('qFilterStatus').value;
   const mode      = document.getElementById('qFilterMode').value;
   const published = document.getElementById('qFilterPublished').value;
 
-  const filtered = allQuizzes.filter(q => {
-    if (search && !q.title.toLowerCase().includes(search) && !q.quiz_id.toLowerCase().includes(search)) return false;
+  return quizzes.filter(q => {
     if (course && q.course_id !== course) return false;
     if (status && q.status !== status) return false;
     if (mode && q.allowed_modes !== mode) return false;
     if (published !== '' && String(q.published) !== published) return false;
     return true;
   });
-
-  document.getElementById('qResultCount').textContent = `${filtered.length} quiz${filtered.length !== 1 ? 'zes' : ''}`;
-  renderQuizTable(filtered);
 }
 
 function clearQuizFilters() {
   ['qFilterSearch','qFilterCourse','qFilterStatus','qFilterMode','qFilterPublished'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  applyQuizFilters();
+  currentQuizSearch = '';
+  currentQuizPage = 0;
+  loadQuizList(false);
 }
 
-function renderQuizTable(quizzes) {
-  const area = document.getElementById('qTableArea');
-
-  if (!quizzes.length) {
-    area.innerHTML = `<div class="empty-state">No quizzes found. Click <strong>+ New Quiz</strong> to create one.</div>`;
-    return;
-  }
-
-  const rows = quizzes.map(q => {
+// ── Build row HTML ────────────────────────────────────────────
+function buildQuizRows(quizzes) {
+  return quizzes.map(q => {
     const course = allCourses.find(c => c.course_id === q.course_id);
     return `
       <tr class="${q.status === 'archived' ? 'archived-row' : ''}" onclick="openEditQuiz('${q.quiz_id}')">
@@ -801,7 +872,7 @@ function renderQuizTable(quizzes) {
           <div style="font-weight:600;">${escapeHtml(q.title)}</div>
           <div style="font-size:11px; color:var(--text-muted); font-family:monospace; margin-top:2px;">${q.quiz_id}</div>
         </td>
-        <td>${course ? course.title : q.course_id}</td>
+        <td>${course ? escapeHtml(course.title) : escapeHtml(q.course_id)}</td>
         <td><span class="chip ${q.allowed_modes}">${formatMode(q.allowed_modes)}</span></td>
         <td style="font-weight:600;">${q.n}</td>
         <td><span class="chip ${q.status}">${q.status}</span></td>
@@ -813,6 +884,16 @@ function renderQuizTable(quizzes) {
         </td>
       </tr>`;
   }).join('');
+}
+
+// ── Render table ──────────────────────────────────────────────
+function renderQuizTable(quizzes) {
+  const area = document.getElementById('qTableArea');
+
+  if (!quizzes.length) {
+    area.innerHTML = `<div class="empty-state">No quizzes found. Click <strong>+ New Quiz</strong> to create one.</div>`;
+    return;
+  }
 
   area.innerHTML = `
     <table>
@@ -826,7 +907,7 @@ function renderQuizTable(quizzes) {
           <th>Published</th>
         </tr>
       </thead>
-      <tbody>${rows}</tbody>
+      <tbody>${buildQuizRows(quizzes)}</tbody>
     </table>`;
 }
 
