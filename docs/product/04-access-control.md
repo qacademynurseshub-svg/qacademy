@@ -57,6 +57,40 @@ When a student registers without paying, they get a trial subscription automatic
 
 Each programme has its own trial product, so the trial courses are relevant to the student's specific nursing programme.
 
+## Device Sessions — Concurrent Login Control
+
+Each user can be logged in on a maximum of 2 devices at the same time. This prevents credential sharing — a student cannot give their login to multiple friends and have them all use the platform simultaneously.
+
+### How It Works
+
+When a student logs in, the system creates a **session record** in the database. This record tracks:
+
+- Which user it belongs to
+- When the login happened and when it expires (7 days from login)
+- What device and browser were used (e.g. "Windows · Chrome", "iOS · Safari")
+- Whether the session is still active
+
+If a student is already logged in on 2 devices and logs in on a 3rd, the system **automatically kicks out the oldest session**. The student on the kicked device will be redirected to the login page the next time they navigate to any page.
+
+### What Students Experience
+
+- Logging in on a phone and a laptop works fine (2 devices)
+- Logging in on a 3rd device works, but the first device gets signed out
+- Logging out properly frees up a device slot
+- If a student clears their browser or loses a device, the old session expires after 7 days automatically
+
+### What Admins Can See
+
+Admins can view all active sessions across the platform. Session records are never deleted — they are marked inactive on logout or when kicked. This provides an audit trail of login activity.
+
+### Technical Details
+
+- Sessions are stored in the `sessions` table
+- Each session has a unique ID (format: `SESS_` + random string) stored in the browser's localStorage
+- On every page load, `guardPage()` verifies the session is still active and not expired
+- The last-seen timestamp is updated on each page load (fire-and-forget, does not slow down the page)
+- Session verification adds one lightweight database query per page load
+
 ## Row Level Security — How Data Is Protected
 
 Every table in the database has rules that control who can read or write to it. These rules are enforced at the database level, not just in the website code. This means even if someone tried to access the database directly (bypassing the website), the rules would still apply.

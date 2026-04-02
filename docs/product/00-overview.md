@@ -63,7 +63,7 @@ Day-to-day admin work includes:
 - [01 — Payments](01-payments.md) — how students pay and how the payment system works
 - [02 — Subscriptions](02-subscriptions.md) — how access is granted, extended, and managed
 - [03 — Quiz System](03-quiz-system.md) — how quizzes, runners, and attempts work
-- [04 — Access Control](04-access-control.md) — who can see what and how security works
+- [04 — Access Control](04-access-control.md) — who can see what, how security works, and device session limits
 - [05 — Announcements](05-announcements.md) — how admin sends targeted notices to students
 - [06 — Offline Packs](06-offline-packs.md) — how students study without internet
 - [07 — Messaging](07-messaging.md) — how the built-in support chat works
