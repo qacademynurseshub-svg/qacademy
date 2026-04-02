@@ -39,7 +39,8 @@ $$;
 -- 1. users
 -- Students read and update their own row only.
 -- Admins read and update all rows.
--- No browser INSERT or DELETE.
+-- New users insert their own row during registration.
+-- No browser DELETE.
 -- Worker uses service role key — bypasses RLS.
 
 DROP POLICY IF EXISTS "dev_allow_all" ON users;
@@ -49,6 +50,12 @@ ON users FOR SELECT
 USING (
   auth.uid() = auth_id
   OR auth_user_role() = 'ADMIN'
+);
+
+CREATE POLICY "users_insert"
+ON users FOR INSERT
+WITH CHECK (
+  auth.uid() = auth_id
 );
 
 CREATE POLICY "users_update"
