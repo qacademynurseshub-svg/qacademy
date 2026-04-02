@@ -217,28 +217,7 @@ async function getUsersByIds(userIds) {
 async function getPaymentsPaginated(searchTerm = '', statusFilter = '', productFilter = '', programFilter = '', dateFrom = '', dateTo = '', page = 0, pageSize = 50) {
   let query = db
     .from('payments')
-    .select(`
-      payment_id,
-      reference,
-      email,
-      user_id,
-      product_id,
-      status,
-      amount_minor_paid,
-      amount_minor_expected,
-      currency,
-      paid_utc,
-      activated_utc,
-      setup_token,
-      setup_created_utc,
-      setup_completed_utc,
-      subscription_id,
-      phone_number,
-      failure_note,
-      raw,
-      program_id,
-      created_at
-    `, { count: 'exact' })
+    .select('*', { count: 'exact' })
     .order('paid_utc', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false });
 
