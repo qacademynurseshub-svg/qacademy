@@ -696,7 +696,6 @@ function openPanel(reference) {
   // Timestamps section
   html += `<div class="detail-section">
     <div class="detail-section-title">Timeline</div>
-    <div class="detail-row"><span class="key">Created</span><span class="val">${formatTs(p.created_at)}</span></div>
     <div class="detail-row"><span class="key">Paid</span><span class="val">${formatTs(p.paid_utc)}</span></div>
     <div class="detail-row"><span class="key">Activated</span><span class="val">${formatTs(p.activated_utc)}</span></div>
     ${p.setup_created_utc   ? `<div class="detail-row"><span class="key">Setup Started</span><span class="val">${formatTs(p.setup_created_utc)}</span></div>` : ''}

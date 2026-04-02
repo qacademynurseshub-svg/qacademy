@@ -218,8 +218,7 @@ async function getPaymentsPaginated(searchTerm = '', statusFilter = '', productF
   let query = db
     .from('payments')
     .select('*', { count: 'exact' })
-    .order('paid_utc', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false });
+    .order('paid_utc', { ascending: false, nullsFirst: false });
 
   if (statusFilter)  query = query.eq('status', statusFilter);
   if (productFilter) query = query.eq('product_id', productFilter);
