@@ -2293,6 +2293,62 @@ async function getStudentAttempts(userId, courseId = null) {
 
 
 // ------------------------------------------------------------
+// STUDENT ATTEMPTS — PAGINATED LIST
+// Returns: { attempts, total } — paginated attempt rows for history
+// Reason: attempts table grows unbounded per student; loading all
+//         at once is wasteful especially with answers_json blobs
+// Selects only card-visible columns — omits item_ids and
+// answers_json which are large and only needed by the runner
+// filters: { courseId, status, mode, search }
+// page: page index starting at 0 (default 0)
+// pageSize: rows per page (default 20)
+// Returns: { attempts, total }
+// Used by: student/learning-history.html
+// ------------------------------------------------------------
+async function getStudentAttemptsPaginated(userId, filters = {}, page = 0, pageSize = 20) {
+  const {
+    courseId = '',
+    status  = '',
+    mode    = '',
+    search  = ''
+  } = filters;
+
+  let query = db
+    .from('attempts')
+    .select(`
+      attempt_id,
+      user_id,
+      quiz_id,
+      course_id,
+      mode,
+      source,
+      status,
+      n,
+      score_raw,
+      score_total,
+      score_pct,
+      time_taken_s,
+      display_label,
+      ts_iso
+    `, { count: 'exact' })
+    .eq('user_id', userId)
+    .order('ts_iso', { ascending: false });
+
+  if (courseId) query = query.eq('course_id', courseId);
+  if (status)  query = query.eq('status', status);
+  if (mode)    query = query.eq('mode', mode);
+  if (search)  query = query.ilike('display_label', `%${search}%`);
+
+  query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+  const { data, count, error } = await query;
+  if (error) { console.error('getStudentAttemptsPaginated:', error); return { attempts: [], total: 0 }; }
+
+  return { attempts: data || [], total: count || 0 };
+}
+
+
+// ------------------------------------------------------------
 // SHUFFLE ARRAY (Fisher-Yates)
 // Returns: new shuffled array (does not mutate original)
 //

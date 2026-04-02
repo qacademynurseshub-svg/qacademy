@@ -421,11 +421,15 @@ const PAGE_SIZE = 20;
 
 // ── State ──────────────────────────────────────────────────────
 let PROFILE        = null;
-let allAttempts    = [];   // all attempts from DB
-let filteredAttempts = []; // after filters applied
+let allAttempts    = [];   // loaded attempts (current pages)
+let filteredAttempts = []; // after client-side sort/source filter
 let enrolledCourses = [];  // enrolled course objects
-let currentLimit   = PAGE_SIZE;
 let searchTimer    = null;
+
+// Pagination state
+let attemptsPage    = 0;
+let attemptsTotal   = 0;
+let attemptsLoading = false;
 
 // ── Init ───────────────────────────────────────────────────────
 async function initPage() {
@@ -440,11 +444,10 @@ async function initPage() {
   // 2. Read ?course= from URL for pre-filter
   const urlCourse = new URLSearchParams(window.location.search).get('course') || null;
 
-  // 3. Load enrolled courses + all attempts in parallel
-  const [courseAccessMap, allCourses, attempts] = await Promise.all([
+  // 3. Load enrolled courses in parallel with first page of attempts
+  const [courseAccessMap, allCourses] = await Promise.all([
     getStudentCourseAccess(PROFILE.user_id),
-    getCourses(),
-    getStudentAttempts(PROFILE.user_id)
+    getCourses()
   ]);
 
   // 4. Wire up sidebar dropdown
@@ -453,13 +456,10 @@ async function initPage() {
   // 5. Filter to enrolled courses only
   enrolledCourses = allCourses.filter(c => courseAccessMap[c.course_id]);
 
-  // 6. Store attempts
-  allAttempts = attempts || [];
-
-  // 7. Populate course filter dropdown (only courses the student has attempts for)
+  // 6. Populate course filter dropdown
   buildCourseDropdown(urlCourse);
 
-  // 8. Show/hide course scope chip
+  // 7. Show/hide course scope chip and set filter
   if (urlCourse) {
     const c = enrolledCourses.find(c => c.course_id === urlCourse);
     if (c) {
@@ -469,33 +469,65 @@ async function initPage() {
     }
   }
 
-  // 9. Render stats + table
-  renderStats();
-  applyFilters(true);
+  // 8. Load first page of attempts (respects any pre-set course filter)
+  await loadAttempts(false);
 }
 
 // ── Build course dropdown ──────────────────────────────────────
-// Only shows courses the student actually has attempts in
+// Shows all enrolled courses (with pagination we can't know which
+// courses have attempts without loading everything)
 function buildCourseDropdown(urlCourse) {
-  const seen = new Set(allAttempts.map(a => a.course_id).filter(Boolean));
-  const sel  = document.getElementById('courseFilter');
+  const sel = document.getElementById('courseFilter');
 
-  enrolledCourses
-    .filter(c => seen.has(c.course_id))
-    .forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.course_id;
-      opt.textContent = c.title;
-      sel.appendChild(opt);
-    });
+  enrolledCourses.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.course_id;
+    opt.textContent = c.title;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Load attempts (paginated) ──────────────────────────────────
+async function loadAttempts(append = false) {
+  if (attemptsLoading) return;
+  attemptsLoading = true;
+
+  const filters = {
+    courseId: document.getElementById('courseFilter').value,
+    status:  document.getElementById('statusFilter').value,
+    mode:    document.getElementById('modeFilter').value,
+    search:  document.getElementById('searchFilter').value.trim()
+  };
+
+  const result = await getStudentAttemptsPaginated(
+    PROFILE.user_id, filters, attemptsPage, PAGE_SIZE
+  );
+  attemptsTotal = result.total;
+
+  if (append) {
+    allAttempts = allAttempts.concat(result.attempts);
+  } else {
+    allAttempts = result.attempts;
+  }
+
+  // Note: renderStats() only reflects loaded attempts, not the true
+  // lifetime total. Fixing this properly would require a separate
+  // count query and is deferred.
+  renderStats();
+
+  // Apply client-side source filter and sort, then render
+  applyClientFilters();
+
+  attemptsLoading = false;
 }
 
 // ── Stats bar ──────────────────────────────────────────────────
-// Calculates: total, avg score, best score, instant count, timed count
-// Only counts completed attempts for score stats
+// Note: after pagination, allAttempts only contains the currently
+// loaded pages, not all attempts. Stats reflect loaded data only.
+// A separate count query for true totals is deferred.
 function renderStats() {
   const completed = allAttempts.filter(a => a.status === 'completed' && a.score_total > 0);
-  const total     = allAttempts.length;
+  const total     = attemptsTotal || allAttempts.length;
   const instant   = allAttempts.filter(a => a.mode === 'instant').length;
   const timed     = allAttempts.filter(a => a.mode === 'timed').length;
 
@@ -516,27 +548,20 @@ function renderStats() {
 }
 
 // ── Filter + Sort ──────────────────────────────────────────────
-// resetLimit: true = go back to first page (page 1 of load-more)
+// Course, status, mode, and search are now DB-side via loadAttempts.
+// Source filter and sort order remain client-side.
 function applyFilters(resetLimit) {
-  if (resetLimit) currentLimit = PAGE_SIZE;
+  attemptsPage = 0;
+  loadAttempts(false);
+}
 
-  const courseVal = document.getElementById('courseFilter').value;
-  const modeVal   = document.getElementById('modeFilter').value;
-  const statusVal = document.getElementById('statusFilter').value;
+// Client-side source filter + sort (applied on loaded data)
+function applyClientFilters() {
   const sourceVal = document.getElementById('sourceFilter').value;
   const sortVal   = document.getElementById('sortFilter').value;
-  const searchVal = document.getElementById('searchFilter').value.trim().toLowerCase();
 
-  // Filter
   filteredAttempts = allAttempts.filter(a => {
-    if (courseVal && a.course_id !== courseVal) return false;
-    if (modeVal   && a.mode      !== modeVal)   return false;
-    if (statusVal && a.status    !== statusVal) return false;
-    if (sourceVal && a.source    !== sourceVal) return false;
-    if (searchVal) {
-      const hay = (a.display_label + ' ' + (a.quiz_id || '') + ' ' + (a.course_id || '')).toLowerCase();
-      if (!hay.includes(searchVal)) return false;
-    }
+    if (sourceVal && a.source !== sourceVal) return false;
     return true;
   });
 
@@ -556,9 +581,8 @@ function applyFilters(resetLimit) {
   });
 
   // Result count
-  const cnt = filteredAttempts.length;
   document.getElementById('resultCount').textContent =
-    cnt ? `${cnt} attempt${cnt !== 1 ? 's' : ''}` : '';
+    `Showing ${allAttempts.length} of ${attemptsTotal} attempt${attemptsTotal !== 1 ? 's' : ''}`;
 
   renderList();
 }
@@ -566,7 +590,10 @@ function applyFilters(resetLimit) {
 // Debounced search handler
 function onSearchInput() {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => applyFilters(true), 220);
+  searchTimer = setTimeout(() => {
+    attemptsPage = 0;
+    loadAttempts(false);
+  }, 220);
 }
 
 // ── Render list ────────────────────────────────────────────────
@@ -584,13 +611,12 @@ function renderList() {
     return;
   }
 
-  // Slice to current page
-  const slice = filteredAttempts.slice(0, currentLimit);
+  // Render all loaded attempts (DB pagination controls the set)
   list.innerHTML = '';
-  slice.forEach(a => list.appendChild(buildCard(a)));
+  filteredAttempts.forEach(a => list.appendChild(buildCard(a)));
 
-  // Show/hide load more button
-  if (filteredAttempts.length > currentLimit) {
+  // Show/hide load more button based on DB total
+  if (allAttempts.length < attemptsTotal) {
     wrap.classList.add('show');
   } else {
     wrap.classList.remove('show');
@@ -598,8 +624,8 @@ function renderList() {
 }
 
 function loadMore() {
-  currentLimit += PAGE_SIZE;
-  renderList();
+  attemptsPage += 1;
+  loadAttempts(true);
 }
 
 // ── Build a single attempt card ────────────────────────────────
