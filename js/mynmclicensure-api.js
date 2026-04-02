@@ -132,14 +132,16 @@ async function getCourseById(courseId) {
 
 // ------------------------------------------------------------
 // USERS — LIST
-// Returns: lighter list-level data for all users
+// Returns: { users, total } — users is the current page, total is the full match count
 // Reason: loading full data for hundreds of users is wasteful
 // searchTerm: matches name or email (leave blank for all)
 // roleFilter: 'STUDENT' | 'TEACHER' | 'ADMIN' | '' for all
 // programFilter: program_id | '' for all
+// page: page index starting at 0 (default 0)
+// pageSize: rows per page (default 50)
 // Used by: admin users page, admin subscriptions page
 // ------------------------------------------------------------
-async function getUsers(searchTerm = '', roleFilter = '', programFilter = '') {
+async function getUsers(searchTerm = '', roleFilter = '', programFilter = '', page = 0, pageSize = 50) {
   let query = db
     .from('users')
     .select(`
@@ -154,28 +156,23 @@ async function getUsers(searchTerm = '', roleFilter = '', programFilter = '') {
       created_utc,
       level,
       cohort
-    `)
+    `, { count: 'exact' })
     .order('created_utc', { ascending: false });
 
   if (roleFilter) query = query.eq('role', roleFilter);
   if (programFilter) query = query.eq('program_id', programFilter);
 
-  const { data, error } = await query;
-  if (error) { console.error('getUsers:', error); return []; }
-
-  // Text search done client-side (simple and works on free tier)
-  let users = data || [];
   if (searchTerm) {
-    const term = searchTerm.toLowerCase();
-    users = users.filter(u =>
-      (u.name && u.name.toLowerCase().includes(term)) ||
-      (u.email && u.email.toLowerCase().includes(term)) ||
-      (u.forename && u.forename.toLowerCase().includes(term)) ||
-      (u.surname && u.surname.toLowerCase().includes(term))
-    );
+    const term = `%${searchTerm}%`;
+    query = query.or(`name.ilike.${term},forename.ilike.${term},surname.ilike.${term},email.ilike.${term}`);
   }
 
-  return users;
+  query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+  const { data, count, error } = await query;
+  if (error) { console.error('getUsers:', error); return { users: [], total: 0 }; }
+
+  return { users: data || [], total: count || 0 };
 }
 
 

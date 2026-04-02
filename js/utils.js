@@ -16,6 +16,21 @@ function safeText(element, value) {
 }
 
 /**
+ * Escapes a string for safe insertion into HTML template literals.
+ * Use this when building innerHTML via template strings with user data.
+ * Usage: `<div>${escapeHtml(user.name)}</div>`
+ */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
  * Safely sets an avatar image src with URL validation.
  * Only allows http:// and https:// URLs.
  * Falls back to initials element if URL is missing or unsafe.

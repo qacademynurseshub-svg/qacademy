@@ -426,6 +426,11 @@
       </div>
     </div>
 
+    <!-- Load More -->
+    <button id="loadMoreBtn" class="btn-action" style="display:none; margin-top:16px; text-align:center; width:100%;" onclick="loadMore()">
+      Load More
+    </button>
+
   </main>
 </div>
 
@@ -505,11 +510,18 @@
 <script src="/js/guard.js"></script>
 <script src="/js/paths.js"></script>
 <script src="/js/mynmclicensure-admin-sidebar.js"></script>
+<script src="/js/utils.js"></script>
 <script src="/js/mynmclicensure-api.js"></script>
 <script>
 
   // ── State ──────────────────────────────────────────────
-  let allUsers = [];        // full list loaded from DB
+  let currentPage = 0;
+  let totalUsers = 0;
+  let currentSearch = '';
+  let currentRole = '';
+  let currentProgram = '';
+  let isLoading = false;
+  let searchTimer = null;
   let currentUser = null;   // user currently open in panel
 
   // ── Init ───────────────────────────────────────────────
@@ -536,14 +548,36 @@
       assignProduct.innerHTML += `<option value="${p.product_id}">${p.name}${price} (${p.duration_days}d)</option>`;
     });
 
-    // Load all users
-    await loadUsers();
+    // Load first page of users
+    await loadUsers(false);
   }
 
   // ── Load users ─────────────────────────────────────────
-  async function loadUsers() {
-    allUsers = await getUsers();
-    renderTable(allUsers);
+  async function loadUsers(append = false) {
+    if (isLoading) return;
+    isLoading = true;
+
+    const result = await getUsers(currentSearch, currentRole, currentProgram, currentPage, 50);
+    totalUsers = result.total;
+
+    if (append) {
+      // Append rows to existing table
+      const tbody = document.querySelector('#usersTableArea tbody');
+      if (tbody) tbody.innerHTML += buildRows(result.users);
+    } else {
+      renderTable(result.users);
+    }
+
+    // Update results count
+    const shown = document.querySelectorAll('#usersTableArea tbody tr').length;
+    document.getElementById('resultsCount').textContent =
+      `Showing ${shown} of ${totalUsers} user${totalUsers !== 1 ? 's' : ''}`;
+
+    // Show/hide Load More button
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    loadMoreBtn.style.display = shown < totalUsers ? 'block' : 'none';
+
+    isLoading = false;
   }
 
   // ── Filter ─────────────────────────────────────────────
@@ -552,35 +586,35 @@
     const role   = document.getElementById('roleFilter').value;
     const prog   = document.getElementById('programFilter').value;
 
-    let filtered = allUsers;
-
-    if (role) filtered = filtered.filter(u => u.role === role);
-    if (prog) filtered = filtered.filter(u => u.program_id === prog);
-
-    if (search) {
-      const term = search.toLowerCase();
-      filtered = filtered.filter(u =>
-        (u.name   && u.name.toLowerCase().includes(term))   ||
-        (u.email  && u.email.toLowerCase().includes(term))  ||
-        (u.forename && u.forename.toLowerCase().includes(term)) ||
-        (u.surname  && u.surname.toLowerCase().includes(term))
-      );
-    }
-
-    renderTable(filtered);
-  }
-
-  // ── Render table ───────────────────────────────────────
-  function renderTable(users) {
-    const area = document.getElementById('usersTableArea');
-    document.getElementById('resultsCount').textContent =
-      `Showing ${users.length} user${users.length !== 1 ? 's' : ''}`;
-
-    if (users.length === 0) {
-      area.innerHTML = '<p style="padding:24px; color:var(--text-muted); font-size:14px;">No users found.</p>';
+    // Debounce search input (300ms)
+    if (search !== currentSearch) {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        currentSearch = search;
+        currentRole = role;
+        currentProgram = prog;
+        currentPage = 0;
+        loadUsers(false);
+      }, 300);
       return;
     }
 
+    // Role/programme changed — apply immediately
+    currentSearch = search;
+    currentRole = role;
+    currentProgram = prog;
+    currentPage = 0;
+    loadUsers(false);
+  }
+
+  // ── Load More ──────────────────────────────────────────
+  function loadMore() {
+    currentPage += 1;
+    loadUsers(true);
+  }
+
+  // ── Build row HTML ─────────────────────────────────────
+  function buildRows(users) {
     let rows = '';
     users.forEach(u => {
       const date = u.created_utc
@@ -594,8 +628,8 @@
       rows += `
         <tr onclick="openPanel('${u.user_id}')">
           <td>
-            <div style="font-weight:500;">${u.name || (u.forename + ' ' + u.surname) || '—'}</div>
-            <div style="font-size:12px; color:var(--text-muted);">${u.email}</div>
+            <div style="font-weight:500;">${escapeHtml(u.name || ((u.forename || '') + ' ' + (u.surname || '')).trim() || '—')}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(u.email || '—')}</div>
           </td>
           <td>${u.program_id || '—'}</td>
           <td><span class="role-chip ${u.role}">${u.role}</span></td>
@@ -603,6 +637,17 @@
           <td style="font-size:13px; color:var(--text-muted);">${date}</td>
         </tr>`;
     });
+    return rows;
+  }
+
+  // ── Render table ───────────────────────────────────────
+  function renderTable(users) {
+    const area = document.getElementById('usersTableArea');
+
+    if (users.length === 0) {
+      area.innerHTML = '<p style="padding:24px; color:var(--text-muted); font-size:14px;">No users found.</p>';
+      return;
+    }
 
     area.innerHTML = `
       <table class="users-table">
@@ -615,7 +660,7 @@
             <th>Joined</th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${buildRows(users)}</tbody>
       </table>`;
   }
 
