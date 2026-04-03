@@ -91,6 +91,45 @@ Admins can view all active sessions across the platform. Session records are nev
 - The last-seen timestamp is updated on each page load (fire-and-forget, does not slow down the page)
 - Session verification adds one lightweight database query per page load
 
+## Login Rate Limiting — Brute Force Protection
+
+Every time someone tries to log in — whether they get in or not — the platform records the attempt. This includes the email they used, what device they were on, when it happened, and whether it succeeded or failed. All of this is stored in the `auth_events` table.
+
+If someone enters the wrong password 5 times within 10 minutes, the platform temporarily blocks further login attempts for that email. They see a message telling them how long to wait before they can try again. If they keep trying and reach 10 failed attempts in 24 hours, the block extends to 24 hours.
+
+This protects student accounts from being broken into by someone guessing passwords repeatedly. It also gives you a record of suspicious activity — for example, if someone tried 20 different emails at 3am, you would see that in the database.
+
+The protection works even if the email does not belong to any account. Someone trying random emails to find valid accounts will still get blocked after 5 attempts from the same device.
+
+A student who genuinely forgets their password and tries a few times will not be affected — they get 5 attempts before any block kicks in. If they do get blocked, the message tells them exactly how long to wait.
+
+### What Gets Recorded
+
+Every login attempt creates a record with:
+- The email address used
+- Whether the login succeeded or failed
+- Why it failed (wrong password, or blocked by rate limit)
+- A device fingerprint (a code that identifies the device without revealing personal information)
+- The date and time
+
+### What Admins Can See
+
+The `auth_events` table in the database contains every login attempt across the platform. This is useful for:
+- Investigating reports of unauthorised access ("someone logged into my account")
+- Spotting attack patterns (many failed attempts from the same device targeting different emails)
+- Confirming when a student last successfully logged in
+
+### Technical Details
+
+- Login attempts are logged via the `log_auth_event` database function
+- Rate limit checks use the `check_login_rate_limit` database function
+- Both functions run with elevated permissions (SECURITY DEFINER) so they can access the locked-down table
+- The table cannot be read or written to directly from the browser — only through these two functions
+- If the rate limit check itself fails for any reason, login proceeds normally (fail-open design — we never accidentally lock everyone out)
+- Device fingerprints are built from screen size, timezone, language, and browser platform, then hashed for privacy
+
+---
+
 ## Row Level Security — How Data Is Protected
 
 Every table in the database has rules that control who can read or write to it. These rules are enforced at the database level, not just in the website code. This means even if someone tried to access the database directly (bypassing the website), the rules would still apply.

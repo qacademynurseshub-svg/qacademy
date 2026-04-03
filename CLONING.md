@@ -23,6 +23,7 @@ qacademy-gamma/
     paths.js               ← CENTRAL PATH CONFIG — edit this to clone
     config.js              ← Supabase credentials
     guard.js               ← Auth & role guards
+    auth.js                ← Auth utilities (hashing, fingerprint, event IDs)
     mynmclicensure-api.js  ← Licensure data layer
     myteacher-api.js       ← Teacher Assess data layer
     mynmclicensure-admin-sidebar.js
@@ -599,8 +600,35 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "dev_allow_all" ON messages FOR ALL USING (true) WITH CHECK (true);
 ```
 
-### 3.5 RLS
-All 36 tables have proper role-based RLS policies. The complete policy definitions are in `db/rls.sql`.
+### 3.5 Auth Events & Rate Limiting
+
+#### auth_events
+```sql
+-- Logs every login attempt (success + failure) for audit trail and rate limiting.
+-- All writes go through RPC — no direct browser access.
+CREATE TABLE auth_events (
+  event_id      TEXT PRIMARY KEY,
+  event_type    TEXT NOT NULL,          -- LOGIN_SUCCESS | LOGIN_FAIL
+  identifier    TEXT NOT NULL,          -- email used (lowercased)
+  user_id       TEXT,                   -- NULL if unknown email
+  fp_hash       TEXT,                   -- device fingerprint hash
+  ua_hash       TEXT,                   -- user-agent hash
+  device_label  TEXT,                   -- 'Windows · Chrome' etc.
+  fail_reason   TEXT,                   -- NULL on success; INVALID_CREDENTIALS, RATE_LIMITED
+  created_utc   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+Two SECURITY DEFINER RPCs are required (no direct browser access to this table):
+- `log_auth_event(...)` — inserts one row after every login attempt
+- `check_login_rate_limit(p_identifier, p_fp_hash)` — counts recent failures, returns `{ allowed: true }` or `{ allowed: false, retry_after_seconds, reason }`
+
+Rate limit thresholds: 5 failures in 10 minutes → 10-min block, 10 failures in 24 hours → 24-hr block. Full RPC definitions are in `db/rls.sql`.
+
+The migration file `db/migrations/auth_events_and_rate_limit.sql` contains the complete DDL, indexes, RLS, and both RPCs in one runnable block.
+
+### 3.6 RLS
+All 37 tables have proper role-based RLS policies. The complete policy definitions are in `db/rls.sql`.
 
 Two SECURITY DEFINER helper functions are required (run these first):
 - `auth_user_role()` — returns the current user's role without causing recursion on the users table
@@ -635,6 +663,7 @@ Files are named after the question item_id e.g. `GP_001.jpg`. The `rationale_img
 - After registration: `register.html` inserts row into `users` with `role = 'STUDENT'`
 - Trial subscription auto-assigned on registration based on `program_id`
 - New students who pay via `subscribe.html` get their account created by the Worker via `setup-complete` route after payment
+- Login rate limiting: 5 failed attempts in 10 min → 10-min block, 10 in 24 hr → 24-hr block. All attempts logged to `auth_events` via RPC. Utilities in `js/auth.js`.
 
 ---
 

@@ -36,6 +36,7 @@ qacademy-gamma/
     paths.js               ← CENTRAL PATH CONFIG — edit this to clone
     config.js              ← Supabase credentials
     guard.js               ← Auth & role guards
+    auth.js                ← Auth utilities (hashing, fingerprint, event IDs)
     mynmclicensure-api.js  ← Licensure data layer
     myteacher-api.js       ← Teacher Assess data layer
     mynmclicensure-admin-sidebar.js
@@ -98,7 +99,8 @@ const MYTEACHER = {
 
 ### Done ✅
 - Foundation: Supabase, Cloudflare Pages, GitHub repo
-- Auth pages: login, register, forgot-password, reset-password
+- Auth pages: login, register, forgot-password, reset-password, MyTeacher register
+- Login rate limiting: 5/10min and 10/24hr thresholds, auth_events audit trail
 - Student dashboard: course cards, subscription bar, announcements strip, recent attempts
 - Admin dashboard: stats, recent users, quick links
 - Brand colours, landing page, logo
@@ -447,8 +449,11 @@ These values are captured from the live quiz onto each attempt's `score_json` at
 ## Device Sessions
 Concurrent login control limits each user to 2 active device sessions. On login, a session row is created in the `sessions` table with a 7-day expiry. If a 3rd login occurs, the oldest session is automatically deactivated. On every page load, `guardPage()` verifies the session is still active via `verifySession()`. On logout, `deactivateCurrentSession()` marks the session inactive. Session ID is stored in `localStorage` as `qa_session_id`.
 
+## Login Rate Limiting
+Every login attempt (success or failure) is logged to the `auth_events` table via the `log_auth_event` RPC. Before each login, `check_login_rate_limit` checks recent failures. Thresholds: 5 failures in 10 minutes → 10-min block, 10 failures in 24 hours → 24-hr block. Tracked per email and per device fingerprint. Auth utilities (hashing, fingerprint, event IDs) are in `js/auth.js`. Fail-open design: if the rate limit check errors, login proceeds normally.
+
 ## RLS
-All 36 tables now have proper role-based RLS policies defined in `db/rls.sql`. Two helper functions bypass RLS safely:
+All 37 tables now have proper role-based RLS policies defined in `db/rls.sql`. Two helper functions bypass RLS safely:
 - `auth_user_role()` — returns current user's role (SECURITY DEFINER)
 - `auth_user_id()` — returns current user's user_id (SECURITY DEFINER)
 
