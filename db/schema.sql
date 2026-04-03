@@ -643,6 +643,38 @@ CREATE INDEX ON sessions (user_id);
 CREATE INDEX ON sessions (user_id, active, expires_utc);
 
 
+-- 1.12 auth_events
+-- Logs every login attempt (success + failure) for audit trail
+-- and rate limiting. Never delete rows — use pg_cron cleanup
+-- when table grows large. All writes go through RPC
+-- (log_auth_event) — no direct browser INSERT.
+CREATE TABLE auth_events (
+  event_id      TEXT PRIMARY KEY,
+  event_type    TEXT NOT NULL,          -- LOGIN_SUCCESS | LOGIN_FAIL
+  identifier    TEXT NOT NULL,          -- email used (lowercased)
+  user_id       TEXT,                   -- NULL if unknown email
+  fp_hash       TEXT,                   -- device fingerprint hash
+  ua_hash       TEXT,                   -- user-agent hash
+  device_label  TEXT,                   -- 'Windows · Chrome' etc.
+  fail_reason   TEXT,                   -- NULL on success; INVALID_CREDENTIALS, RATE_LIMITED
+  created_utc   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX auth_events_identifier_created
+  ON auth_events (identifier, created_utc);
+
+CREATE INDEX auth_events_fp_hash_created
+  ON auth_events (fp_hash, created_utc)
+  WHERE fp_hash IS NOT NULL;
+
+CREATE INDEX auth_events_user_id_created
+  ON auth_events (user_id, created_utc)
+  WHERE user_id IS NOT NULL;
+
+CREATE INDEX auth_events_created
+  ON auth_events (created_utc);
+
+
 -- ────────────────────────────────────────────────────────────
 -- 6. RLS (dev mode — replace before go-live)
 -- ────────────────────────────────────────────────────────────

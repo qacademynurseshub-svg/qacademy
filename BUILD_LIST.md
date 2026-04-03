@@ -1,15 +1,17 @@
 # Build List
 
-**Status: Active development. Sprint hardening complete. Working from Must Do list.**
+**Status: Active development. Working from Must Do list.**
 
 Last updated: April 2026
 
 ---
 ## Sam's Next plan
 
-- [ ] Check seesions valid period
-- [ ] Rate limit on login
-- [ ] 
+- [ ] Create auth_events table for login attempt tracking
+- [ ] Rate limit on login (5 fails / 10 min → lockout, 10 fails / 24 hr → long lockout)
+- [ ] Rate limit on password reset (3 requests per identifier in 60 min)
+- [ ] Revisit session expiry length (currently 7 days)
+- [ ] Add login methods: username + password, Google OAuth, magic link (passwordless email)
       
 ## Must Do(suggetsd by agents review)
 

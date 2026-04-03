@@ -939,3 +939,169 @@ USING (
     AND u.user_id = sessions.user_id
   )
 );
+
+
+-- ────────────────────────────────────────────────────────────
+-- auth_events
+-- ────────────────────────────────────────────────────────────
+-- Fully locked down — no direct browser access.
+-- All reads/writes go through SECURITY DEFINER RPCs below.
+-- Future: add admin SELECT policy when admin dashboard is built.
+
+ALTER TABLE auth_events ENABLE ROW LEVEL SECURITY;
+
+-- No permissive policies — table is inaccessible from browser.
+-- Only the RPCs below (running as SECURITY DEFINER) can touch it.
+
+
+-- ────────────────────────────────────────────────────────────
+-- RPC: log_auth_event
+-- ────────────────────────────────────────────────────────────
+-- Inserts one row into auth_events. Called after every login
+-- attempt (success or failure). Runs with elevated permissions
+-- so it can write to the locked-down table.
+-- The browser calls: db.rpc('log_auth_event', { ... })
+
+CREATE OR REPLACE FUNCTION log_auth_event(
+  p_event_id     TEXT,
+  p_event_type   TEXT,
+  p_identifier   TEXT,
+  p_user_id      TEXT    DEFAULT NULL,
+  p_fp_hash      TEXT    DEFAULT NULL,
+  p_ua_hash      TEXT    DEFAULT NULL,
+  p_device_label TEXT    DEFAULT NULL,
+  p_fail_reason  TEXT    DEFAULT NULL
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Only allow known event types
+  IF p_event_type NOT IN ('LOGIN_SUCCESS', 'LOGIN_FAIL') THEN
+    RAISE EXCEPTION 'Invalid event_type: %', p_event_type;
+  END IF;
+
+  INSERT INTO auth_events (
+    event_id, event_type, identifier, user_id,
+    fp_hash, ua_hash, device_label, fail_reason
+  ) VALUES (
+    p_event_id,
+    p_event_type,
+    LOWER(TRIM(p_identifier)),
+    p_user_id,
+    p_fp_hash,
+    p_ua_hash,
+    p_device_label,
+    p_fail_reason
+  );
+END;
+$$;
+
+
+-- ────────────────────────────────────────────────────────────
+-- RPC: check_login_rate_limit
+-- ────────────────────────────────────────────────────────────
+-- Counts recent failed login attempts and decides whether the
+-- user should be allowed to try again. Returns a JSON object:
+--   { "allowed": true }
+-- or:
+--   { "allowed": false, "retry_after_seconds": 420, "reason": "TOO_MANY_ATTEMPTS" }
+--
+-- Thresholds (matching old system):
+--   5 failures in 10 minutes → blocked for remainder of 10-min window
+--   10 failures in 24 hours  → blocked for remainder of 24-hr window
+--
+-- Checks two buckets: identifier (email) and fp_hash (device).
+-- Either bucket exceeding the threshold triggers a block.
+
+CREATE OR REPLACE FUNCTION check_login_rate_limit(
+  p_identifier TEXT,
+  p_fp_hash    TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_identifier   TEXT := LOWER(TRIM(p_identifier));
+  v_now          TIMESTAMPTZ := NOW();
+  v_10m_ago      TIMESTAMPTZ := v_now - INTERVAL '10 minutes';
+  v_24h_ago      TIMESTAMPTZ := v_now - INTERVAL '24 hours';
+  v_id_short     INT;
+  v_id_long      INT;
+  v_fp_short     INT;
+  v_fp_long      INT;
+  v_oldest_short TIMESTAMPTZ;
+  v_oldest_long  TIMESTAMPTZ;
+  v_retry        INT;
+BEGIN
+  -- Count failures by identifier in short window (10 min)
+  SELECT COUNT(*), MIN(created_utc)
+  INTO v_id_short, v_oldest_short
+  FROM auth_events
+  WHERE identifier = v_identifier
+    AND event_type = 'LOGIN_FAIL'
+    AND fail_reason != 'RATE_LIMITED'
+    AND created_utc > v_10m_ago;
+
+  -- Count failures by identifier in long window (24 hr)
+  SELECT COUNT(*), MIN(created_utc)
+  INTO v_id_long, v_oldest_long
+  FROM auth_events
+  WHERE identifier = v_identifier
+    AND event_type = 'LOGIN_FAIL'
+    AND fail_reason != 'RATE_LIMITED'
+    AND created_utc > v_24h_ago;
+
+  -- Count failures by fingerprint (if provided)
+  v_fp_short := 0;
+  v_fp_long  := 0;
+  IF p_fp_hash IS NOT NULL THEN
+    SELECT COUNT(*) INTO v_fp_short
+    FROM auth_events
+    WHERE fp_hash = p_fp_hash
+      AND event_type = 'LOGIN_FAIL'
+      AND fail_reason != 'RATE_LIMITED'
+      AND created_utc > v_10m_ago;
+
+    SELECT COUNT(*) INTO v_fp_long
+    FROM auth_events
+    WHERE fp_hash = p_fp_hash
+      AND event_type = 'LOGIN_FAIL'
+      AND fail_reason != 'RATE_LIMITED'
+      AND created_utc > v_24h_ago;
+  END IF;
+
+  -- Check long window first (stricter penalty)
+  IF v_id_long >= 10 OR v_fp_long >= 10 THEN
+    -- Blocked for remainder of 24-hr window
+    v_retry := GREATEST(
+      EXTRACT(EPOCH FROM (v_oldest_long + INTERVAL '24 hours' - v_now))::INT,
+      60
+    );
+    RETURN jsonb_build_object(
+      'allowed', false,
+      'retry_after_seconds', v_retry,
+      'reason', 'TOO_MANY_ATTEMPTS_24H'
+    );
+  END IF;
+
+  -- Check short window
+  IF v_id_short >= 5 OR v_fp_short >= 5 THEN
+    -- Blocked for remainder of 10-min window
+    v_retry := GREATEST(
+      EXTRACT(EPOCH FROM (v_oldest_short + INTERVAL '10 minutes' - v_now))::INT,
+      30
+    );
+    RETURN jsonb_build_object(
+      'allowed', false,
+      'retry_after_seconds', v_retry,
+      'reason', 'TOO_MANY_ATTEMPTS'
+    );
+  END IF;
+
+  -- Under both thresholds — allow
+  RETURN jsonb_build_object('allowed', true);
+END;
+$$;

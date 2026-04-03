@@ -454,7 +454,7 @@ All 36 tables now have proper role-based RLS policies defined in `db/rls.sql`. T
 
 Policy groups: public-read (programs), logged-in read (courses, products, config, quizzes, items, announcements), student-owned (attempts, offline_packs, subscriptions, user_notice_state), teacher-owned (bank_items, classes, quizzes, profiles), shared teacher↔student (class_members, quiz_attempts), admin-only (payments), messaging (thread ownership).
 
-See `db/rls.sql` for the complete policy definitions and `sprints/sprint-1.md` for implementation notes and lessons learned.
+See `db/rls.sql` for the complete policy definitions.
 
 ## XSS Hardening
 Four vulnerable locations patched (innerHTML with user-controlled data):
