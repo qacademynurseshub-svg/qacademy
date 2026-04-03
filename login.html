@@ -127,7 +127,7 @@
           p_ua_hash:      uaHash,
           p_device_label: deviceLabel,
           p_fail_reason:  'RATE_LIMITED'
-        }).catch(() => {});
+        }).then(() => {}).catch(() => {});
 
         const mins = Math.ceil((rl.retry_after_seconds || 60) / 60);
         errorAlert.textContent = 'Too many failed login attempts. Please try again in ' + mins + ' minute' + (mins === 1 ? '' : 's') + '.';
@@ -158,7 +158,7 @@
         p_ua_hash:      uaHash,
         p_device_label: deviceLabel,
         p_fail_reason:  'INVALID_CREDENTIALS'
-      }).catch(() => {});
+      }).then(() => {}).catch(() => {});
 
       errorAlert.textContent = 'Invalid email or password. Please try again.';
       errorAlert.classList.add('show');
@@ -184,7 +184,7 @@
       p_fp_hash:      fpHash,
       p_ua_hash:      uaHash,
       p_device_label: deviceLabel
-    }).catch(() => {});
+    }).then(() => {}).catch(() => {});
 
     if (userRow) {
       const now = new Date();
