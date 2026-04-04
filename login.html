@@ -164,6 +164,24 @@
 
       if (!userRow) {
         // No account — they used Google/magic link but never registered.
+        // Log the failed attempt so it's visible in auth_events.
+        if (isOAuthReturn) {
+          const identifier = (session.user.email || '').toLowerCase();
+          const fpHash = await buildFpHash();
+          const uaHash = await sha256Hex(navigator.userAgent || '');
+          const deviceLabel = buildDeviceLabel();
+          await db.rpc('log_auth_event', {
+            p_event_id:     makeEventId(),
+            p_event_type:   'LOGIN_FAIL',
+            p_identifier:   identifier,
+            p_fp_hash:      fpHash,
+            p_ua_hash:      uaHash,
+            p_device_label: deviceLabel,
+            p_fail_reason:  'NO_ACCOUNT'
+          }).catch(() => {});
+          console.log('[auth] no account — LOGIN_FAIL logged for', identifier);
+        }
+
         await db.auth.signOut();
         hideOverlay();
         const errorAlert = document.getElementById('errorAlert');
@@ -186,9 +204,14 @@
       }
 
       // Returning from OAuth or magic link — create a session row.
-      const provider = session.user.app_metadata?.provider || 'email';
+      // Determine login method from the URL hash, not app_metadata.provider.
+      // Supabase sets provider to the ORIGINAL signup method, not the
+      // current login method — so a user who registered with email+password
+      // but signs in with Google would show provider='email'. The URL hash
+      // is the reliable source: Google returns include provider_token,
+      // magic links include type=magiclink.
       let loginVia = 'EMAIL';
-      if (provider === 'google') loginVia = 'GOOGLE';
+      if (urlHash.includes('provider_token')) loginVia = 'GOOGLE';
       else if (urlHash.includes('type=magiclink')) loginVia = 'MAGIC_LINK';
 
       console.log('[auth] creating session, provider:', provider, 'loginVia:', loginVia);
