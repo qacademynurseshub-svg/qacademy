@@ -8,6 +8,14 @@
 </head>
 <body>
 
+<!-- Signing-in overlay (hidden by default, shown when returning from Google/magic link) -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-overlay-card">
+    <div class="auth-overlay-spinner"></div>
+    <p class="auth-overlay-text" id="overlayText">Signing in...</p>
+  </div>
+</div>
+
 <div class="auth-wrapper">
   <div class="auth-card">
 
@@ -107,9 +115,46 @@
 <script src="/js/config.js"></script>
 <script src="/js/auth.js"></script>
 <script>
-  // ── Handle page load: already logged in OR returning from OAuth/magic-link ──
-  db.auth.getSession().then(async ({ data: { session } }) => {
+  // ── Overlay helpers ───���─────────────────────────────────────
+  const overlay = document.getElementById('authOverlay');
+  const overlayText = document.getElementById('overlayText');
+
+  function showOverlay(text) {
+    overlayText.textContent = text;
+    overlay.classList.add('show');
+  }
+  function hideOverlay() {
+    overlay.classList.remove('show');
+  }
+
+  // ── Detect if we're returning from OAuth/magic link ─────────
+  // If the URL has a hash with access_token, the user is coming
+  // back from Google or a magic link. Show the overlay immediately
+  // so they know something is happening.
+  const urlHash = window.location.hash || '';
+  if (urlHash.includes('access_token')) {
+    const isGoogle = urlHash.includes('provider_token');
+    showOverlay(isGoogle ? 'Signing in with Google...' : 'Signing in with magic link...');
+  }
+
+  // ── Handle auth state changes ───────────────��───────────────
+  // This replaces the old getSession() approach. onAuthStateChange
+  // fires AFTER Supabase finishes processing OAuth/magic-link
+  // tokens from the URL hash — so the session is guaranteed to
+  // be ready when our code runs.
+  let authHandled = false;
+
+  db.auth.onAuthStateChange(async (event, session) => {
+    // Only handle sign-in events, and only once
+    if (authHandled) return;
     if (!session) return;
+
+    // INITIAL_SESSION fires on page load if user is already logged in.
+    // SIGNED_IN fires when OAuth/magic-link tokens are processed.
+    // We handle both the same way.
+    if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') return;
+
+    authHandled = true;
 
     // Check if this user has a users row (registered account)
     const { data: userRow } = await db
@@ -120,8 +165,8 @@
 
     if (!userRow) {
       // No account — they used Google/magic link but never registered.
-      // Sign them out and show a message.
       await db.auth.signOut();
+      hideOverlay();
       const errorAlert = document.getElementById('errorAlert');
       errorAlert.textContent = 'No account found for this email. Please register first, then you can sign in with Google or a magic link.';
       errorAlert.classList.add('show');
@@ -131,18 +176,20 @@
     // Check if session row already exists (normal page revisit)
     const existingSessionId = localStorage.getItem('qa_session_id');
     if (existingSessionId) {
-      // Already has a session — just redirect
       await redirectByRole(session.user.id);
       return;
     }
 
     // Returning from OAuth or magic link — create a session row.
-    // Determine how they signed in from Supabase's provider info.
     const provider = session.user.app_metadata?.provider || 'email';
-    const urlHash = window.location.hash || '';
     let loginVia = 'EMAIL';
     if (provider === 'google') loginVia = 'GOOGLE';
     else if (urlHash.includes('type=magiclink')) loginVia = 'MAGIC_LINK';
+
+    // Show overlay if not already visible
+    if (!overlay.classList.contains('show')) {
+      showOverlay(loginVia === 'GOOGLE' ? 'Signing in with Google...' : 'Signing in with magic link...');
+    }
 
     // Log the auth event (fire-and-forget)
     const identifier = (session.user.email || '').toLowerCase();

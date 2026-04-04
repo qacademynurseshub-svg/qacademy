@@ -269,6 +269,50 @@ a:hover {
   cursor: not-allowed;
 }
 
+/* --- Auth Overlay (signing in with Google/magic link) --- */
+.auth-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(249, 250, 251, 0.92);
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-overlay.show {
+  display: flex;
+}
+
+.auth-overlay-card {
+  text-align: center;
+  padding: 40px 48px;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+.auth-overlay-spinner {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 16px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: authSpin 0.7s linear infinite;
+}
+
+@keyframes authSpin {
+  to { transform: rotate(360deg); }
+}
+
+.auth-overlay-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  margin: 0;
+}
+
 /* --- Auth Footer --- */
 .auth-footer {
   text-align: center;
