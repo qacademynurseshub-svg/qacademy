@@ -132,7 +132,8 @@
   // back from Google or a magic link. Show the overlay immediately
   // so they know something is happening.
   const urlHash = window.location.hash || '';
-  if (urlHash.includes('access_token')) {
+  const isOAuthReturn = urlHash.includes('access_token');
+  if (isOAuthReturn) {
     const isGoogle = urlHash.includes('provider_token');
     showOverlay(isGoogle ? 'Signing in with Google...' : 'Signing in with magic link...');
   }
@@ -171,12 +172,17 @@
         return;
       }
 
-      // Check if session row already exists (normal page revisit)
-      const existingSessionId = localStorage.getItem('qa_session_id');
-      if (existingSessionId) {
-        console.log('[auth] existing session found, redirecting');
-        await redirectByRole(session.user.id);
-        return;
+      // Check if session row already exists (normal page revisit).
+      // SKIP this check if we're returning from OAuth/magic link —
+      // that's always a fresh sign-in and needs a new session row,
+      // even if an old qa_session_id is still in localStorage.
+      if (!isOAuthReturn) {
+        const existingSessionId = localStorage.getItem('qa_session_id');
+        if (existingSessionId) {
+          console.log('[auth] existing session found, redirecting');
+          await redirectByRole(session.user.id);
+          return;
+        }
       }
 
       // Returning from OAuth or magic link — create a session row.
