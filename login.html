@@ -178,7 +178,7 @@
             p_ua_hash:      uaHash,
             p_device_label: deviceLabel,
             p_fail_reason:  'NO_ACCOUNT'
-          }).catch(() => {});
+          }).then(() => {}).catch(() => {});
           console.log('[auth] no account — LOGIN_FAIL logged for', identifier);
         }
 
