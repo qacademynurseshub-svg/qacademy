@@ -12,6 +12,9 @@ Last updated: April 2026
 - [ ] Rate limit on password reset (3 requests per identifier in 60 min)
 - [ ] Revisit session expiry length (currently 7 days)
 - [ ] Add login methods: username + password, Google OAuth, magic link (passwordless email)
+- [ ] Gradually stop sharing things between myteacher & mynmclicensure so that they can become seperate products
+- [ ] Look into new stack that offers proper backend as almost all business logics live in the browser at the moment
+- [ ] Introduce the emails -such as registration email etc
       
 ## Must Do(suggetsd by agents review)
 
