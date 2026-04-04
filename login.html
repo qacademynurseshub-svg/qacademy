@@ -137,77 +137,90 @@
     showOverlay(isGoogle ? 'Signing in with Google...' : 'Signing in with magic link...');
   }
 
-  // ── Handle auth state changes ───────────────��───────────────
-  // This replaces the old getSession() approach. onAuthStateChange
-  // fires AFTER Supabase finishes processing OAuth/magic-link
-  // tokens from the URL hash — so the session is guaranteed to
-  // be ready when our code runs.
+  // ── Handle auth state changes ────────────────────────────────
+  // onAuthStateChange fires when Supabase finishes processing
+  // OAuth/magic-link tokens from the URL hash.
   let authHandled = false;
 
   db.auth.onAuthStateChange(async (event, session) => {
-    // Only handle sign-in events, and only once
+    console.log('[auth] onAuthStateChange:', event, session ? 'has session' : 'no session');
+
+    // Only process once, and only when we have a session
     if (authHandled) return;
     if (!session) return;
 
-    // INITIAL_SESSION fires on page load if user is already logged in.
-    // SIGNED_IN fires when OAuth/magic-link tokens are processed.
-    // We handle both the same way.
-    if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') return;
-
     authHandled = true;
 
-    // Check if this user has a users row (registered account)
-    const { data: userRow } = await db
-      .from('users')
-      .select('user_id')
-      .eq('auth_id', session.user.id)
-      .maybeSingle();
+    try {
+      // Check if this user has a users row (registered account)
+      const { data: userRow, error: userError } = await db
+        .from('users')
+        .select('user_id')
+        .eq('auth_id', session.user.id)
+        .maybeSingle();
 
-    if (!userRow) {
-      // No account — they used Google/magic link but never registered.
-      await db.auth.signOut();
+      console.log('[auth] user lookup:', userRow ? userRow.user_id : 'not found', userError?.message || '');
+
+      if (!userRow) {
+        // No account — they used Google/magic link but never registered.
+        await db.auth.signOut();
+        hideOverlay();
+        const errorAlert = document.getElementById('errorAlert');
+        errorAlert.textContent = 'No account found for this email. Please register first, then you can sign in with Google or a magic link.';
+        errorAlert.classList.add('show');
+        return;
+      }
+
+      // Check if session row already exists (normal page revisit)
+      const existingSessionId = localStorage.getItem('qa_session_id');
+      if (existingSessionId) {
+        console.log('[auth] existing session found, redirecting');
+        await redirectByRole(session.user.id);
+        return;
+      }
+
+      // Returning from OAuth or magic link — create a session row.
+      const provider = session.user.app_metadata?.provider || 'email';
+      let loginVia = 'EMAIL';
+      if (provider === 'google') loginVia = 'GOOGLE';
+      else if (urlHash.includes('type=magiclink')) loginVia = 'MAGIC_LINK';
+
+      console.log('[auth] creating session, provider:', provider, 'loginVia:', loginVia);
+
+      // Show overlay if not already visible
+      if (!overlay.classList.contains('show')) {
+        showOverlay(loginVia === 'GOOGLE' ? 'Signing in with Google...' : 'Signing in with magic link...');
+      }
+
+      // Log the auth event
+      const identifier = (session.user.email || '').toLowerCase();
+      const fpHash = await buildFpHash();
+      const uaHash = await sha256Hex(navigator.userAgent || '');
+      const deviceLabel = buildDeviceLabel();
+
+      const { error: eventError } = await db.rpc('log_auth_event', {
+        p_event_id:     makeEventId(),
+        p_event_type:   'LOGIN_SUCCESS',
+        p_identifier:   identifier,
+        p_user_id:      userRow.user_id,
+        p_fp_hash:      fpHash,
+        p_ua_hash:      uaHash,
+        p_device_label: deviceLabel
+      });
+      console.log('[auth] auth_event logged:', eventError ? eventError.message : 'ok');
+
+      const sessionId = await createLoginSession(userRow.user_id, loginVia);
+      console.log('[auth] session created:', sessionId || 'FAILED');
+
+      await redirectByRole(session.user.id);
+
+    } catch (err) {
+      console.error('[auth] onAuthStateChange error:', err);
       hideOverlay();
       const errorAlert = document.getElementById('errorAlert');
-      errorAlert.textContent = 'No account found for this email. Please register first, then you can sign in with Google or a magic link.';
+      errorAlert.textContent = 'Something went wrong during sign-in. Please try again.';
       errorAlert.classList.add('show');
-      return;
     }
-
-    // Check if session row already exists (normal page revisit)
-    const existingSessionId = localStorage.getItem('qa_session_id');
-    if (existingSessionId) {
-      await redirectByRole(session.user.id);
-      return;
-    }
-
-    // Returning from OAuth or magic link — create a session row.
-    const provider = session.user.app_metadata?.provider || 'email';
-    let loginVia = 'EMAIL';
-    if (provider === 'google') loginVia = 'GOOGLE';
-    else if (urlHash.includes('type=magiclink')) loginVia = 'MAGIC_LINK';
-
-    // Show overlay if not already visible
-    if (!overlay.classList.contains('show')) {
-      showOverlay(loginVia === 'GOOGLE' ? 'Signing in with Google...' : 'Signing in with magic link...');
-    }
-
-    // Log the auth event (fire-and-forget)
-    const identifier = (session.user.email || '').toLowerCase();
-    const fpHash = await buildFpHash();
-    const uaHash = await sha256Hex(navigator.userAgent || '');
-    const deviceLabel = buildDeviceLabel();
-    db.rpc('log_auth_event', {
-      p_event_id:     makeEventId(),
-      p_event_type:   'LOGIN_SUCCESS',
-      p_identifier:   identifier,
-      p_user_id:      userRow.user_id,
-      p_fp_hash:      fpHash,
-      p_ua_hash:      uaHash,
-      p_device_label: deviceLabel
-    }).then(() => {}).catch(() => {});
-
-    await createLoginSession(userRow.user_id, loginVia);
-    await redirectByRole(session.user.id);
   });
 
   // Handle login form submission
