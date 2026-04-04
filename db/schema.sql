@@ -635,7 +635,7 @@ CREATE TABLE sessions (
   device_label  TEXT,
   ua_hash       TEXT,
   ip_hash       TEXT,
-  login_via     TEXT NOT NULL DEFAULT 'EMAIL',
+  login_via     TEXT NOT NULL DEFAULT 'EMAIL',  -- EMAIL | GOOGLE | MAGIC_LINK
   active        BOOLEAN NOT NULL DEFAULT TRUE
 );
 

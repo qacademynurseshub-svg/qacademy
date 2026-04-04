@@ -217,6 +217,58 @@ a:hover {
 .divider::before { left: 0; }
 .divider::after { right: 0; }
 
+/* --- Google Sign-In Button --- */
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 11px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.btn-google:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+/* --- Magic Link Section --- */
+.magic-link-section {
+  margin-top: 16px;
+}
+
+.btn-magic {
+  display: block;
+  width: 100%;
+  padding: 11px 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-magic:hover {
+  background-color: var(--primary-light);
+}
+
+.btn-magic:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* --- Auth Footer --- */
 .auth-footer {
   text-align: center;

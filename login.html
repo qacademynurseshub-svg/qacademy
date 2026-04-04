@@ -57,8 +57,38 @@
       </button>
     </form>
 
+    <!-- Divider -->
+    <div class="divider">or</div>
+
+    <!-- Google Sign-In -->
+    <button type="button" class="btn btn-google" id="googleBtn">
+      <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle; margin-right:8px;">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Sign in with Google
+    </button>
+
+    <!-- Magic Link -->
+    <div class="magic-link-section" id="magicLinkSection">
+      <div class="form-group" style="margin-bottom:8px;">
+        <label for="magicEmail">Or sign in with a magic link</label>
+        <input
+          type="email"
+          id="magicEmail"
+          placeholder="you@example.com"
+          autocomplete="email"
+        />
+      </div>
+      <button type="button" class="btn btn-magic" id="magicBtn">
+        Send magic link
+      </button>
+      <div class="alert alert-success" id="magicSuccess"></div>
+    </div>
+
     <!-- Footer -->
-<!-- Footer -->
     <div class="auth-footer">
       Don't have an account? <a href="/register.html">Register here</a>
     </div>
@@ -66,7 +96,7 @@
       <a href="/myteacher/register.html" style="font-size:13px; color:var(--text-muted);">Signing up for MyTeacher? Register here</a>
     </div>
     <div style="text-align:center; margin-top:12px;">
-      <a href="/index.html" style="font-size:13px; color:var(--text-muted);">← Back to Home</a>
+      <a href="/index.html" style="font-size:13px; color:var(--text-muted);">&larr; Back to Home</a>
     </div>
 
   </div>
@@ -77,11 +107,60 @@
 <script src="/js/config.js"></script>
 <script src="/js/auth.js"></script>
 <script>
-  // If already logged in, redirect to correct dashboard
+  // ── Handle page load: already logged in OR returning from OAuth/magic-link ──
   db.auth.getSession().then(async ({ data: { session } }) => {
-    if (session) {
-      await redirectByRole(session.user.id);
+    if (!session) return;
+
+    // Check if this user has a users row (registered account)
+    const { data: userRow } = await db
+      .from('users')
+      .select('user_id')
+      .eq('auth_id', session.user.id)
+      .maybeSingle();
+
+    if (!userRow) {
+      // No account — they used Google/magic link but never registered.
+      // Sign them out and show a message.
+      await db.auth.signOut();
+      const errorAlert = document.getElementById('errorAlert');
+      errorAlert.textContent = 'No account found for this email. Please register first, then you can sign in with Google or a magic link.';
+      errorAlert.classList.add('show');
+      return;
     }
+
+    // Check if session row already exists (normal page revisit)
+    const existingSessionId = localStorage.getItem('qa_session_id');
+    if (existingSessionId) {
+      // Already has a session — just redirect
+      await redirectByRole(session.user.id);
+      return;
+    }
+
+    // Returning from OAuth or magic link — create a session row.
+    // Determine how they signed in from Supabase's provider info.
+    const provider = session.user.app_metadata?.provider || 'email';
+    const urlHash = window.location.hash || '';
+    let loginVia = 'EMAIL';
+    if (provider === 'google') loginVia = 'GOOGLE';
+    else if (urlHash.includes('type=magiclink')) loginVia = 'MAGIC_LINK';
+
+    // Log the auth event (fire-and-forget)
+    const identifier = (session.user.email || '').toLowerCase();
+    const fpHash = await buildFpHash();
+    const uaHash = await sha256Hex(navigator.userAgent || '');
+    const deviceLabel = buildDeviceLabel();
+    db.rpc('log_auth_event', {
+      p_event_id:     makeEventId(),
+      p_event_type:   'LOGIN_SUCCESS',
+      p_identifier:   identifier,
+      p_user_id:      userRow.user_id,
+      p_fp_hash:      fpHash,
+      p_ua_hash:      uaHash,
+      p_device_label: deviceLabel
+    }).then(() => {}).catch(() => {});
+
+    await createLoginSession(userRow.user_id, loginVia);
+    await redirectByRole(session.user.id);
   });
 
   // Handle login form submission
@@ -167,8 +246,7 @@
       return;
     }
 
-    // ── Session control ─────────────────────────────────────────
-    // 1. Get the user's profile to find their user_id
+    // ── Session control (now uses shared function) ────────────
     const { data: userRow } = await db
       .from('users')
       .select('user_id')
@@ -187,65 +265,71 @@
     }).then(() => {}).catch(() => {});
 
     if (userRow) {
-      const now = new Date();
-      const expires = new Date(now);
-      expires.setDate(expires.getDate() + 7);
-      const nowIso     = now.toISOString();
-      const expiresIso = expires.toISOString();
-
-      // 2. Count active non-expired sessions for this user
-      const { count } = await db
-        .from('sessions')
-        .select('session_id', { count: 'exact', head: true })
-        .eq('user_id', userRow.user_id)
-        .eq('active', true)
-        .gt('expires_utc', nowIso);
-
-      if (count >= 2) {
-        // Too many sessions — kick the oldest one to make room.
-        // The kicked device will be redirected to login on next
-        // page load when guardPage() → verifySession() fails.
-        const { data: oldest } = await db
-          .from('sessions')
-          .select('session_id')
-          .eq('user_id', userRow.user_id)
-          .eq('active', true)
-          .order('issued_utc', { ascending: true })
-          .limit(1)
-          .maybeSingle();
-
-        if (oldest) {
-          await db.from('sessions')
-            .update({ active: false })
-            .eq('session_id', oldest.session_id);
-        }
-      }
-
-      // 3. Create new session row
-      const sessionId = 'SESS_' + crypto.randomUUID()
-        .replace(/-/g, '').toUpperCase();
-
-      await db.from('sessions').insert({
-        session_id:    sessionId,
-        user_id:       userRow.user_id,
-        kind:          'LOGIN',
-        issued_utc:    nowIso,
-        expires_utc:   expiresIso,
-        last_seen_utc: nowIso,
-        device_label:  deviceLabel,
-        ua_hash:       uaHash,
-        ip_hash:       null,
-        login_via:     'EMAIL',
-        active:        true
-      });
-
-      // 4. Store session_id in localStorage for guardPage() checks
-      localStorage.setItem('qa_session_id', sessionId);
+      await createLoginSession(userRow.user_id, 'EMAIL');
     }
     // ── End session control ─────────────────────────────────────
 
     // Redirect based on role
     await redirectByRole(data.user.id);
+  });
+
+  // ── Google Sign-In ──────────────────────────────────────────
+  document.getElementById('googleBtn').addEventListener('click', async () => {
+    const errorAlert = document.getElementById('errorAlert');
+    errorAlert.classList.remove('show');
+
+    const { error } = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/login.html'
+      }
+    });
+
+    if (error) {
+      errorAlert.textContent = 'Could not start Google sign-in. Please try again.';
+      errorAlert.classList.add('show');
+    }
+    // If no error, the browser redirects to Google automatically.
+    // When Google sends them back to /login.html, the session check
+    // at the top of this page handles the rest.
+  });
+
+  // ── Magic Link ──────────────────────────────────────────────
+  document.getElementById('magicBtn').addEventListener('click', async () => {
+    const magicEmail = document.getElementById('magicEmail').value.trim();
+    const errorAlert = document.getElementById('errorAlert');
+    const magicSuccess = document.getElementById('magicSuccess');
+    const magicBtn = document.getElementById('magicBtn');
+
+    errorAlert.classList.remove('show');
+    magicSuccess.classList.remove('show');
+
+    if (!magicEmail) {
+      errorAlert.textContent = 'Please enter your email address to receive a magic link.';
+      errorAlert.classList.add('show');
+      return;
+    }
+
+    magicBtn.disabled = true;
+    magicBtn.textContent = 'Sending...';
+
+    const { error } = await db.auth.signInWithOtp({
+      email: magicEmail,
+      options: {
+        emailRedirectTo: window.location.origin + '/login.html'
+      }
+    });
+
+    if (error) {
+      errorAlert.textContent = 'Could not send magic link. Please try again.';
+      errorAlert.classList.add('show');
+    } else {
+      magicSuccess.textContent = 'Magic link sent! Check your inbox and click the link to sign in.';
+      magicSuccess.classList.add('show');
+    }
+
+    magicBtn.disabled = false;
+    magicBtn.textContent = 'Send magic link';
   });
 
   // Redirect user to their correct dashboard based on role
