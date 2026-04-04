@@ -15,6 +15,10 @@ Last updated: April 2026
 - [ ] Gradually stop sharing things between myteacher & mynmclicensure so that they can become seperate products
 - [ ] Look into new stack that offers proper backend as almost all business logics live in the browser at the moment
 - [ ] Introduce the emails -such as registration email etc
+- [ ] do we have admin create user?
+- [ ] Admin yoken audit/ sessions audit/auth events audit
+- [ ] Admin Expiry reminder/auto expiry reminder
+- [ ] Telegram for premium members
       
 ## Must Do(suggetsd by agents review)
 
