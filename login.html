@@ -214,7 +214,7 @@
       if (urlHash.includes('provider_token')) loginVia = 'GOOGLE';
       else if (urlHash.includes('type=magiclink')) loginVia = 'MAGIC_LINK';
 
-      console.log('[auth] creating session, provider:', provider, 'loginVia:', loginVia);
+      console.log('[auth] creating session, loginVia:', loginVia);
 
       // Show overlay if not already visible
       if (!overlay.classList.contains('show')) {
