@@ -49,21 +49,26 @@ a { color: var(--brand); }
 .filter-bar input, .filter-bar select { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; background: var(--card); font-family: inherit; }
 .filter-bar input { min-width: 220px; }
 
-/* ── Quiz tile grid ──────────────────────────────────────── */
-.quiz-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-@media (max-width: 1000px) { .quiz-grid { grid-template-columns: 1fr; } }
+/* ── Quiz list — D1 compact rows ─────────────────────────── */
+.quiz-list { display: flex; flex-direction: column; gap: 6px; }
 
-.quiz-tile { border: 1px solid var(--line); border-radius: 18px; padding: 16px; background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.90)); box-shadow: 0 10px 28px rgba(0,0,0,.05); cursor: pointer; transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
-.quiz-tile:hover { transform: translateY(-2px); border-color: rgba(11,122,117,.30); box-shadow: 0 16px 34px rgba(0,0,0,.08); }
-.quiz-tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.quiz-tile-main { min-width: 0; flex: 1; }
-.quiz-tile-title { font-size: 17px; font-weight: 900; line-height: 1.25; }
-.quiz-tile-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
-.quiz-meta-grid { margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-@media (max-width: 760px) { .quiz-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.quiz-meta-cell { border: 1px solid var(--line); border-radius: 14px; padding: 10px 11px; background: var(--soft); }
-.quiz-meta-label { font-size: 10px; font-weight: 900; color: var(--muted); text-transform: uppercase; }
-.quiz-meta-value { font-weight: 700; margin-top: 4px; font-size: 13px; }
+.quiz-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); cursor: pointer; transition: background .12s ease, border-color .12s ease; }
+.quiz-row:hover { background: rgba(11,122,117,.04); border-color: rgba(11,122,117,.25); }
+.quiz-row.active { border-color: rgba(11,122,117,.55); background: var(--brand-light); }
+
+.quiz-row-bar { width: 3px; align-self: stretch; min-height: 36px; border-radius: 0; flex-shrink: 0; }
+.quiz-row-bar.bar-published { background: #639922; }
+.quiz-row-bar.bar-draft     { background: #EF9F27; }
+.quiz-row-bar.bar-archived  { background: #B4B2A9; }
+
+.quiz-row-body { flex: 1; min-width: 0; }
+.quiz-row-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.quiz-row-meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.quiz-row-meta .sep { color: var(--line); }
+
+.quiz-row-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+.code-badge { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; font-weight: 600; background: var(--soft); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--muted); letter-spacing: 0.04em; }
 
 /* ── Badges / Pills ──────────────────────────────────────── */
 .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
@@ -73,6 +78,7 @@ a { color: var(--brand); }
 .badge-open { background: var(--ok-light); color: var(--ok); }
 .badge-upcoming { background: rgba(37,99,235,.08); color: #2563eb; }
 .badge-closed { background: var(--danger-light); color: var(--danger); }
+.badge-preset { background: rgba(109,40,217,.08); color: #6d28d9; }
 
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 8px; font-size: 12px; background: var(--soft); }
 .chip b { font-weight: 800; }
@@ -232,7 +238,7 @@ a { color: var(--brand); }
           <option value="ARCHIVED">Archived</option>
         </select>
       </div>
-      <div class="quiz-grid" id="quizGrid"></div>
+      <div class="quiz-list" id="quizGrid"></div>
     </div>
 
     <!-- ====== EDITOR VIEW ====== -->
@@ -661,7 +667,7 @@ let BANK_RESULTS = [];
 // Inline editor state
 let QE_MODE = 'NEW'; // NEW, EDIT, PREVIEW, or LIB_COPY
 let QE_BANK_ITEM_ID = '';
-let QE_LIB_REF = null; // stores original LIB:COURSE:ITEM ref during LIB_COPY
+let QE_LIB_REF = null;
 let QE_TYPE = 'MCQ';
 let QE_IMG_FILE = null;
 let QE_IMG_URL = '';
@@ -746,7 +752,6 @@ async function boot() {
   $('pageSubtitle').textContent = `Welcome, ${PROFILE.forename || PROFILE.name || PROFILE.email}`;
   if (window.mtSetUser) mtSetUser(PROFILE);
 
-  // Check URL for quiz_id
   const params = new URLSearchParams(location.search);
   const urlQuizId = params.get('quiz_id');
 
@@ -775,27 +780,43 @@ function renderQuizGrid() {
     grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-text">No quizzes found</div><div class="empty-state-hint">Click "+ New Quiz" to create your first quiz.</div></div>';
     return;
   }
+
   grid.innerHTML = ALL_QUIZZES.map(q => {
-    const os = computeOpenState(q);
-    const items = draftItemCount(q);
-    const dur = q.duration_minutes ? q.duration_minutes + ' min' : 'Untimed';
-    const att = q.max_attempts === 0 ? 'Unlimited' : q.max_attempts;
+    const status  = (q.status || 'DRAFT').toUpperCase();
+    const os      = computeOpenState(q);
+    const items   = draftItemCount(q);
+    const preset  = (q.preset || '').toUpperCase() || 'CUSTOM';
+    const dur     = q.duration_minutes ? q.duration_minutes + ' min' : 'Untimed';
+    const att     = q.max_attempts === 0 ? 'Unlimited' : (q.max_attempts || 1) + (q.max_attempts === 1 ? ' attempt' : ' attempts');
+    const classes = q.linked_class_count != null ? q.linked_class_count : '';
+    const code    = q.access_code || '—';
+    const isActive = q.teacher_quiz_id === SELECTED_ID;
+
+    const barClass = status === 'PUBLISHED' ? 'bar-published' : status === 'ARCHIVED' ? 'bar-archived' : 'bar-draft';
+
+    const metaParts = [
+      q.subject ? esc(q.subject) : null,
+      esc(dur),
+      `${items} Qs`,
+      esc(att),
+      classes ? `${classes} ${classes === 1 ? 'class' : 'classes'}` : null
+    ].filter(Boolean);
+
     return `
-    <div class="quiz-tile" data-qid="${esc(q.teacher_quiz_id)}" tabindex="0">
-      <div class="quiz-tile-top">
-        <div class="quiz-tile-main">
-          <div class="quiz-tile-title">${esc(q.title)}</div>
-          <div class="quiz-tile-sub">${q.subject ? esc(q.subject) + ' · ' : ''}Code: <span class="kbd">${esc(q.access_code || '—')}</span></div>
+    <div class="quiz-row${isActive ? ' active' : ''}" data-qid="${esc(q.teacher_quiz_id)}" tabindex="0">
+      <div class="quiz-row-bar ${barClass}"></div>
+      <div class="quiz-row-body">
+        <div class="quiz-row-title">${esc(q.title || '(Untitled)')}</div>
+        <div class="quiz-row-meta">
+          ${metaParts.join('<span class="sep">·</span>')}
+          <span class="sep">·</span>
+          <span class="code-badge">${esc(code)}</span>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">${statusBadge(q.status)} ${openStateBadge(os)}</div>
       </div>
-      <div class="quiz-meta-grid">
-        <div class="quiz-meta-cell"><div class="quiz-meta-label">Preset</div><div class="quiz-meta-value">${esc(q.preset || '—')}</div></div>
-        <div class="quiz-meta-cell"><div class="quiz-meta-label">Duration</div><div class="quiz-meta-value">${esc(dur)}</div></div>
-        <div class="quiz-meta-cell"><div class="quiz-meta-label">Attempts</div><div class="quiz-meta-value">${esc(String(att))}</div></div>
-        <div class="quiz-meta-cell"><div class="quiz-meta-label">Draft Items</div><div class="quiz-meta-value">${items}</div></div>
-        <div class="quiz-meta-cell"><div class="quiz-meta-label">Results</div><div class="quiz-meta-value">${esc(q.results_release_policy)}</div></div>
-        <div class="quiz-meta-cell"><div class="quiz-meta-label">Access Code</div><div class="quiz-meta-value"><span class="kbd">${esc(q.access_code || '—')}</span></div></div>
+      <div class="quiz-row-right">
+        ${status === 'PUBLISHED' ? openStateBadge(os) : ''}
+        <span class="badge badge-${status.toLowerCase()}">${esc(status)}</span>
+        <span class="badge badge-preset">${esc(preset)}</span>
       </div>
     </div>`;
   }).join('');
@@ -810,7 +831,6 @@ function showListView() {
   $('editorView').style.display = 'none';
   SELECTED_ID = '';
   SELECTED_QUIZ = null;
-  // Update URL
   const url = new URL(location);
   url.searchParams.delete('quiz_id');
   history.replaceState(null, '', url);
@@ -861,7 +881,6 @@ async function openQuiz(quizId) {
   updateEditorStrip();
   setReadOnlyState(quiz.status !== 'DRAFT');
 
-  // Update URL
   const url = new URL(location);
   url.searchParams.set('quiz_id', quizId);
   history.replaceState(null, '', url);
@@ -904,7 +923,6 @@ function setReadOnlyState(readOnly) {
   const status = SELECTED_QUIZ?.status;
 
   if (status === 'PUBLISHED') {
-    // PUBLISHED: lock integrity fields, allow administrative fields
     const immutable = ['fDuration','fSataScoring','fShuffleQ','fShuffleO'];
     const mutable = ['fTitle','fSubject','fMaxAttempts','fResultsPolicy','fScoreDisplay','fOpenAt','fCloseAt','fShowReview','fShowResults','fPassThreshold'];
     immutable.forEach(id => { if ($(id)) $(id).disabled = true; });
@@ -919,7 +937,6 @@ function setReadOnlyState(readOnly) {
     $('btnClearDraft').disabled = true;
     $('btnSaveDraft').disabled = true;
   } else if (status === 'ARCHIVED') {
-    // ARCHIVED: lock almost everything, allow results/display settings
     const mutableArchived = ['fTitle','fSubject','fResultsPolicy','fScoreDisplay','fShowReview','fShowResults','fPassThreshold'];
     const allFields = ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
     allFields.forEach(id => { if ($(id)) $(id).disabled = !mutableArchived.includes(id); });
@@ -933,7 +950,6 @@ function setReadOnlyState(readOnly) {
     $('btnClearDraft').disabled = true;
     $('btnSaveDraft').disabled = true;
   } else {
-    // DRAFT: everything editable
     const fields = ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
     fields.forEach(id => { if ($(id)) $(id).disabled = readOnly; });
     $('btnSaveQuiz').disabled = readOnly;
@@ -947,7 +963,6 @@ function setReadOnlyState(readOnly) {
     $('btnSaveDraft').disabled = readOnly;
   }
 
-  // Publish/Archive — always available based on status
   $('btnPublish').disabled = status !== 'DRAFT' || !DRAFT_IDS.length;
   $('btnArchive').disabled = status === 'ARCHIVED';
 }
@@ -1002,14 +1017,12 @@ function fillFormFromQuiz(quiz) {
   highlightPreset(CURRENT_PRESET);
   $('btnResetPreset').style.display = 'none';
 
-  // Grade bands
   try {
     const gb = typeof quiz.grade_bands_json === 'object' ? quiz.grade_bands_json : JSON.parse(quiz.grade_bands_json || '{}');
     GRADE_BANDS = Array.isArray(gb.bands) && gb.bands.length ? gb.bands : JSON.parse(JSON.stringify(DEFAULT_BANDS));
   } catch(_) { GRADE_BANDS = JSON.parse(JSON.stringify(DEFAULT_BANDS)); }
   renderGradeBands();
 
-  // Custom fields — ensure all fields have a normalised key
   try {
     const cf = typeof quiz.custom_fields_json === 'object' ? quiz.custom_fields_json : JSON.parse(quiz.custom_fields_json || '{}');
     const raw = Array.isArray(cf.fields) ? cf.fields : [];
@@ -1023,7 +1036,6 @@ function fillFormFromQuiz(quiz) {
   } catch(_) { CUSTOM_FIELDS = []; }
   renderCustomFields();
 
-  // Draft items
   try {
     const dj = typeof quiz.draft_items_json === 'object' ? quiz.draft_items_json : JSON.parse(quiz.draft_items_json || '{}');
     DRAFT_IDS = Array.isArray(dj.items) ? [...dj.items] : [];
@@ -1033,7 +1045,6 @@ function fillFormFromQuiz(quiz) {
   renderDraftList();
   renderLibItems();
 
-  // Auto-load all draft item details (bank + library)
   if (DRAFT_IDS.length) {
     getDraftPreview(quiz.teacher_quiz_id).then(({ items, missing }) => {
       items.forEach(item => BANK_CACHE.set(item.bank_item_id, item));
@@ -1069,7 +1080,6 @@ async function saveQuiz() {
   const form = readForm();
   if (!form.title) { showToast('Error', 'Quiz title is required.', 'error'); $('fTitle').focus(); return; }
 
-  // Date validation
   if (form.open_at && form.close_at && new Date(form.close_at) <= new Date(form.open_at)) {
     showToast('Error', 'Close date must be after open date.', 'error'); $('fCloseAt').focus(); return;
   }
@@ -1111,7 +1121,6 @@ async function saveQuiz() {
   fillFormFromQuiz(SELECTED_QUIZ);
   setTimeout(() => { btn.textContent = 'Save Settings'; btn.disabled = SELECTED_QUIZ?.status !== 'DRAFT'; }, 1200);
 
-  // Update URL
   const url = new URL(location);
   url.searchParams.set('quiz_id', SELECTED_ID);
   history.replaceState(null, '', url);
@@ -1177,7 +1186,6 @@ function readGradeBands() {
     if (label) bands.push({ min_pct: Math.min(100, Math.max(0, min)), label });
   });
   bands.sort((a, b) => a.min_pct - b.min_pct);
-  // Ensure 0% band
   if (!bands.length || bands[0].min_pct !== 0) bands.unshift({ min_pct: 0, label: 'Fail' });
   return bands;
 }
@@ -1195,7 +1203,7 @@ function addGradeBand() {
 
 function removeGradeBand(idx) {
   GRADE_BANDS = readGradeBands();
-  if (idx === 0) return; // can't remove 0% band
+  if (idx === 0) return;
   GRADE_BANDS.splice(idx, 1);
   renderGradeBands();
 }
@@ -1409,7 +1417,6 @@ function copyDraftIds() {
   navigator.clipboard.writeText(DRAFT_IDS.join('\n')).then(() => showToast('Copied', `${DRAFT_IDS.length} IDs copied.`, 'ok'));
 }
 
-// Draft auto-save
 function scheduleDraftSave() {
   clearTimeout(draftSaveTimer);
   showSaveIndicator('saving');
@@ -1446,12 +1453,10 @@ function renderLibItems() {
   const empty = $('libItemsEmpty');
   const link = $('libraryPickerLink');
 
-  // Set picker link with quiz_id
   if (SELECTED_ID) {
     link.href = `library.html?quiz_id=${encodeURIComponent(SELECTED_ID)}`;
   }
 
-  // Filter LIB refs from draft
   const libRefs = DRAFT_IDS.filter(id => id.startsWith('LIB:'));
 
   if (!libRefs.length) {
@@ -1492,7 +1497,6 @@ function renderLibItems() {
 async function refreshLibItems() {
   if (!SELECTED_ID) return;
 
-  // Re-fetch the quiz to get updated draft_items_json
   const quiz = await getTeacherQuiz(SELECTED_ID);
   if (!quiz) return;
 
@@ -1503,7 +1507,6 @@ async function refreshLibItems() {
   DRAFT_SET = new Set(DRAFT_IDS);
   SELECTED_QUIZ = quiz;
 
-  // Load details for LIB items
   const libRefs = DRAFT_IDS.filter(id => id.startsWith('LIB:'));
   if (libRefs.length) {
     const libMap = await resolveLibraryRefs(libRefs);
@@ -1537,7 +1540,6 @@ async function loadBankList() {
   btn.disabled = true;
   btn.textContent = 'Loading…';
 
-  // Populate filter dropdowns first time
   const opts = await getBankFilterOptions(TEACHER_ID);
   populateSelect($('bankSubject'), opts.subjects);
   populateSelect($('bankMaintopic'), opts.maintopics);
@@ -1562,7 +1564,7 @@ async function loadBankList() {
 
 function populateSelect(sel, values) {
   const current = sel.value;
-  const first = sel.options[0]; // "Any" option
+  const first = sel.options[0];
   sel.innerHTML = '';
   sel.appendChild(first);
   values.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
@@ -1631,12 +1633,11 @@ function resetInlineEditor() {
 }
 
 function loadItemIntoEditor(item, mode) {
-  QE_MODE = mode; // 'EDIT', 'PREVIEW', 'NEW', or 'LIB_COPY'
+  QE_MODE = mode;
   QE_BANK_ITEM_ID = item.bank_item_id;
   QE_TYPE = item.question_type || 'MCQ';
   QE_IMG_URL = item.rationale_img || '';
 
-  // Store original LIB ref for swapping in draft after copy
   QE_LIB_REF = mode === 'LIB_COPY' ? item.bank_item_id : null;
 
   if (mode === 'LIB_COPY') {
@@ -1680,7 +1681,6 @@ function highlightQeType(type) {
 function renderQeOptions(type, item) {
   const letters = type === 'TF' ? ['A','B'] : ['A','B','C','D','E','F'];
   const area = $('qeOptionsArea');
-
   const tfLabels = { A: 'True', B: 'False' };
 
   area.innerHTML = '<div class="qe-options-grid">' + letters.map(l => {
@@ -1697,7 +1697,6 @@ function renderQeOptions(type, item) {
     </div>`;
   }).join('') + '</div>';
 
-  // Correct answer
   if (type === 'SATA') {
     $('qeCorrectWrap').style.display = 'none';
     $('qeSataCorrectWrap').style.display = '';
@@ -1754,12 +1753,10 @@ function readInlineForm() {
     payload['option_' + lk] = ($('qeOpt_' + l)?.value || '').trim() || null;
     payload['fb_' + lk] = ($('qeFb_' + l)?.value || '').trim() || null;
   });
-  // Null out unused options
   if (type === 'TF') {
     ['c','d','e','f'].forEach(lk => { payload['option_' + lk] = null; payload['fb_' + lk] = null; });
   }
 
-  // Correct
   if (type === 'SATA') {
     const checked = [];
     $('qeSataChecks').querySelectorAll('input[data-sata]:checked').forEach(cb => checked.push(cb.dataset.sata));
@@ -1788,7 +1785,6 @@ async function saveInlineQuestion(addToDraftAfter) {
   $('btnQeSave').disabled = true;
   $('btnQeAddDraft').disabled = true;
 
-  // Upload image if needed
   if (QE_IMG_FILE) {
     const imgUrl = await uploadRationaleImage(QE_BANK_ITEM_ID || 'new_' + Date.now());
     if (imgUrl) { form.rationale_img = imgUrl; QE_IMG_URL = imgUrl; }
@@ -1807,15 +1803,12 @@ async function saveInlineQuestion(addToDraftAfter) {
       if (addToDraftAfter) addToDraft(result.item.bank_item_id);
     }
   } else if (QE_MODE === 'LIB_COPY') {
-    // Parse LIB ref to get courseId and itemId
     const libParts = QE_LIB_REF ? QE_LIB_REF.split(':') : [];
     const courseId = libParts[1] || '';
     const itemId = libParts[2] || '';
     result = await copyLibItemToBank(TEACHER_ID, courseId, itemId, form);
     if (result.success && result.item) {
-      // Update cache with new bank item
       BANK_CACHE.set(result.item.bank_item_id, result.item);
-      // Swap the LIB ref in draft with the new bank item
       if (QE_LIB_REF && DRAFT_SET.has(QE_LIB_REF)) {
         const idx = DRAFT_IDS.indexOf(QE_LIB_REF);
         if (idx !== -1) DRAFT_IDS[idx] = result.item.bank_item_id;
@@ -1824,7 +1817,6 @@ async function saveInlineQuestion(addToDraftAfter) {
         DRAFT_DIRTY = true;
         scheduleDraftSave();
       }
-      // Switch editor to normal EDIT mode for the new bank item
       QE_MODE = 'EDIT';
       QE_BANK_ITEM_ID = result.item.bank_item_id;
       QE_LIB_REF = null;
@@ -1842,7 +1834,7 @@ async function saveInlineQuestion(addToDraftAfter) {
     if (result.success) {
       BANK_CACHE.set(QE_BANK_ITEM_ID, { ...BANK_CACHE.get(QE_BANK_ITEM_ID), ...form });
       showToast('Updated', 'Bank item updated.', 'ok');
-      renderDraftList(); // refresh stems
+      renderDraftList();
     }
   }
 
@@ -1936,15 +1928,12 @@ function renderPublishPane() {
     return `<div class="pub-check ${cls}"><span class="icon">${icon}</span> ${esc(c.text)}</div>`;
   }).join('');
 
-  // Publish button
   const canPublish = q.status === 'DRAFT' && DRAFT_IDS.length > 0 &&
     !(q.results_release_policy === 'AFTER_CLOSE' && !q.close_at);
   $('btnPublish').disabled = !canPublish;
   $('btnArchive').disabled = q.status === 'ARCHIVED';
 
-  // Release results section — show for PUBLISHED or ARCHIVED with MANUAL policy
   const showRelease = (q.status === 'PUBLISHED' || q.status === 'ARCHIVED') && q.results_release_policy === 'MANUAL';
-  // Also show "Release Now" button for any policy (allows teacher to override)
   const showReleaseNow = (q.status === 'PUBLISHED' || q.status === 'ARCHIVED') && q.results_release_policy !== 'MANUAL' && !q.results_released;
   $('releaseSection').style.display = (showRelease || showReleaseNow) ? '' : 'none';
   if (showRelease) {
@@ -1964,7 +1953,6 @@ async function publishQuiz() {
   $('btnPublish').disabled = true;
   $('btnPublish').textContent = 'Publishing…';
 
-  // Save draft first
   await saveDraftToServer(true);
 
   const result = await publishTeacherQuiz(SELECTED_ID, TEACHER_ID);
@@ -2036,42 +2024,35 @@ async function releaseResults() {
 // EVENT BINDING
 // ================================================================
 function bindEvents() {
-  // List view
   $('btnNewQuiz').addEventListener('click', newQuiz);
   let searchTimer = null;
   $('filterSearch').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadQuizzes, 300); });
   $('filterStatus').addEventListener('change', loadQuizzes);
 
-  // Quiz grid click delegation
   $('quizGrid').addEventListener('click', e => {
-    const tile = e.target.closest('.quiz-tile');
-    if (tile) openQuiz(tile.dataset.qid);
+    const row = e.target.closest('.quiz-row');
+    if (row) openQuiz(row.dataset.qid);
   });
 
-  // Back button
   $('btnBack').addEventListener('click', async () => {
     if (DRAFT_DIRTY) await saveDraftToServer(true);
     await loadQuizzes();
     showListView();
   });
 
-  // Tab switching
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.disabled) return;
       setActiveTab(btn.dataset.tab);
-      // Lazy load tab data
       if (btn.dataset.tab === 'classes') loadClassesTab();
       if (btn.dataset.tab === 'publish') { loadClassesTab().then(() => renderPublishPane()); }
     });
   });
 
-  // Tool tabs
   document.querySelectorAll('.tool-tab').forEach(btn => {
     btn.addEventListener('click', () => setActiveTool(btn.dataset.tool));
   });
 
-  // Settings — Presets
   $('presetRow').addEventListener('click', e => {
     const card = e.target.closest('.preset-card');
     if (card && !card.closest('[style*="pointer-events: none"]')) applyPreset(card.dataset.preset);
@@ -2079,11 +2060,9 @@ function bindEvents() {
   $('noPresetLink').addEventListener('click', e => { e.preventDefault(); CURRENT_PRESET = ''; highlightPreset(''); });
   $('btnResetPreset').addEventListener('click', () => { if (CURRENT_PRESET) applyPreset(CURRENT_PRESET); });
 
-  // Detect preset dirty
   ['fDuration','fMaxAttempts','fResultsPolicy'].forEach(id => $(id).addEventListener('change', markPresetDirty));
   ['fShuffleQ','fShuffleO','fShowReview','fShowResults'].forEach(id => $(id).addEventListener('change', markPresetDirty));
 
-  // Settings — Save
   $('btnSaveQuiz').addEventListener('click', saveQuiz);
   $('btnRegenCode').addEventListener('click', async () => {
     if (!SELECTED_ID) return;
@@ -2097,14 +2076,12 @@ function bindEvents() {
     }
   });
 
-  // Grade bands
   $('btnAddBand').addEventListener('click', addGradeBand);
   $('gradeBandsWrap').addEventListener('click', e => {
     if (e.target.dataset.bk === 'remove') removeGradeBand(parseInt(e.target.dataset.bi));
   });
   $('gradeBandsWrap').addEventListener('input', updateBandsHint);
 
-  // Custom fields
   $('btnAddField').addEventListener('click', addCustomField);
   $('customFieldsWrap').addEventListener('click', e => {
     if (e.target.dataset.fk === 'remove') removeCustomField(parseInt(e.target.dataset.fi));
@@ -2118,7 +2095,6 @@ function bindEvents() {
     }
   });
 
-  // Classes tab
   $('btnSaveLinks').addEventListener('click', saveClassLinks);
   $('btnSelectAll').addEventListener('click', () => { $('classesBox').querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true); });
   $('btnClearAll').addEventListener('click', () => { $('classesBox').querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false); });
@@ -2126,15 +2102,12 @@ function bindEvents() {
   let clsSearchTimer = null;
   $('classSearch').addEventListener('input', () => { clearTimeout(clsSearchTimer); clsSearchTimer = setTimeout(renderClassesList, 200); });
 
-  // Draft list
-  // btnLoadDetails removed — draft items auto-load on quiz open
   $('btnSaveDraft').addEventListener('click', () => saveDraftToServer());
   $('btnClearDraft').addEventListener('click', clearDraftAction);
   $('btnCopyIds').addEventListener('click', copyDraftIds);
   let draftSearchTimer = null;
   $('draftSearch').addEventListener('input', () => { clearTimeout(draftSearchTimer); draftSearchTimer = setTimeout(renderDraftList, 200); });
 
-  // Draft list delegation (Preview / Remove)
   $('draftBox').addEventListener('click', e => {
     const prevBtn = e.target.closest('[data-dprev]');
     if (prevBtn) { showPreview(prevBtn.dataset.dprev); return; }
@@ -2142,10 +2115,8 @@ function bindEvents() {
     if (rmBtn && SELECTED_QUIZ?.status === 'DRAFT') removeFromDraft(rmBtn.dataset.drm);
   });
 
-  // Bank
   $('btnBankLoad').addEventListener('click', loadBankList);
 
-  // Bank delegation (Preview / Add)
   $('bankRows').addEventListener('click', e => {
     const prevBtn = e.target.closest('[data-bprev]');
     if (prevBtn) {
@@ -2161,7 +2132,6 @@ function bindEvents() {
     }
   });
 
-  // Inline editor
   document.querySelectorAll('.qe-type-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       QE_TYPE = btn.dataset.qetype;
@@ -2181,7 +2151,6 @@ function bindEvents() {
     $('qeImagePreview').innerHTML = `<img src="${URL.createObjectURL(file)}" style="max-width:200px;border-radius:8px" />`;
   });
 
-  // Correct answer highlight on change
   $('qeCorrect').addEventListener('change', () => {
     const type = QE_TYPE;
     const letters = type === 'TF' ? ['A','B'] : ['A','B','C','D','E','F'];
@@ -2192,13 +2161,11 @@ function bindEvents() {
     });
   });
 
-  // Publish tab
   $('btnPublish').addEventListener('click', publishQuiz);
   $('btnArchive').addEventListener('click', archiveQuiz);
   $('btnClone').addEventListener('click', cloneQuiz);
   $('btnRelease').addEventListener('click', releaseResults);
 
-  // Keyboard shortcut: Ctrl/Cmd+S
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
