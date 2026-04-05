@@ -78,6 +78,12 @@ These are important but shouldn't block the free trial. Real user feedback will 
 - [ ] Beta v2 rebuild in React + Next.js — planned, not started
 - [ ] Rotate Supabase anon key if ever committed publicly
 
+    ### Sam's new ideas
+- [ ] Introduce a teacher public question bank for sharing of resources
+- [ ] Introcues tagging system into questions bank
+- [ ] Introduces myteacher kinda exams listing timeline
+
+
 ---
 
 ## Completed Work
