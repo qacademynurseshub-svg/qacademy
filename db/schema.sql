@@ -650,7 +650,7 @@ CREATE INDEX ON sessions (user_id, active, expires_utc);
 -- (log_auth_event) — no direct browser INSERT.
 CREATE TABLE auth_events (
   event_id      TEXT PRIMARY KEY,
-  event_type    TEXT NOT NULL,          -- LOGIN_SUCCESS | LOGIN_FAIL
+  event_type    TEXT NOT NULL,          -- LOGIN_SUCCESS | LOGIN_FAIL | RESET_REQUEST
   identifier    TEXT NOT NULL,          -- email used (lowercased)
   user_id       TEXT,                   -- NULL if unknown email
   fp_hash       TEXT,                   -- device fingerprint hash
