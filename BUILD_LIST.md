@@ -9,7 +9,7 @@ Last updated: April 2026
 
 - [x] Create auth_events table for login attempt tracking
 - [x] Rate limit on login (5 fails / 10 min → lockout, 10 fails / 24 hr → long lockout)
-- [ ] Rate limit on password reset (3 requests per identifier in 60 min)
+- [x] Rate limit on password reset (3 requests per identifier in 60 min) — dedicated reset_requests table with full audit trail (user_exists, status, device info, used tracking). Admin UI deferred — queryable in Supabase dashboard for now.
 - [ ] Revisit session expiry length (currently 7 days)
 - [x] Add login methods: username + password, Google OAuth, magic link (passwordless email)
 - [ ] Gradually stop sharing things between myteacher & mynmclicensure so that they can become seperate products
