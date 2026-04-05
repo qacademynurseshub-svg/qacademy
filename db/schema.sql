@@ -650,7 +650,7 @@ CREATE INDEX ON sessions (user_id, active, expires_utc);
 -- (log_auth_event) — no direct browser INSERT.
 CREATE TABLE auth_events (
   event_id      TEXT PRIMARY KEY,
-  event_type    TEXT NOT NULL,          -- LOGIN_SUCCESS | LOGIN_FAIL | RESET_REQUEST
+  event_type    TEXT NOT NULL,          -- LOGIN_SUCCESS | LOGIN_FAIL
   identifier    TEXT NOT NULL,          -- email used (lowercased)
   user_id       TEXT,                   -- NULL if unknown email
   fp_hash       TEXT,                   -- device fingerprint hash
@@ -673,6 +673,30 @@ CREATE INDEX auth_events_user_id_created
 
 CREATE INDEX auth_events_created
   ON auth_events (created_utc);
+
+
+-- 1.13 reset_requests
+-- Tracks every forgot-password submission for rate limiting
+-- and audit. Logs whether the email belonged to a real user,
+-- whether the request was rate-limited, and whether the reset
+-- link was actually used. All writes go through RPCs.
+CREATE TABLE reset_requests (
+  request_id    TEXT PRIMARY KEY,
+  email         TEXT NOT NULL,            -- what the user typed (lowercased)
+  user_exists   BOOLEAN NOT NULL DEFAULT FALSE,  -- was this a registered email
+  status        TEXT NOT NULL,            -- EMAIL_SENT | RATE_LIMITED | EMAIL_FAILED
+  fp_hash       TEXT,                     -- device fingerprint hash
+  device_label  TEXT,                     -- 'Windows · Chrome' etc.
+  used          BOOLEAN NOT NULL DEFAULT FALSE,  -- did they complete the reset
+  used_utc      TIMESTAMPTZ,             -- when they completed it
+  created_utc   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX reset_requests_email_created
+  ON reset_requests (email, created_utc);
+
+CREATE INDEX reset_requests_created
+  ON reset_requests (created_utc);
 
 
 -- ────────────────────────────────────────────────────────────
