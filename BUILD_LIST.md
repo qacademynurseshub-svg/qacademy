@@ -19,6 +19,7 @@ Last updated: April 2026
 - [ ] Admin yoken audit/ sessions audit/auth events audit
 - [ ] Admin Expiry reminder/auto expiry reminder
 - [ ] Telegram for premium members
+- [ ] explore moving config from the front end
       
 ## Must Do(suggetsd by agents review)
 
