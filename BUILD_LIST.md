@@ -23,6 +23,7 @@ Last updated: April 2026
 - [ ] Stats bar on learning-history reflects loaded page only — needs separate count query for true totals
 
 ### Week 3–4: Cleanup & Launch Prep
+- [ ] Set up dev/prod split — second Supabase project (prod), prod branch on Cloudflare, separate config per environment. Run all migrations on prod DB.
 - [ ] Revisit session expiry length (currently 7 days)
 - [ ] users.last_login_utc — wire up or drop
 - [ ] users.username — wire up or drop
