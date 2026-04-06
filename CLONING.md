@@ -175,6 +175,10 @@ Supported events:
 | `WELCOME_STUDENT` | register.html — after successful registration | Student |
 | `WELCOME_TEACHER` | myteacher/admin/teachers.html — after teacher approval | Teacher |
 | `SUBSCRIPTION_ASSIGNED` | mynmclicensure/admin/subscriptions.html — after manual subscription assign | Student |
+| `SUBSCRIPTION_REVOKED` | mynmclicensure/admin/subscriptions.html — after subscription revoke | Student |
+| `PAYMENT_SETUP_REQUIRED` | mynmclicensure/admin/payments.html — after retry activation returns SETUP_REQUIRED | Student |
+| `CLASS_JOIN_APPROVED` | myteacher/teacher/classes.html — after teacher approves join request | Student |
+| `CLASS_JOIN_APPROVED` | myteacher/student/my-classes.html — after direct join (no approval needed) | Student |
 
 CORS: Worker only accepts requests from APP_BASE_URL. Update the allowed origin in index.js if the domain changes.
 

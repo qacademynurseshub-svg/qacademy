@@ -889,6 +889,9 @@ async function confirmCancel() {
   btn.disabled = true;
   btn.textContent = 'Revoking…';
 
+  // Look up subscription data before revoking (need it for email)
+  const sub = allSubscriptions.find(s => s.subscription_id === cancelTargetId);
+
   const result = await adminRevokeSubscription(cancelTargetId);
 
   if (!result.success) {
@@ -897,6 +900,33 @@ async function confirmCancel() {
     btn.disabled = false;
     btn.textContent = 'Yes, revoke it';
     return;
+  }
+
+  // ── Send revoked email (fire-and-forget) ───────────
+  try {
+    const studentEmail = sub?.users?.email || '';
+    const studentName = sub?.users?.name || sub?.users?.forename || '';
+    const productName = sub?.products?.name || allProducts.find(p => p.product_id === sub?.product_id)?.name || '';
+
+    if (studentEmail) {
+      await fetch(EMAIL_WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: EMAIL_SECRET,
+          event: 'SUBSCRIPTION_REVOKED',
+          data: {
+            name: studentName,
+            email: studentEmail,
+            productName: productName,
+            renewUrl: window.location.origin,
+            supportEmail: 'support@qacademynurses.com'
+          }
+        })
+      });
+    }
+  } catch (emailErr) {
+    console.error('Revoke email failed (non-blocking):', emailErr);
   }
 
   closeCancelModal();

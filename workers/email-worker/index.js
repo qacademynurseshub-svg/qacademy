@@ -8,6 +8,9 @@
 import welcomeStudentHtml from './templates/welcome-student.html';
 import welcomeTeacherHtml from './templates/welcome-teacher.html';
 import subscriptionAssignedHtml from './templates/subscription-assigned.html';
+import subscriptionRevokedHtml from './templates/subscription-revoked.html';
+import paymentSetupRequiredHtml from './templates/payment-setup-required.html';
+import classJoinApprovedHtml from './templates/class-join-approved.html';
 
 // ── Allowed origins for CORS ────────────────────────────────
 const ALLOWED_ORIGINS = [
@@ -44,6 +47,18 @@ const EVENT_MAP = {
   SUBSCRIPTION_ASSIGNED: {
     html: subscriptionAssignedHtml,
     subject: 'Your QAcademy access is now active'
+  },
+  SUBSCRIPTION_REVOKED: {
+    html: subscriptionRevokedHtml,
+    subject: 'Your QAcademy access has been removed'
+  },
+  PAYMENT_SETUP_REQUIRED: {
+    html: paymentSetupRequiredHtml,
+    subject: 'Complete your QAcademy account setup'
+  },
+  CLASS_JOIN_APPROVED: {
+    html: classJoinApprovedHtml,
+    subject: null // dynamic — set in handler
   }
 };
 
@@ -55,7 +70,13 @@ function fillTemplate(html, data) {
     .replace(/\{\{loginUrl\}\}/g, data.loginUrl || '')
     .replace(/\{\{programName\}\}/g, data.programName || '')
     .replace(/\{\{productName\}\}/g, data.productName || '')
-    .replace(/\{\{expiryDate\}\}/g, data.expiryDate || '');
+    .replace(/\{\{expiryDate\}\}/g, data.expiryDate || '')
+    .replace(/\{\{renewUrl\}\}/g, data.renewUrl || '')
+    .replace(/\{\{supportEmail\}\}/g, data.supportEmail || '')
+    .replace(/\{\{setupUrl\}\}/g, data.setupUrl || '')
+    .replace(/\{\{expiryHours\}\}/g, data.expiryHours || '')
+    .replace(/\{\{className\}\}/g, data.className || '')
+    .replace(/\{\{teacherName\}\}/g, data.teacherName || '');
 }
 
 // ── Main handler ────────────────────────────────────────────
@@ -121,6 +142,12 @@ export default {
       // ── Fill placeholders ─────────────────────────────
       const filledHtml = fillTemplate(eventConfig.html, body.data);
 
+      // ── Build subject (some events have dynamic subjects) ──
+      let subject = eventConfig.subject;
+      if (!subject && body.event === 'CLASS_JOIN_APPROVED') {
+        subject = "You've been approved to join " + (body.data.className || 'a class');
+      }
+
       // ── Send via Resend ───────────────────────────────
       const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -131,7 +158,7 @@ export default {
         body: JSON.stringify({
           from: 'QAcademy Educational Consult <noreply@qacademynurses.com>',
           to: [body.data.email],
-          subject: eventConfig.subject,
+          subject: subject,
           html: filledHtml
         })
       });

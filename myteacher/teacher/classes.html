@@ -1195,6 +1195,34 @@
       return;
     }
 
+    // ── Send approval email (fire-and-forget) ─────────
+    try {
+      const member = allMembers.find(m => m.user_id === userId);
+      const studentEmail = member?.email || '';
+      const className = selectedClass?.title || '';
+      const teacherName = [PROFILE.forename, PROFILE.surname].filter(Boolean).join(' ') || PROFILE.name || '';
+
+      if (studentEmail) {
+        await fetch(EMAIL_WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            secret: EMAIL_SECRET,
+            event: 'CLASS_JOIN_APPROVED',
+            data: {
+              name: name,
+              email: studentEmail,
+              className: className,
+              teacherName: teacherName,
+              loginUrl: window.location.origin + '/myteacher/student/my-classes.html'
+            }
+          })
+        });
+      }
+    } catch (emailErr) {
+      console.error('Approval email failed (non-blocking):', emailErr);
+    }
+
     memberCounts[classId] = (memberCounts[classId] || 0) + 1;
     if (pendingCounts[classId]) pendingCounts[classId] = Math.max(0, pendingCounts[classId] - 1);
     renderClassList();

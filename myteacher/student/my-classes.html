@@ -1143,6 +1143,32 @@
       showToast('Request sent', `Your request to join ${title} has been sent to the teacher for approval.`, 'ok');
     } else {
       showToast('Joined!', `You have joined ${title}.`, 'ok');
+
+      // ── Send join confirmation email (fire-and-forget) ──
+      try {
+        const studentName = PROFILE.name || PROFILE.forename || '';
+        const studentEmail = PROFILE.email || '';
+
+        if (studentEmail) {
+          await fetch(EMAIL_WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              secret: EMAIL_SECRET,
+              event: 'CLASS_JOIN_APPROVED',
+              data: {
+                name: studentName,
+                email: studentEmail,
+                className: title,
+                teacherName: 'your teacher',
+                loginUrl: window.location.origin + '/myteacher/student/my-classes.html'
+              }
+            })
+          });
+        }
+      } catch (emailErr) {
+        console.error('Join email failed (non-blocking):', emailErr);
+      }
     }
     resetJoinUI();
     await loadClasses();

@@ -816,6 +816,33 @@ async function retryActivation(reference) {
       wrnEl.classList.add('show');
       btn.disabled = false;
       btn.textContent = '⚡ Retry Activation';
+
+      // ── Send setup email (fire-and-forget) ───────────
+      try {
+        const setupUrl = window.location.origin
+          + '/payment-confirmation.html?reference=' + encodeURIComponent(reference)
+          + '&setup_token=' + encodeURIComponent(data.setup_token || '');
+
+        if (data.email) {
+          await fetch(EMAIL_WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              secret: EMAIL_SECRET,
+              event: 'PAYMENT_SETUP_REQUIRED',
+              data: {
+                email: data.email,
+                productName: data.product_name || '',
+                setupUrl: setupUrl,
+                expiryHours: '48'
+              }
+            })
+          });
+        }
+      } catch (emailErr) {
+        console.error('Setup email failed (non-blocking):', emailErr);
+      }
+
       await Promise.all([loadStats(), loadPayments(false)]);
     } else {
       wrnEl.textContent = `Status returned: ${data.status || 'unknown'}. Check Paystack dashboard.`;
