@@ -1444,7 +1444,7 @@ async function publishTeacherQuiz(quizId, teacherId) {
       snap_fb_e          : b.fb_e,
       snap_option_f      : b.option_f,
       snap_fb_f          : b.fb_f,
-      snap_correct       : b.correct,
+      snap_correct       : (b.correct || '').toUpperCase(),
       snap_rationale     : b.rationale,
       snap_rationale_img : b.rationale_img,
       snap_subject       : b.subject,
