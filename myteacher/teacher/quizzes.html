@@ -204,13 +204,39 @@ a { color: var(--brand); }
 }
 
 /* ── Classes tab ─────────────────────────────────────────── */
-.cls-box { border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: rgba(255,255,255,.75); display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
-.cls-row { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 8px 10px; border-radius: 12px; border: 1px solid transparent; background: rgba(255,255,255,.5); }
-.cls-row:hover { border-color: rgba(11,122,117,.25); }
-.cls-row input[type="checkbox"] { width: auto; accent-color: var(--brand); flex-shrink: 0; }
-.cls-row-info { display: flex; gap: 10px; align-items: center; }
-.cls-row-title { font-weight: 900; font-size: 14px; }
-.cls-row-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+/* ── Classes pane ────────────────────────────────────────── */
+.cls-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.cls-toolbar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cls-search { padding: 7px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; font-family: inherit; background: var(--card); color: var(--ink); width: 220px; }
+.cls-section { margin-bottom: 14px; }
+.cls-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cls-section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; color: var(--muted); }
+.cls-section-count { font-size: 11px; font-weight: 700; background: var(--soft); color: var(--muted); padding: 1px 7px; border-radius: 20px; border: 1px solid var(--line); }
+.cls-linked-head .cls-section-label { color: var(--ok); }
+.cls-linked-head .cls-section-count { background: var(--ok-light); color: var(--ok); border-color: rgba(6,118,71,.2); }
+.cls-card { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); margin-bottom: 6px; cursor: pointer; transition: border-color .12s, background .12s; }
+.cls-card:hover { border-color: rgba(11,122,117,.25); background: var(--soft); }
+.cls-card.cls-linked { border-color: rgba(6,118,71,.25); background: var(--ok-light); }
+.cls-card.cls-linked:hover { border-color: rgba(6,118,71,.45); }
+.cls-colour-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.cls-check { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--line); display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--card); pointer-events: none; }
+.cls-check.cls-checked { background: var(--ok); border-color: var(--ok); }
+.cls-check-tick { font-size: 10px; color: white; font-weight: 900; line-height: 1; }
+.cls-card-body { flex: 1; min-width: 0; }
+.cls-card-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cls-card.cls-linked .cls-card-title { color: #064e38; }
+.cls-card-sub { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.cls-card.cls-linked .cls-card-sub { color: var(--ok); }
+.cls-card-right { flex-shrink: 0; }
+.cls-members-badge { font-size: 11px; font-weight: 700; background: var(--soft); color: var(--muted); border: 1px solid var(--line); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
+.cls-card.cls-linked .cls-members-badge { background: var(--ok-light); color: var(--ok); border-color: rgba(6,118,71,.2); }
+.cls-empty-state { text-align: center; padding: 36px 20px; border: 1px dashed var(--line); border-radius: 12px; }
+.cls-empty-icon { font-size: 28px; margin-bottom: 10px; }
+.cls-empty-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.cls-empty-sub { font-size: 12px; color: var(--muted); }
+.cls-empty-link { display: inline-block; margin-top: 12px; font-size: 12px; font-weight: 700; color: var(--brand); text-decoration: none; border: 1px solid var(--brand); padding: 5px 14px; border-radius: 8px; cursor: pointer; }
+.cls-save-footer { display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.cls-dot-sep { color: var(--line); }
 
 /* ── Questions tab ───────────────────────────────────────── */
 .q-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
@@ -723,18 +749,18 @@ a { color: var(--brand); }
 
       <!-- ======== CLASSES TAB ======== -->
       <div class="tab-pane" id="paneClasses">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-          <div class="form-section-title" style="margin:0">Linked Classes</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn sm" id="btnSelectAll">Select All</button>
-            <button class="btn sm" id="btnClearAll">Clear All</button>
+        <div class="cls-toolbar">
+          <div class="cls-toolbar-left">
+            <input type="text" id="classSearch" class="cls-search" placeholder="Search classes…" />
+            <button class="btn sm" id="btnSelectAll">Select all</button>
+            <button class="btn sm" id="btnClearAll">Clear</button>
             <button class="btn sm" id="btnReloadClasses">Reload</button>
-            <button class="btn sm primary" id="btnSaveLinks">Save Links</button>
           </div>
+          <button class="btn sm primary" id="btnSaveLinks">Save links</button>
         </div>
-        <input type="text" id="classSearch" placeholder="Search classes…" style="padding:8px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;width:100%;max-width:300px;margin-bottom:10px;font-family:inherit" />
-        <div class="cls-box" id="classesBox">
-          <div class="hint" style="padding:20px;text-align:center">Loading classes…</div>
+        <div id="classesBox"></div>
+        <div class="cls-save-footer">
+          <button class="btn sm primary" onclick="saveClassLinks()">Save links</button>
         </div>
       </div>
 
@@ -1726,33 +1752,95 @@ async function loadClassesTab() {
 function renderClassesList() {
   const box = $('classesBox');
   const q = ($('classSearch').value || '').toLowerCase().trim();
-  const filtered = q ? ALL_TEACHER_CLASSES.filter(c => c.title.toLowerCase().includes(q)) : ALL_TEACHER_CLASSES;
+  const filtered = q
+    ? ALL_TEACHER_CLASSES.filter(c =>
+        c.title.toLowerCase().includes(q) ||
+        (c.programme || '').toLowerCase().includes(q) ||
+        (c.course || '').toLowerCase().includes(q)
+      )
+    : ALL_TEACHER_CLASSES;
 
-  if (!filtered.length) {
-    box.innerHTML = '<div class="hint" style="padding:20px;text-align:center">No classes found.</div>';
+  // Empty — no classes at all
+  if (!ALL_TEACHER_CLASSES.length) {
+    box.innerHTML = `
+      <div class="cls-empty-state">
+        <div class="cls-empty-icon">🏫</div>
+        <div class="cls-empty-title">No classes yet</div>
+        <div class="cls-empty-sub">Create a class first, then link it to this quiz so students can see it.</div>
+        <div class="cls-empty-link" onclick="window.location.href='/myteacher/teacher/classes.html'">Go to Classes Manager →</div>
+      </div>`;
     return;
   }
 
-  box.innerHTML = filtered.map(c => {
-    const count = CLASS_MEMBER_COUNTS[c.class_id] || 0;
-    const checked = LINKED_CLASS_IDS.has(c.class_id) ? 'checked' : '';
+  // Empty — search returned nothing
+  if (!filtered.length) {
+    box.innerHTML = '<div class="hint" style="padding:20px;text-align:center">No classes match your search.</div>';
+    return;
+  }
+
+  const linked   = filtered.filter(c =>  LINKED_CLASS_IDS.has(c.class_id));
+  const unlinked = filtered.filter(c => !LINKED_CLASS_IDS.has(c.class_id));
+
+  function buildCard(c, isLinked) {
+    const count   = CLASS_MEMBER_COUNTS[c.class_id] || 0;
+    const colour  = c.colour || '';
+    const dotStyle = colour ? `background:${esc(colour)}` : 'background:var(--muted)';
+    const subParts = [c.programme, c.academic_year, c.semester].filter(Boolean);
+    const subHtml  = subParts.map(p => `<span>${esc(p)}</span>`).join('<span class="cls-dot-sep">·</span>');
     return `
-    <div class="cls-row">
-      <div class="cls-row-info">
-        <input type="checkbox" data-cid="${esc(c.class_id)}" ${checked} />
-        <div>
-          <div class="cls-row-title">${esc(c.title)}</div>
-          <div class="cls-row-meta">Members: ${count} · <span class="kbd">${esc(c.class_id)}</span></div>
-        </div>
+    <div class="cls-card${isLinked ? ' cls-linked' : ''}" onclick="clsToggle(this,'${esc(c.class_id)}')">
+      <div class="cls-check${isLinked ? ' cls-checked' : ''}">${isLinked ? '<div class="cls-check-tick">✓</div>' : ''}</div>
+      <div class="cls-colour-dot" style="${dotStyle}"></div>
+      <div class="cls-card-body">
+        <div class="cls-card-title">${esc(c.title)}</div>
+        ${subParts.length ? `<div class="cls-card-sub">${subHtml}</div>` : ''}
+      </div>
+      <div class="cls-card-right">
+        <span class="cls-members-badge">${count} member${count !== 1 ? 's' : ''}</span>
       </div>
     </div>`;
-  }).join('');
+  }
+
+  let html = '';
+
+  if (linked.length) {
+    html += `
+    <div class="cls-section">
+      <div class="cls-section-head cls-linked-head">
+        <div class="cls-section-label">Linked</div>
+        <div class="cls-section-count">${linked.length}</div>
+        <div class="hint">Students in these classes will see this quiz</div>
+      </div>
+      ${linked.map(c => buildCard(c, true)).join('')}
+    </div>`;
+  }
+
+  if (unlinked.length) {
+    html += `
+    <div class="cls-section">
+      <div class="cls-section-head">
+        <div class="cls-section-label">Not linked</div>
+        <div class="cls-section-count">${unlinked.length}</div>
+      </div>
+      ${unlinked.map(c => buildCard(c, false)).join('')}
+    </div>`;
+  }
+
+  box.innerHTML = html;
+}
+
+function clsToggle(cardEl, classId) {
+  const isLinked = LINKED_CLASS_IDS.has(classId);
+  if (isLinked) {
+    LINKED_CLASS_IDS.delete(classId);
+  } else {
+    LINKED_CLASS_IDS.add(classId);
+  }
+  renderClassesList();
 }
 
 async function saveClassLinks() {
-  const checks = $('classesBox').querySelectorAll('input[type="checkbox"]');
-  const ids = [];
-  checks.forEach(cb => { if (cb.checked) ids.push(cb.dataset.cid); });
+  const ids = [...LINKED_CLASS_IDS];
 
   const btn = $('btnSaveLinks');
   btn.disabled = true;
@@ -2533,8 +2621,14 @@ function bindEvents() {
   });
 
   $('btnSaveLinks').addEventListener('click', saveClassLinks);
-  $('btnSelectAll').addEventListener('click', () => { $('classesBox').querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true); });
-  $('btnClearAll').addEventListener('click', () => { $('classesBox').querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false); });
+  $('btnSelectAll').addEventListener('click', () => {
+    ALL_TEACHER_CLASSES.forEach(c => LINKED_CLASS_IDS.add(c.class_id));
+    renderClassesList();
+  });
+  $('btnClearAll').addEventListener('click', () => {
+    LINKED_CLASS_IDS.clear();
+    renderClassesList();
+  });
   $('btnReloadClasses').addEventListener('click', loadClassesTab);
   let clsSearchTimer = null;
   $('classSearch').addEventListener('input', () => { clearTimeout(clsSearchTimer); clsSearchTimer = setTimeout(renderClassesList, 200); });
