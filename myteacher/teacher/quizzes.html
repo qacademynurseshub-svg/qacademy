@@ -284,6 +284,52 @@ a { color: var(--brand); }
 .empty-state-icon { font-size: 40px; margin-bottom: 10px; }
 .empty-state-text { font-size: 14px; font-weight: 600; }
 .empty-state-hint { font-size: 12px; margin-top: 6px; }
+
+/* ── Preview pane ────────────────────────────────────────── */
+.preview-wrap { display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: start; }
+@media (max-width: 700px) { .preview-wrap { grid-template-columns: 1fr; } }
+.preview-sidebar { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--card); }
+.preview-sidebar-head { padding: 8px 12px; background: var(--soft); border-bottom: 1px solid var(--line); font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+.preview-sidebar-body { padding: 10px; }
+.preview-q-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 10px; }
+.preview-q-num { display: flex; align-items: center; justify-content: center; height: 26px; border-radius: 8px; background: var(--soft); border: 1px solid var(--line); font-size: 11px; font-weight: 700; cursor: pointer; color: var(--muted); transition: all .12s ease; }
+.preview-q-num:hover { border-color: var(--brand); color: var(--brand); }
+.preview-q-num.pq-active { background: var(--brand); color: #fff; border-color: var(--brand); }
+.preview-sidebar-meta { font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; padding-top: 8px; border-top: 1px solid var(--line); }
+.preview-main { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--card); }
+.preview-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--soft); border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 8px; }
+.preview-toolbar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.preview-toolbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.preview-view-sw { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.preview-view-btn { font-size: 11px; font-weight: 700; padding: 4px 12px; cursor: pointer; color: var(--muted); background: var(--card); border: none; transition: all .12s; }
+.preview-view-btn.active { background: var(--brand); color: #fff; }
+.preview-tog { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.preview-tog-pill { width: 30px; height: 17px; border-radius: 9px; background: var(--brand); position: relative; flex-shrink: 0; transition: background .15s; }
+.preview-tog-pill::after { content: ''; position: absolute; width: 13px; height: 13px; background: #fff; border-radius: 50%; top: 2px; right: 2px; transition: all .15s; }
+.preview-tog-pill.off { background: rgba(0,0,0,.18); }
+.preview-tog-pill.off::after { right: auto; left: 2px; }
+.preview-tog-label { font-size: 12px; font-weight: 700; }
+.preview-body { padding: 20px; }
+.preview-q-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; display: flex; justify-content: space-between; }
+.preview-stem { font-size: 15px; font-weight: 700; line-height: 1.55; margin-bottom: 16px; }
+.preview-opt { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 6px; font-size: 13px; cursor: default; }
+.preview-opt.popt-correct { background: var(--ok-light); border-color: var(--ok); }
+.preview-opt-letter { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; color: var(--muted); background: var(--card); }
+.preview-opt.popt-correct .preview-opt-letter { background: var(--ok); color: #fff; border-color: var(--ok); }
+.preview-opt-text { flex: 1; line-height: 1.4; }
+.preview-opt-tick { font-size: 11px; color: var(--ok); font-weight: 800; flex-shrink: 0; }
+.preview-rationale { background: var(--ok-light); border-left: 3px solid var(--ok); padding: 10px 14px; margin-top: 10px; font-size: 12px; color: #064e38; line-height: 1.5; }
+.preview-rationale-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; color: var(--ok); margin-bottom: 4px; }
+.preview-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
+.preview-list { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.preview-list-card { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.preview-list-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--soft); border-bottom: 1px solid var(--line); }
+.preview-list-body { padding: 12px; }
+.preview-empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+.preview-empty-icon { font-size: 36px; margin-bottom: 10px; }
+.preview-source-chip { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: .3px; }
+.psc-draft { background: var(--warn-light); color: var(--warn); }
+.psc-snap  { background: var(--ok-light); color: var(--ok); }
 </style>
 </head>
 <body>
@@ -333,6 +379,7 @@ a { color: var(--brand); }
         <button class="tab-btn active" data-tab="settings">Settings</button>
         <button class="tab-btn" data-tab="classes" disabled>Classes</button>
         <button class="tab-btn" data-tab="questions" disabled>Questions</button>
+        <button class="tab-btn" data-tab="preview" disabled>Preview</button>
         <button class="tab-btn" data-tab="publish" disabled>Publish</button>
       </div>
 
@@ -871,6 +918,11 @@ a { color: var(--brand); }
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- ======== PREVIEW TAB ======== -->
+      <div class="tab-pane" id="panePreview">
+        <div id="previewContainer"></div>
       </div>
 
       <!-- ======== PUBLISH TAB ======== -->
@@ -2429,6 +2481,7 @@ function bindEvents() {
       if (btn.disabled) return;
       setActiveTab(btn.dataset.tab);
       if (btn.dataset.tab === 'classes') loadClassesTab();
+      if (btn.dataset.tab === 'preview') loadPreviewPane();
       if (btn.dataset.tab === 'publish') { loadClassesTab().then(() => renderPublishPane()); }
     });
   });
@@ -2561,6 +2614,256 @@ function bindEvents() {
   });
 }
 
+
+
+// ================================================================
+// PREVIEW TAB
+// ================================================================
+let PREVIEW_ITEMS    = [];   // normalised question objects
+let PREVIEW_CURRENT  = 0;
+let PREVIEW_ANSWERS  = false;
+let PREVIEW_VIEW     = 'paginated'; // 'paginated' | 'list'
+let PREVIEW_SOURCE   = 'draft';     // 'draft' | 'snapshot'
+
+// Normalise a bank cache item (draft) into preview shape
+function _normDraftItem(item) {
+  const letters = ['a','b','c','d','e','f'];
+  const opts = letters.map(l => item['option_' + l]).filter(Boolean);
+  return {
+    stem        : item.stem || '',
+    options     : opts,
+    correct     : item.correct || '',
+    rationale   : item.rationale || '',
+    type        : (item.question_type || 'MCQ').toUpperCase(),
+    difficulty  : item.difficulty || '—',
+    subject     : item.subject || '',
+    marks       : item.marks || 1
+  };
+}
+
+// Normalise a snapshot row (published) into preview shape
+function _normSnapItem(row) {
+  const letters = ['a','b','c','d','e','f'];
+  const opts = letters.map(l => row['snap_option_' + l]).filter(Boolean);
+  return {
+    stem        : row.snap_stem || '',
+    options     : opts,
+    correct     : row.snap_correct || '',
+    rationale   : row.snap_rationale || '',
+    type        : (row.snap_question_type || 'MCQ').toUpperCase(),
+    difficulty  : row.snap_difficulty || '—',
+    subject     : row.snap_subject || '',
+    marks       : row.snap_marks || 1
+  };
+}
+
+async function loadPreviewPane() {
+  const container = $('previewContainer');
+  container.innerHTML = '<div class="preview-empty"><div class="preview-empty-icon">⏳</div><div>Loading preview…</div></div>';
+
+  PREVIEW_ITEMS   = [];
+  PREVIEW_CURRENT = 0;
+
+  const status = SELECTED_QUIZ?.status;
+
+  if (status === 'PUBLISHED' || status === 'ARCHIVED') {
+    // Fetch snapshot items from teacher_quiz_items
+    const { data: rows, error } = await db
+      .from('teacher_quiz_items')
+      .select('*')
+      .eq('teacher_quiz_id', SELECTED_ID)
+      .order('position', { ascending: true });
+
+    if (error || !rows || !rows.length) {
+      container.innerHTML = '<div class="preview-empty"><div class="preview-empty-icon">📭</div><div style="font-weight:700;font-size:14px">No published items found</div><div class="hint" style="margin-top:6px">This quiz has no snapshot items.</div></div>';
+      return;
+    }
+    PREVIEW_ITEMS  = rows.map(_normSnapItem);
+    PREVIEW_SOURCE = 'snapshot';
+  } else {
+    // Use DRAFT_IDS + BANK_CACHE
+    if (!DRAFT_IDS.length) {
+      container.innerHTML = '<div class="preview-empty"><div class="preview-empty-icon">📝</div><div style="font-weight:700;font-size:14px">No questions to preview</div><div class="hint" style="margin-top:6px">Add questions in the Questions tab first.</div></div>';
+      return;
+    }
+    // Ensure all draft items are cached — fetch any missing ones
+    const missing = DRAFT_IDS.filter(id => !BANK_CACHE.has(id));
+    if (missing.length) {
+      const { items } = await getDraftPreview(SELECTED_ID);
+      items.forEach(item => BANK_CACHE.set(item.bank_item_id, item));
+    }
+    PREVIEW_ITEMS  = DRAFT_IDS.map(id => BANK_CACHE.get(id)).filter(Boolean).map(_normDraftItem);
+    PREVIEW_SOURCE = 'draft';
+  }
+
+  if (!PREVIEW_ITEMS.length) {
+    container.innerHTML = '<div class="preview-empty"><div class="preview-empty-icon">📝</div><div style="font-weight:700;font-size:14px">No questions to preview</div><div class="hint" style="margin-top:6px">Add questions in the Questions tab first.</div></div>';
+    return;
+  }
+
+  renderPreviewPane();
+}
+
+function renderPreviewPane() {
+  if (PREVIEW_VIEW === 'paginated') renderPreviewPaginated();
+  else renderPreviewList();
+}
+
+function renderPreviewPaginated() {
+  const q    = PREVIEW_ITEMS[PREVIEW_CURRENT];
+  const dur  = SELECTED_QUIZ?.duration_minutes;
+  const durLabel = (dur && dur > 0) ? dur + ' min' : 'Untimed';
+  const preset   = (SELECTED_QUIZ?.preset || 'Custom');
+  const sourceChip = PREVIEW_SOURCE === 'snapshot'
+    ? '<span class="preview-source-chip psc-snap">Published snapshot</span>'
+    : '<span class="preview-source-chip psc-draft">Draft preview</span>';
+
+  const sidebarNums = PREVIEW_ITEMS.map((_, i) =>
+    `<div class="preview-q-num${i === PREVIEW_CURRENT ? ' pq-active' : ''}" onclick="previewJump(${i})">${i+1}</div>`
+  ).join('');
+
+  const mcqCount  = PREVIEW_ITEMS.filter(x => x.type === 'MCQ').length;
+  const tfCount   = PREVIEW_ITEMS.filter(x => x.type === 'TF').length;
+  const sataCount = PREVIEW_ITEMS.filter(x => x.type === 'SATA').length;
+  const metaLines = [mcqCount ? mcqCount + ' MCQ' : '', tfCount ? tfCount + ' TF' : '', sataCount ? sataCount + ' SATA' : ''].filter(Boolean);
+
+  const optionsHtml = _renderPreviewOptions(q);
+  const rationaleHtml = (PREVIEW_ANSWERS && q.rationale)
+    ? `<div class="preview-rationale"><div class="preview-rationale-label">Rationale</div>${esc(q.rationale)}</div>` : '';
+
+  $('previewContainer').innerHTML = `
+    <div class="preview-wrap">
+      <div class="preview-sidebar">
+        <div class="preview-sidebar-head">${PREVIEW_ITEMS.length} questions</div>
+        <div class="preview-sidebar-body">
+          <div class="preview-q-grid">${sidebarNums}</div>
+          <div class="preview-sidebar-meta">${metaLines.map(l => `<span>${esc(l)}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div class="preview-main">
+        <div class="preview-toolbar">
+          <div class="preview-toolbar-left">
+            <span class="badge badge-preset">${esc(preset)}</span>
+            <span class="muted" style="font-size:12px">${PREVIEW_ITEMS.length} questions · ${esc(durLabel)}</span>
+            ${sourceChip}
+          </div>
+          <div class="preview-toolbar-right">
+            <div class="preview-tog" onclick="previewToggleAnswers()">
+              <div class="preview-tog-pill${PREVIEW_ANSWERS ? '' : ' off'}" id="prevAnswerPill"></div>
+              <span class="preview-tog-label" style="${PREVIEW_ANSWERS ? 'color:var(--ok)' : ''}">Show answers</span>
+            </div>
+            <div class="preview-view-sw">
+              <div class="preview-view-btn active" onclick="previewSetView('paginated')">Paginated</div>
+              <div class="preview-view-btn" onclick="previewSetView('list')">List</div>
+            </div>
+          </div>
+        </div>
+        <div class="preview-body">
+          <div class="preview-q-meta">
+            <span>Question ${PREVIEW_CURRENT + 1} of ${PREVIEW_ITEMS.length}</span>
+            <span>${esc(q.type)} · ${esc(q.difficulty)}</span>
+          </div>
+          <div class="preview-stem">${esc(q.stem)}</div>
+          <div id="prevOptions">${optionsHtml}</div>
+          <div id="prevRationale">${rationaleHtml}</div>
+          <div class="preview-nav">
+            <button class="btn sm" onclick="previewNavigate(-1)" ${PREVIEW_CURRENT === 0 ? 'disabled' : ''}>← Previous</button>
+            <button class="btn sm" onclick="previewNavigate(1)" ${PREVIEW_CURRENT === PREVIEW_ITEMS.length - 1 ? 'disabled' : ''}>Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderPreviewList() {
+  const dur    = SELECTED_QUIZ?.duration_minutes;
+  const durLabel = (dur && dur > 0) ? dur + ' min' : 'Untimed';
+  const preset   = (SELECTED_QUIZ?.preset || 'Custom');
+  const sourceChip = PREVIEW_SOURCE === 'snapshot'
+    ? '<span class="preview-source-chip psc-snap">Published snapshot</span>'
+    : '<span class="preview-source-chip psc-draft">Draft preview</span>';
+
+  const cards = PREVIEW_ITEMS.map((q, i) => {
+    const optsHtml = _renderPreviewOptions(q);
+    const ratHtml  = (PREVIEW_ANSWERS && q.rationale)
+      ? `<div class="preview-rationale"><div class="preview-rationale-label">Rationale</div>${esc(q.rationale)}</div>` : '';
+    return `
+    <div class="preview-list-card">
+      <div class="preview-list-head">
+        <div class="preview-q-num pq-active" style="cursor:default">${i+1}</div>
+        <span class="hint">${esc(q.type)} · ${esc(q.difficulty)}</span>
+      </div>
+      <div class="preview-list-body">
+        <div class="preview-stem" style="font-size:13px;margin-bottom:10px">${esc(q.stem)}</div>
+        ${optsHtml}
+        ${ratHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  $('previewContainer').innerHTML = `
+    <div class="preview-main">
+      <div class="preview-toolbar">
+        <div class="preview-toolbar-left">
+          <span class="badge badge-preset">${esc(preset)}</span>
+          <span class="muted" style="font-size:12px">${PREVIEW_ITEMS.length} questions · ${esc(durLabel)}</span>
+          ${sourceChip}
+        </div>
+        <div class="preview-toolbar-right">
+          <div class="preview-tog" onclick="previewToggleAnswers()">
+            <div class="preview-tog-pill${PREVIEW_ANSWERS ? '' : ' off'}"></div>
+            <span class="preview-tog-label" style="${PREVIEW_ANSWERS ? 'color:var(--ok)' : ''}">Show answers</span>
+          </div>
+          <div class="preview-view-sw">
+            <div class="preview-view-btn" onclick="previewSetView('paginated')">Paginated</div>
+            <div class="preview-view-btn active" onclick="previewSetView('list')">List</div>
+          </div>
+        </div>
+      </div>
+      <div class="preview-list">${cards}</div>
+    </div>`;
+}
+
+function _renderPreviewOptions(q) {
+  const letters = ['A','B','C','D','E','F'];
+  const isMulti = q.type === 'SATA';
+  const correctSet = new Set(
+    (q.correct || '').toUpperCase().split(',').map(s => s.trim()).filter(Boolean)
+  );
+
+  return q.options.map((opt, i) => {
+    const letter = letters[i];
+    const isCorrect = PREVIEW_ANSWERS && correctSet.has(letter);
+    return `<div class="preview-opt${isCorrect ? ' popt-correct' : ''}">
+      <div class="preview-opt-letter">${letter}</div>
+      <div class="preview-opt-text">${esc(opt)}</div>
+      ${isCorrect ? '<div class="preview-opt-tick">✓</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function previewNavigate(delta) {
+  const next = PREVIEW_CURRENT + delta;
+  if (next < 0 || next >= PREVIEW_ITEMS.length) return;
+  PREVIEW_CURRENT = next;
+  renderPreviewPaginated();
+}
+
+function previewJump(idx) {
+  PREVIEW_CURRENT = idx;
+  renderPreviewPaginated();
+}
+
+function previewToggleAnswers() {
+  PREVIEW_ANSWERS = !PREVIEW_ANSWERS;
+  renderPreviewPane();
+}
+
+function previewSetView(v) {
+  PREVIEW_VIEW = v;
+  PREVIEW_CURRENT = 0;
+  renderPreviewPane();
+}
 
 // ── Initialize ──────────────────────────────────────────────
 boot();
