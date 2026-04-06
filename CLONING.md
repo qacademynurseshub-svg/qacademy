@@ -158,7 +158,7 @@ https://qacademy-gamma-payment-workers.mybackpacc.workers.dev
 ```
 
 ### Email Worker (Cloudflare Worker)
-The email worker lives in `workers/email-worker/` and is deployed separately from the frontend. It sends transactional emails via Resend.
+The worker lives in `workers/email-worker/` and is deployed separately from the frontend.
 
 1. `cd workers/email-worker`
 2. `npx wrangler deploy`
@@ -166,19 +166,58 @@ The email worker lives in `workers/email-worker/` and is deployed separately fro
 Required environment variables (set in Cloudflare Workers dashboard → Settings → Variables):
 | Variable | Description |
 |---|---|
-| `RESEND_API_KEY` | Resend API key from your Resend dashboard |
-| `EMAIL_SECRET` | Shared secret — must match the value in `js/config.js` |
+| `RESEND_API_KEY` | Resend API key — create at resend.com (Sending access only) |
+| `EMAIL_SECRET` | Shared secret — must match EMAIL_SECRET in js/config.js |
 
 Supported events:
-| Event | Template | Subject |
+| Event | Trigger location | Who receives it |
 |---|---|---|
-| `WELCOME_STUDENT` | `welcome-student.html` | Welcome to QAcademy – You're all set |
-| `WELCOME_TEACHER` | `welcome-teacher.html` | Welcome to QAcademy Teacher Assess – You're approved |
-| `SUBSCRIPTION_ASSIGNED` | `subscription-assigned.html` | Your QAcademy access is now active |
+| `WELCOME_STUDENT` | register.html — after successful registration | Student |
+| `WELCOME_TEACHER` | myteacher/admin/teachers.html — after teacher approval | Teacher |
+| `SUBSCRIPTION_ASSIGNED` | mynmclicensure/admin/subscriptions.html — after manual subscription assign | Student |
 
-CORS: allowed origins are `https://qacademy-gamma.pages.dev` and `http://localhost`.
+CORS: Worker only accepts requests from APP_BASE_URL. Update the allowed origin in index.js if the domain changes.
 
-Frontend config: `EMAIL_WORKER_URL` and `EMAIL_SECRET` must also be set in `js/config.js`.
+From address: QAcademy Educational Consult <noreply@qacademynurses.com>
+Templates live in: workers/email-worker/templates/
+
+### Email & SMTP Setup
+
+#### Resend Account
+- Provider: resend.com
+- Domain verified: qacademynurses.com
+- Sender address: noreply@qacademynurses.com
+- API key name in Resend: qacademy-gamma
+- One API key is used for both Supabase SMTP and the Email Worker
+
+#### Supabase SMTP (for auth emails)
+Configure in Supabase dashboard → Authentication → Settings → Email → Custom SMTP:
+| Field | Value |
+|---|---|
+| Host | smtp.resend.com |
+| Port | 465 |
+| Username | resend |
+| Password | your Resend API key (re_xxxx) |
+| Sender email | noreply@qacademynurses.com |
+| Sender name | QAcademy Educational Consult |
+
+#### Supabase Auth Email Templates
+All four templates are customised with QAcademy branding (dark blue header #1e3a5f, teal CTA #2d7d72).
+Templates are set directly in Supabase dashboard → Authentication → Email Templates:
+| Template | Subject |
+|---|---|
+| Confirm signup | Verify your QAcademy email address |
+| Reset password | Reset your QAcademy password |
+| Magic link | Your QAcademy login link |
+| Change email | Confirm your new QAcademy email address |
+
+#### Email Confirmation Setting
+Supabase email confirmation is currently OFF — users can log in immediately after registration.
+Turn this ON in Supabase → Authentication → Settings → Email → Confirm email BEFORE going live with real users.
+When turning on, the following UI must be built first:
+- "Check your inbox" screen after registration
+- Error state in login.html for unconfirmed email
+- Resend confirmation link button
 
 ---
 

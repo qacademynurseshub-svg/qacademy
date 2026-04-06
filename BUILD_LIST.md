@@ -31,6 +31,7 @@ Last updated: April 2026
 - [ ] Review and clean up question bank content
 - [ ] README and CLONING files need updating to reflect current folder structure and My Teacher naming
 - [ ] Set up custom domain on Cloudflare
+- [ ] Turn on Supabase email confirmation — requires "check your inbox" screen after register, unconfirmed email error state on login.html, and resend confirmation button. Must be done before real users.
 
 ---
 
