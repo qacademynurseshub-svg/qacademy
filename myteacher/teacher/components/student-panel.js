@@ -191,7 +191,7 @@
 
   function initials(user) {
     if (!user) return '?';
-    const fn = user.forename || user.name || user.email || '';
+    const fn = user.display_name || user.forename || user.name || user.email || '';
     return fn.charAt(0).toUpperCase();
   }
 
@@ -240,7 +240,7 @@
 
     // Populate top bar
     const u = data.user;
-    const displayName = [u.forename, u.surname].filter(Boolean).join(' ') || u.name || u.email || 'Unknown';
+    const displayName = u.display_name || [u.forename, u.surname].filter(Boolean).join(' ') || u.name || u.email || 'Unknown';
     $('spName').textContent = displayName;
     $('spEmail').textContent = u.email || '';
 

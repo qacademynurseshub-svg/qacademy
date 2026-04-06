@@ -3856,15 +3856,12 @@ async function archiveCohort(cohortId, teacherId, action) {
 // ============================================================
 
 async function getStudentOverview(userId, teacherId) {
-  // Fetch user, class memberships, attempts, and teacher's quizzes in parallel
-  const [userRes, membersRes, attemptsRes, quizzesRes] = await Promise.all([
-    db.from('users')
-      .select('user_id, forename, surname, name, email, avatar_url')
-      .eq('user_id', userId)
-      .maybeSingle(),
+  // Fetch class memberships, attempts, and teacher's quizzes in parallel
+  // NOTE: user info comes from teacher_class_members (not users table — RLS blocks teacher reading other users)
+  const [membersRes, attemptsRes, quizzesRes] = await Promise.all([
     db.from('teacher_class_members')
       .select(`
-        class_id, user_id, teacher_id, status, joined_at, member_fields_json,
+        class_id, user_id, teacher_id, display_name, email, status, joined_at, member_fields_json,
         teacher_classes (
           class_id, title, status, colour, programme, academic_year, semester,
           cohort_id, custom_fields_json, end_date
@@ -3884,10 +3881,18 @@ async function getStudentOverview(userId, teacherId) {
       .eq('teacher_id', teacherId)
   ]);
 
-  if (userRes.error) { console.error('getStudentOverview user:', userRes.error); }
   if (membersRes.error) { console.error('getStudentOverview members:', membersRes.error); }
   if (attemptsRes.error) { console.error('getStudentOverview attempts:', attemptsRes.error); }
   if (quizzesRes.error) { console.error('getStudentOverview quizzes:', quizzesRes.error); }
+
+  // Derive user info from the first membership row (teacher can see these fields)
+  const members = membersRes.data || [];
+  const firstMember = members[0] || null;
+  const user = firstMember ? {
+    user_id: firstMember.user_id,
+    display_name: firstMember.display_name,
+    email: firstMember.email
+  } : null;
 
   // Build quiz lookup map (quiz_id → { title, subject, course_id })
   const quizMap = {};
@@ -3897,14 +3902,14 @@ async function getStudentOverview(userId, teacherId) {
 
   // Build class lookup map (class_id → class title) from memberships
   const classMap = {};
-  (membersRes.data || []).forEach(m => {
+  members.forEach(m => {
     const cls = m.teacher_classes;
     if (cls) classMap[cls.class_id] = cls.title;
   });
 
   return {
-    user: userRes.data || null,
-    classes: membersRes.data || [],
+    user,
+    classes: members,
     attempts: attemptsRes.data || [],
     quizMap,
     classMap
