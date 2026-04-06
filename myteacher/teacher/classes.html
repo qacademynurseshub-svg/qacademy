@@ -764,10 +764,11 @@
 
   // ── Title suggestion ───────────────────────────────────────
   function updateTitleSuggestion() {
-    const cohortId = byId('mCohort').value;
-    const semester = (byId('mSemester').value || '').trim();
-    const wrap     = byId('mTitleSuggestion');
-    const textEl   = byId('mTitleSuggestionText');
+    const cohortId    = byId('mCohort').value;
+    const academicYr  = (byId('mAcademicYear').value || '').trim();
+    const semester    = (byId('mSemester').value || '').trim();
+    const wrap        = byId('mTitleSuggestion');
+    const textEl      = byId('mTitleSuggestionText');
 
     if (!cohortId) { wrap.style.display = 'none'; return; }
 
@@ -775,7 +776,8 @@
     if (!cohort) { wrap.style.display = 'none'; return; }
 
     let suggestion = cohort.title;
-    if (semester) suggestion += ' — ' + semester;
+    if (academicYr) suggestion += ' — ' + academicYr;
+    if (semester)   suggestion += ' — ' + semester;
 
     textEl.textContent = 'Suggested: ' + suggestion;
     wrap.dataset.suggestion = suggestion;
@@ -1471,6 +1473,7 @@
 
     // Title suggestion — update when cohort or semester changes
     byId('mCohort').addEventListener('change', updateTitleSuggestion);
+    byId('mAcademicYear').addEventListener('input', updateTitleSuggestion);
     byId('mSemester').addEventListener('input', updateTitleSuggestion);
     byId('mTitleSuggestionBtn').addEventListener('click', applyTitleSuggestion);
 
