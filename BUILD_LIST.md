@@ -78,6 +78,7 @@ These are important but shouldn't block the free trial. Real user feedback will 
 ### Future
 - [ ] Beta v2 rebuild in React + Next.js — planned, not started
 - [ ] Rotate Supabase anon key if ever committed publicly
+- [ ] BIMI record — shows QAcademy logo next to sender name in Gmail inbox. Requires DMARC setup + Verified Mark Certificate (~$1,000/year). Revisit post-revenue.
 
     ### Sam's new ideas
 - [ ] Introduce a teacher public question bank for sharing of resources
