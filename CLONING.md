@@ -157,6 +157,29 @@ In `subscribe.html`, `mynmclicensure/student/upgrade.html`, and `payment-confirm
 https://qacademy-gamma-payment-workers.mybackpacc.workers.dev
 ```
 
+### Email Worker (Cloudflare Worker)
+The email worker lives in `workers/email-worker/` and is deployed separately from the frontend. It sends transactional emails via Resend.
+
+1. `cd workers/email-worker`
+2. `npx wrangler deploy`
+
+Required environment variables (set in Cloudflare Workers dashboard → Settings → Variables):
+| Variable | Description |
+|---|---|
+| `RESEND_API_KEY` | Resend API key from your Resend dashboard |
+| `EMAIL_SECRET` | Shared secret — must match the value in `js/config.js` |
+
+Supported events:
+| Event | Template | Subject |
+|---|---|---|
+| `WELCOME_STUDENT` | `welcome-student.html` | Welcome to QAcademy – You're all set |
+| `WELCOME_TEACHER` | `welcome-teacher.html` | Welcome to QAcademy Teacher Assess – You're approved |
+| `SUBSCRIPTION_ASSIGNED` | `subscription-assigned.html` | Your QAcademy access is now active |
+
+CORS: allowed origins are `https://qacademy-gamma.pages.dev` and `http://localhost`.
+
+Frontend config: `EMAIL_WORKER_URL` and `EMAIL_SECRET` must also be set in `js/config.js`.
+
 ---
 
 ## 3. Database Setup

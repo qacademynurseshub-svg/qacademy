@@ -229,6 +229,27 @@ if (trialProductId) {
     successAlert.textContent = 'Account created! Redirecting to login...';
     successAlert.classList.add('show');
 
+    // ── Step 5: Send welcome email (fire-and-forget) ────
+    try {
+      const programText = document.getElementById('program').selectedOptions[0]?.textContent?.trim() || '';
+      await fetch(EMAIL_WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: EMAIL_SECRET,
+          event: 'WELCOME_STUDENT',
+          data: {
+            name: forename,
+            email: email,
+            loginUrl: window.location.origin + '/login.html',
+            programName: programText
+          }
+        })
+      });
+    } catch (emailErr) {
+      console.error('Welcome email failed (non-blocking):', emailErr);
+    }
+
     setTimeout(() => {
       window.location.href = '/login.html';
     }, 2000);
