@@ -149,6 +149,18 @@
     .status-chip.active   { background: rgba(45,125,114,0.08); color: var(--accent, #2d7d72); border-color: rgba(45,125,114,0.22); }
     .status-chip.archived { background: rgba(100,116,139,0.08); color: var(--text-muted); border-color: var(--border); }
 
+    /* ── Cohort group header ────────────────────────────── */
+    .cohort-group-header {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      padding: 8px 4px 4px;
+      margin-top: 4px;
+    }
+    .cohort-group-header:first-child { margin-top: 0; }
+
     /* ── Empty state ─────────────────────────────────────── */
     .empty-state {
       text-align: center;
@@ -520,13 +532,9 @@
       <div class="form-section-label">Academic details</div>
 
       <div class="form-row">
-        <div class="form-field">
-          <label for="mProgramme">Programme</label>
-          <input type="text" id="mProgramme" placeholder="e.g. BSc Adult Nursing" maxlength="120" />
-        </div>
-        <div class="form-field">
-          <label for="mCourse">Course</label>
-          <input type="text" id="mCourse" placeholder="e.g. Pharmacology" maxlength="120" />
+        <div class="form-field" style="grid-column:1/-1;">
+          <label for="mCohort">Cohort *</label>
+          <select id="mCohort"><option value="">Select cohort...</option></select>
         </div>
       </div>
 
@@ -652,6 +660,8 @@
   let filteredClasses = [];     // after search/filter
   let memberCounts   = {};      // { class_id: count }
   let pendingCounts  = {};      // { class_id: pending_count }
+  let allCohorts     = [];      // for cohort dropdown
+  let allProgrammes  = [];      // for programme name lookup
   let selectedClassId = null;
   let selectedClass  = null;
   let allMembers     = [];      // members for selected class
@@ -695,8 +705,57 @@
 
     byId('pageSubtitle').textContent = `Welcome, ${PROFILE.forename || PROFILE.name || PROFILE.email}`;
 
-    await loadClasses();
+    // Load cohorts + programmes for dropdown (parallel with classes)
+    await Promise.all([
+      loadClasses(),
+      loadCohortsAndProgrammes()
+    ]);
     bindEvents();
+  }
+
+  async function loadCohortsAndProgrammes() {
+    [allCohorts, allProgrammes] = await Promise.all([
+      getCohorts(PROFILE.user_id, { status: 'ACTIVE' }),
+      getProgrammes(PROFILE.user_id, { status: 'ACTIVE' })
+    ]);
+    populateCohortDropdown();
+  }
+
+  function progTitle(programmeId) {
+    const p = allProgrammes.find(pr => pr.programme_id === programmeId);
+    return p ? p.title : '';
+  }
+
+  function cohortLabel(cohortId) {
+    const c = allCohorts.find(ch => ch.cohort_id === cohortId);
+    if (!c) return '';
+    const prog = progTitle(c.programme_id);
+    return prog ? c.title + ' — ' + prog : c.title;
+  }
+
+  function populateCohortDropdown() {
+    const sel = byId('mCohort');
+    sel.innerHTML = '<option value="">Select cohort...</option>';
+
+    // Group cohorts by programme
+    const grouped = {};
+    allCohorts.forEach(c => {
+      const prog = progTitle(c.programme_id) || 'Other';
+      if (!grouped[prog]) grouped[prog] = [];
+      grouped[prog].push(c);
+    });
+
+    Object.keys(grouped).sort().forEach(progName => {
+      const group = document.createElement('optgroup');
+      group.label = progName;
+      grouped[progName].forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.cohort_id;
+        opt.textContent = c.title + ' (' + c.intake_year + ')';
+        group.appendChild(opt);
+      });
+      sel.appendChild(group);
+    });
   }
 
   // ── Load classes ──────────────────────────────────────────
@@ -745,33 +804,67 @@
     }
 
     list.innerHTML = '';
-    filteredClasses.forEach(cls => {
-      const count   = memberCounts[cls.class_id] || 0;
-      const pending = pendingCounts[cls.class_id] || 0;
-      const isActive = selectedClassId === cls.class_id;
-      const isEnded = cls.end_date && new Date(cls.end_date) < new Date();
-      const capacityChip = cls.max_capacity
-        ? `<span class="meta-chip">${count}/${cls.max_capacity}</span>`
-        : `<span class="meta-chip">👥 ${count}</span>`;
-      const subtitle = [cls.programme, cls.course].filter(Boolean).join(' · ');
 
-      const div = document.createElement('div');
-      div.className = 'class-card' + (isActive ? ' active' : '');
-      if (cls.colour) div.style.borderLeft = `4px solid ${cls.colour}`;
-      div.innerHTML = `
-        <div class="class-card-title">${esc(cls.title)}</div>
-        ${subtitle ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${esc(subtitle)}</div>` : ''}
-        <div class="class-card-meta">
-          <span class="status-chip ${cls.status === 'ACTIVE' && !isEnded ? 'active' : 'archived'}">${isEnded ? 'ENDED' : esc(cls.status)}</span>
-          ${capacityChip}
-          ${pending ? `<span class="meta-chip" style="color:#a16207;background:rgba(234,179,8,0.10);border-color:rgba(234,179,8,0.22);">⏳ ${pending} pending</span>` : ''}
-          ${cls.academic_year || cls.semester ? `<span class="meta-chip">${esc([cls.academic_year, cls.semester].filter(Boolean).join(' · '))}</span>` : ''}
-          <span class="meta-chip">🔑 ${esc(cls.join_code)}</span>
-          ${cls.require_approval ? '<span class="meta-chip" style="color:var(--accent);font-size:10px;">🔒 Approval</span>' : ''}
-        </div>`;
-      div.addEventListener('click', () => selectClass(cls.class_id));
-      list.appendChild(div);
+    // Group classes by cohort
+    const grouped = {};
+    const ungrouped = [];
+    filteredClasses.forEach(cls => {
+      if (cls.cohort_id) {
+        if (!grouped[cls.cohort_id]) grouped[cls.cohort_id] = [];
+        grouped[cls.cohort_id].push(cls);
+      } else {
+        ungrouped.push(cls);
+      }
     });
+
+    // Render grouped classes first
+    Object.keys(grouped).forEach(cohortId => {
+      const label = cohortLabel(cohortId);
+      if (label) {
+        const header = document.createElement('div');
+        header.className = 'cohort-group-header';
+        header.textContent = label;
+        list.appendChild(header);
+      }
+      grouped[cohortId].forEach(cls => list.appendChild(buildClassCard(cls)));
+    });
+
+    // Render ungrouped classes
+    if (ungrouped.length && Object.keys(grouped).length) {
+      const header = document.createElement('div');
+      header.className = 'cohort-group-header';
+      header.textContent = 'Other';
+      list.appendChild(header);
+    }
+    ungrouped.forEach(cls => list.appendChild(buildClassCard(cls)));
+  }
+
+  function buildClassCard(cls) {
+    const count   = memberCounts[cls.class_id] || 0;
+    const pending = pendingCounts[cls.class_id] || 0;
+    const isActive = selectedClassId === cls.class_id;
+    const isEnded = cls.end_date && new Date(cls.end_date) < new Date();
+    const capacityChip = cls.max_capacity
+      ? `<span class="meta-chip">${count}/${cls.max_capacity}</span>`
+      : `<span class="meta-chip">👥 ${count}</span>`;
+    const subtitle = cls.programme ? esc(cls.programme) : '';
+
+    const div = document.createElement('div');
+    div.className = 'class-card' + (isActive ? ' active' : '');
+    if (cls.colour) div.style.borderLeft = `4px solid ${cls.colour}`;
+    div.innerHTML = `
+      <div class="class-card-title">${esc(cls.title)}</div>
+      ${subtitle ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">${subtitle}</div>` : ''}
+      <div class="class-card-meta">
+        <span class="status-chip ${cls.status === 'ACTIVE' && !isEnded ? 'active' : 'archived'}">${isEnded ? 'ENDED' : esc(cls.status)}</span>
+        ${capacityChip}
+        ${pending ? `<span class="meta-chip" style="color:#a16207;background:rgba(234,179,8,0.10);border-color:rgba(234,179,8,0.22);">⏳ ${pending} pending</span>` : ''}
+        ${cls.academic_year || cls.semester ? `<span class="meta-chip">${esc([cls.academic_year, cls.semester].filter(Boolean).join(' · '))}</span>` : ''}
+        <span class="meta-chip">🔑 ${esc(cls.join_code)}</span>
+        ${cls.require_approval ? '<span class="meta-chip" style="color:var(--accent);font-size:10px;">🔒 Approval</span>' : ''}
+      </div>`;
+    div.addEventListener('click', () => selectClass(cls.class_id));
+    return div;
   }
 
   // ── Select a class ────────────────────────────────────────
@@ -1113,8 +1206,7 @@
       byId('modalTitle').textContent = 'New Class';
       byId('mTitle').value           = '';
       byId('mDesc').value            = '';
-      byId('mProgramme').value       = '';
-      byId('mCourse').value          = '';
+      byId('mCohort').value          = '';
       byId('mAcademicYear').value    = '';
       byId('mSemester').value        = '';
       byId('mStatus').value          = 'ACTIVE';
@@ -1127,8 +1219,7 @@
       byId('modalTitle').textContent = 'Edit Class';
       byId('mTitle').value           = c.title || '';
       byId('mDesc').value            = c.description || '';
-      byId('mProgramme').value       = c.programme || '';
-      byId('mCourse').value          = c.course || '';
+      byId('mCohort').value          = c.cohort_id || '';
       byId('mAcademicYear').value    = c.academic_year || '';
       byId('mSemester').value        = c.semester || '';
       byId('mStatus').value          = c.status || 'ACTIVE';
@@ -1237,11 +1328,16 @@
 
     let result;
 
+    // Resolve cohort → programme text for backward compat display
+    const cohortId  = byId('mCohort').value || null;
+    const cohortObj = cohortId ? allCohorts.find(c => c.cohort_id === cohortId) : null;
+    const progText  = cohortObj ? progTitle(cohortObj.programme_id) : null;
+
     const opts = {
       requireApproval : byId('mRequireApproval').checked,
       description     : (byId('mDesc').value || '').trim() || null,
-      programme       : (byId('mProgramme').value || '').trim() || null,
-      course          : (byId('mCourse').value || '').trim() || null,
+      cohort_id       : cohortId,
+      programme       : progText,
       academic_year   : (byId('mAcademicYear').value || '').trim() || null,
       semester        : (byId('mSemester').value || '').trim() || null,
       max_capacity    : byId('mCapacity').value ? parseInt(byId('mCapacity').value, 10) : null,
@@ -1257,8 +1353,8 @@
         title, status, custom_fields_json: customFieldsJson,
         require_approval: opts.requireApproval,
         description: opts.description,
+        cohort_id: opts.cohort_id,
         programme: opts.programme,
-        course: opts.course,
         academic_year: opts.academic_year,
         semester: opts.semester,
         max_capacity: opts.max_capacity,

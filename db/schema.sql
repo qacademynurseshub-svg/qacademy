@@ -417,12 +417,14 @@ CREATE TABLE teacher_classes (
   max_capacity       INTEGER,
   start_date         DATE,
   end_date           DATE,
-  colour             TEXT
+  colour             TEXT,
+  cohort_id          TEXT REFERENCES teacher_cohorts(cohort_id)
 );
 -- status: ACTIVE | ARCHIVED
 
 CREATE INDEX ON teacher_classes (teacher_id);
 CREATE INDEX ON teacher_classes (join_code);
+CREATE INDEX ON teacher_classes (cohort_id);
 
 -- 5.3 teacher_class_members
 CREATE TABLE teacher_class_members (

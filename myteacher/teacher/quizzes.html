@@ -611,8 +611,9 @@ a { color: var(--brand); }
                     <input type="text" id="fTitle" placeholder="e.g. Pharmacology Midterm" />
                   </div>
                   <div class="form-group">
-                    <label>Subject</label>
-                    <input type="text" id="fSubject" placeholder="e.g. Pharmacology" />
+                    <label>Course</label>
+                    <select id="fCourse"><option value="">Select course...</option></select>
+                    <div id="fSubjectHint" style="font-size:11px;color:var(--text-muted);margin-top:4px;display:none;"></div>
                   </div>
                   <div class="form-group">
                     <label>Duration (min, 0 = untimed)</label>
@@ -1160,12 +1161,26 @@ async function boot() {
   const params = new URLSearchParams(location.search);
   const urlQuizId = params.get('quiz_id');
 
-  await loadQuizzes();
+  await Promise.all([loadQuizzes(), loadCoursesForDropdown()]);
   bindEvents();
 
   if (urlQuizId) {
     await openQuiz(urlQuizId);
   }
+}
+
+let ALL_COURSES = [];
+
+async function loadCoursesForDropdown() {
+  ALL_COURSES = await getCourses(TEACHER_ID, { status: 'ACTIVE' });
+  const sel = $('fCourse');
+  sel.innerHTML = '<option value="">Select course...</option>';
+  ALL_COURSES.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.course_id;
+    opt.textContent = c.title;
+    sel.appendChild(opt);
+  });
 }
 
 
@@ -1199,8 +1214,9 @@ function renderQuizGrid() {
 
     const barClass = status === 'PUBLISHED' ? 'bar-published' : status === 'ARCHIVED' ? 'bar-archived' : 'bar-draft';
 
+    const courseTitle = q.course_id ? (ALL_COURSES.find(c => c.course_id === q.course_id)?.title || q.subject) : q.subject;
     const metaParts = [
-      q.subject ? esc(q.subject) : null,
+      courseTitle ? esc(courseTitle) : null,
       esc(dur),
       `${items} Qs`,
       esc(att),
@@ -1376,8 +1392,10 @@ function updateSettingsDigests() {
   if ($('dPreset')) $('dPreset').textContent = preset.charAt(0) + preset.slice(1).toLowerCase() + ' · ' + (dur ? dur + ' min' : 'Untimed');
 
   const title = ($('fTitle')?.value || '').trim();
-  const subject = ($('fSubject')?.value || '').trim();
-  if ($('dBasic')) $('dBasic').textContent = (title || '—') + (subject ? ' · ' + subject : '');
+  const courseEl = $('fCourse');
+  const courseName = courseEl ? (courseEl.options[courseEl.selectedIndex]?.text || '').trim() : '';
+  const courseDisplay = courseEl?.value ? courseName : '';
+  if ($('dBasic')) $('dBasic').textContent = (title || '—') + (courseDisplay ? ' · ' + courseDisplay : '');
 
   const sq = $('fShuffleQ')?.checked;
   const so = $('fShuffleO')?.checked;
@@ -1411,7 +1429,7 @@ function setReadOnlyState(readOnly) {
 
   if (status === 'PUBLISHED') {
     const immutable = ['fDuration','fSataScoring','fShuffleQ','fShuffleO'];
-    const mutable = ['fTitle','fSubject','fMaxAttempts','fResultsPolicy','fScoreDisplay','fOpenAt','fCloseAt','fShowReview','fShowResults','fPassThreshold'];
+    const mutable = ['fTitle','fCourse','fMaxAttempts','fResultsPolicy','fScoreDisplay','fOpenAt','fCloseAt','fShowReview','fShowResults','fPassThreshold'];
     immutable.forEach(id => { if ($(id)) $(id).disabled = true; });
     mutable.forEach(id => { if ($(id)) $(id).disabled = false; });
     $('btnSaveQuiz').disabled = false;
@@ -1424,8 +1442,8 @@ function setReadOnlyState(readOnly) {
     $('btnClearDraft').disabled = true;
     $('btnSaveDraft').disabled = true;
   } else if (status === 'ARCHIVED') {
-    const mutableArchived = ['fTitle','fSubject','fResultsPolicy','fScoreDisplay','fShowReview','fShowResults','fPassThreshold'];
-    const allFields = ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
+    const mutableArchived = ['fTitle','fCourse','fResultsPolicy','fScoreDisplay','fShowReview','fShowResults','fPassThreshold'];
+    const allFields = ['fTitle','fCourse','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
     allFields.forEach(id => { if ($(id)) $(id).disabled = !mutableArchived.includes(id); });
     $('btnSaveQuiz').disabled = false;
     $('btnRegenCode').disabled = true;
@@ -1437,7 +1455,7 @@ function setReadOnlyState(readOnly) {
     $('btnClearDraft').disabled = true;
     $('btnSaveDraft').disabled = true;
   } else {
-    const fields = ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
+    const fields = ['fTitle','fCourse','fDuration','fMaxAttempts','fResultsPolicy','fScoreDisplay','fSataScoring','fOpenAt','fCloseAt','fShuffleQ','fShuffleO','fShowReview','fShowResults','fPassThreshold'];
     fields.forEach(id => { if ($(id)) $(id).disabled = readOnly; });
     $('btnSaveQuiz').disabled = readOnly;
     $('btnRegenCode').disabled = readOnly;
@@ -1460,7 +1478,7 @@ function setReadOnlyState(readOnly) {
 // ================================================================
 function resetForm() {
   $('fTitle').value = '';
-  $('fSubject').value = '';
+  $('fCourse').value = '';
   $('fDuration').value = '0';
   $('fMaxAttempts').value = '1';
   $('fResultsPolicy').value = 'MANUAL';
@@ -1486,7 +1504,18 @@ function resetForm() {
 
 function fillFormFromQuiz(quiz) {
   $('fTitle').value = quiz.title || '';
-  $('fSubject').value = quiz.subject || '';
+  // Set course dropdown from course_id; show subject hint if old quiz
+  $('fCourse').value = quiz.course_id || '';
+  const hint = $('fSubjectHint');
+  if (hint) {
+    if (!quiz.course_id && quiz.subject) {
+      hint.textContent = 'Previously: ' + quiz.subject;
+      hint.style.display = '';
+    } else {
+      hint.textContent = '';
+      hint.style.display = 'none';
+    }
+  }
   $('fDuration').value = quiz.duration_minutes ?? 0;
   $('fMaxAttempts').value = quiz.max_attempts ?? 1;
   $('fResultsPolicy').value = quiz.results_release_policy || 'MANUAL';
@@ -1556,7 +1585,8 @@ function syncTogglePills() {
 function readForm() {
   return {
     title                 : ($('fTitle').value || '').trim(),
-    subject               : ($('fSubject').value || '').trim() || null,
+    course_id             : $('fCourse').value || null,
+    subject               : $('fCourse').value ? ($('fCourse').options[$('fCourse').selectedIndex]?.text || '').trim() || null : null,
     preset                : CURRENT_PRESET || 'EXAM',
     duration_minutes      : parseInt($('fDuration').value) || 0,
     max_attempts          : parseInt($('fMaxAttempts').value) || 0,
@@ -2758,7 +2788,8 @@ async function releaseResults() {
 function bindEvents() {
   $('btnNewQuiz').addEventListener('click', newQuiz);
   document.querySelectorAll('.settings-nav-item').forEach(item => { item.addEventListener('click', () => showSettingsSection(item.dataset.section)); });
-  ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fOpenAt','fCloseAt','fPassThreshold'].forEach(id => { const el = $(id); if (el) el.addEventListener('input', updateSettingsDigests); });
+  ['fTitle','fDuration','fMaxAttempts','fOpenAt','fCloseAt','fPassThreshold'].forEach(id => { const el = $(id); if (el) el.addEventListener('input', updateSettingsDigests); });
+  ['fCourse','fResultsPolicy'].forEach(id => { const el = $(id); if (el) el.addEventListener('change', updateSettingsDigests); });
 
   let searchTimer = null;
   $('filterSearch').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadQuizzes, 300); });

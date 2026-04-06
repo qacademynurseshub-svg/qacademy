@@ -1146,7 +1146,7 @@ async function updateTeacherQuiz(quizId, patch) {
   const MUTABLE_WHEN_ARCHIVED = new Set([
     'results_released', 'results_released_at', 'results_release_policy',
     'show_results', 'show_review', 'score_display_policy',
-    'pass_threshold_pct', 'grade_bands_json', 'title', 'subject'
+    'pass_threshold_pct', 'grade_bands_json', 'title', 'subject', 'course_id'
   ]);
 
   let safePatch = { ...patch };
