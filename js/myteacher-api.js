@@ -3166,6 +3166,7 @@ async function getAttemptDetailForTeacher(attemptId) {
     success: true,
     attempt: {
       attempt_id: attempt.attempt_id,
+      teacher_quiz_id: attempt.teacher_quiz_id,
       attempt_no: attempt.attempt_no,
       status: attempt.status,
       score_raw: attempt.score_raw,

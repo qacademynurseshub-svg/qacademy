@@ -26,7 +26,7 @@
         background: #fff; border-radius: 18px;
         border: 1px solid var(--border, #e2e8f0);
         box-shadow: 0 20px 60px rgba(30,58,95,0.14);
-        width: 100%; max-width: 720px; max-height: 90vh;
+        width: 100%; max-width: 900px; max-height: 90vh;
         display: flex; flex-direction: column; overflow: hidden;
       }
 
@@ -117,6 +117,38 @@
 
       /* Loading */
       .sp-loading { text-align: center; padding: 32px; font-size: 13px; color: var(--text-muted, #64748b); }
+
+      /* Back button */
+      .sp-back {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 13px; font-weight: 700; color: var(--accent, #2d7d72);
+        background: none; border: none; cursor: pointer; padding: 0 0 12px;
+      }
+      .sp-back:hover { text-decoration: underline; }
+
+      /* Attempt detail */
+      .sp-attempt-header {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+        padding-bottom: 12px; border-bottom: 1px solid var(--border, #e2e8f0);
+      }
+      .sp-attempt-title { font-size: 15px; font-weight: 800; color: var(--primary, #1e3a5f); }
+      .sp-attempt-meta { font-size: 12px; color: var(--text-muted, #64748b); }
+
+      .sp-question { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border, #e2e8f0); }
+      .sp-question:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+      .sp-q-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+      .sp-q-num { font-size: 12px; font-weight: 800; color: var(--primary, #1e3a5f); }
+      .sp-q-stem { font-size: 13px; color: var(--text, #334155); margin-bottom: 8px; line-height: 1.5; }
+      .sp-q-options { display: flex; flex-direction: column; gap: 4px; }
+      .sp-q-opt {
+        display: flex; align-items: flex-start; gap: 8px; padding: 6px 10px;
+        border-radius: 8px; font-size: 13px; border: 1px solid var(--border, #e2e8f0);
+      }
+      .sp-q-opt.correct { background: rgba(45,125,114,0.06); border-color: rgba(45,125,114,0.22); }
+      .sp-q-opt.wrong { background: rgba(220,38,38,0.04); border-color: rgba(220,38,38,0.15); }
+      .sp-q-opt-letter { font-weight: 800; min-width: 18px; color: var(--text-muted, #64748b); }
+      .sp-q-rationale { font-size: 12px; color: var(--text-muted, #64748b); margin-top: 6px; padding: 8px 10px; background: var(--bg, #f8fafc); border-radius: 8px; line-height: 1.5; }
 
       @media (max-width: 640px) {
         .sp-modal { max-width: 100%; border-radius: 14px; }
@@ -294,10 +326,8 @@
       const quizTitle = quiz.title || '—';
       const classTitle = data.classMap[a.class_id] || '—';
       const score = a.score_raw != null ? a.score_raw + '/' + a.score_total + ' (' + Math.round(a.score_pct || 0) + '%)' : '—';
-      const href = (typeof MYTEACHER !== 'undefined' ? MYTEACHER.teacher : '/myteacher/teacher') +
-        '/results.html?class_id=' + encodeURIComponent(a.class_id) + '&quiz_id=' + encodeURIComponent(a.teacher_quiz_id);
 
-      html += '<tr data-href="' + esc(href) + '">';
+      html += '<tr data-attempt="' + esc(a.attempt_id) + '">';
       html += '<td>' + esc(quizTitle) + '</td>';
       html += '<td>' + esc(classTitle) + '</td>';
       html += '<td>' + (a.attempt_no || 1) + '</td>';
@@ -310,12 +340,86 @@
     html += '</tbody></table>';
     body.innerHTML = html;
 
-    // Click row to navigate
-    body.querySelectorAll('tr[data-href]').forEach(tr => {
+    // Click row to drill down into attempt detail
+    body.querySelectorAll('tr[data-attempt]').forEach(tr => {
       tr.addEventListener('click', function () {
-        closePanel();
-        window.location.href = this.dataset.href;
+        openAttemptDetail(this.dataset.attempt);
       });
+    });
+  }
+
+  // ── Attempt detail drill-down ─────────────────────────────
+  async function openAttemptDetail(attemptId) {
+    const body = $('spBody');
+    body.innerHTML = '<div class="sp-loading">Loading attempt...</div>';
+
+    const result = await getAttemptDetailForTeacher(attemptId);
+    if (!result.success) {
+      body.innerHTML = '<div class="sp-empty"><div class="sp-empty-icon">⚠️</div>' + esc(result.message || 'Could not load attempt.') + '</div>';
+      return;
+    }
+
+    const att = result.attempt;
+    const questions = result.questions;
+    const quiz = data.quizMap[att.teacher_quiz_id] || {};
+
+    let html = '<button class="sp-back" id="spBackBtn">← Back to attempts</button>';
+
+    // Attempt header
+    html += '<div class="sp-attempt-header">';
+    html += '<div>';
+    html += '<div class="sp-attempt-title">' + esc(quiz.title || 'Quiz') + ' — Attempt ' + (att.attempt_no || 1) + '</div>';
+    html += '<div class="sp-attempt-meta">';
+    html += 'Score: ' + (att.score_raw != null ? att.score_raw + '/' + att.score_total + ' (' + Math.round(att.score_pct || 0) + '%)' : '—');
+    html += ' · ' + (att.pass_fail || '—');
+    if (att.grade_label) html += ' · ' + esc(att.grade_label);
+    html += ' · ' + fmtDate(att.submitted_at);
+    html += '</div></div>';
+    html += '</div>';
+
+    // Questions
+    questions.forEach(q => {
+      const correctSet = new Set((q.correct_answer || '').split(',').map(s => s.trim()).filter(Boolean));
+      const studentSet = new Set(Array.isArray(q.student_answer) ? q.student_answer : [q.student_answer].filter(Boolean));
+
+      html += '<div class="sp-question">';
+      html += '<div class="sp-q-header">';
+      html += '<span class="sp-q-num">Q' + q.position + '</span>';
+      html += '<span class="sp-chip ' + (q.is_correct ? 'pass' : 'fail') + '">' + (q.is_correct ? 'Correct' : 'Wrong') + '</span>';
+      html += '<span style="font-size:11px;color:var(--text-muted)">' + esc(q.question_type) + ' · ' + q.marks + ' mark' + (q.marks !== 1 ? 's' : '') + '</span>';
+      html += '</div>';
+      html += '<div class="sp-q-stem">' + esc(q.stem) + '</div>';
+      html += '<div class="sp-q-options">';
+
+      q.options.forEach(opt => {
+        const isCorrect = correctSet.has(opt.letter);
+        const isChosen = studentSet.has(opt.letter);
+        let cls = '';
+        if (isCorrect) cls = 'correct';
+        else if (isChosen && !isCorrect) cls = 'wrong';
+
+        html += '<div class="sp-q-opt ' + cls + '">';
+        html += '<span class="sp-q-opt-letter">' + esc(opt.letter) + '</span>';
+        html += '<span>' + esc(opt.text) + '</span>';
+        if (isCorrect) html += '<span style="margin-left:auto;font-size:11px;color:var(--accent)">✓</span>';
+        if (isChosen && !isCorrect) html += '<span style="margin-left:auto;font-size:11px;color:#b91c1c">✗</span>';
+        html += '</div>';
+      });
+
+      html += '</div>';
+
+      if (q.rationale) {
+        html += '<div class="sp-q-rationale"><strong>Rationale:</strong> ' + esc(q.rationale) + '</div>';
+      }
+
+      html += '</div>';
+    });
+
+    body.innerHTML = html;
+
+    // Back button
+    document.getElementById('spBackBtn').addEventListener('click', function () {
+      renderAttempts($('spBody'));
     });
   }
 
