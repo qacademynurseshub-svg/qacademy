@@ -1,7 +1,7 @@
 # MyTeacher — Slice 12–14 Build Plan
 **Document prepared for Claude Desktop implementation**
 **Date: April 2026**
-**Status: Approved and ready to build**
+**Status: BUILT — Slices 12-14 complete (April 2026)**
 
 ---
 
@@ -203,43 +203,38 @@ CREATE POLICY "teacher_cohorts_update" ON teacher_cohorts
 
 ---
 
-## Slice 14 — Wire Courses and Cohorts into Classes and Quizzes
+## Slice 14 — Wire Cohorts into Classes, Courses into Quizzes
+
+> **Implementation decision:** Courses do NOT link to classes. A class is a student group
+> (Cohort + Semester). The course context comes through the quiz — quizzes have course_id.
+> This was changed from the original plan during implementation.
 
 ### Existing table changes
 
 ```sql
--- Add cohort_id and course_id to teacher_classes
--- Both nullable in DB for backward compatibility
--- Both required in UI for all new classes going forward
+-- Add cohort_id to teacher_classes (course_id NOT added — courses link through quizzes only)
+-- Nullable in DB for backward compatibility
 ALTER TABLE teacher_classes
-  ADD COLUMN cohort_id TEXT REFERENCES teacher_cohorts(cohort_id),
-  ADD COLUMN course_id TEXT REFERENCES teacher_courses(course_id);
+  ADD COLUMN cohort_id TEXT REFERENCES teacher_cohorts(cohort_id);
 
 CREATE INDEX idx_teacher_classes_cohort_id ON teacher_classes(cohort_id);
-CREATE INDEX idx_teacher_classes_course_id ON teacher_classes(course_id);
 ```
 
 ### UI changes
 
-**`myteacher/teacher/classes.html`**
-- Class creation modal: add required dropdowns for Cohort and Course
-  - Cohort dropdown: pulls from `getCohorts(teacherId)` — grouped by programme
-  - Course dropdown: pulls from `getCourses(teacherId)`
-  - Both required before teacher can save a new class
-- Class list: group classes by cohort in the left panel
-  - Show cohort label as a section header
-  - Classes under each cohort sorted by academic_year + semester
+**`myteacher/teacher/classes.html`** ✅ Built
+- Class creation modal: cohort dropdown (grouped by programme), replaces old programme/course text fields
+- Academic year and semester kept as free-text
+- Auto-suggested class title from cohort + academic year + semester (teacher clicks "Use this" or types own)
+- Class list: grouped by cohort with section headers. Ungrouped classes under "Other"
 
-**`myteacher/teacher/quizzes.html`**
-- Settings pane: replace the subject free-text input with a Course selector dropdown
-  - Pulls from `getCourses(teacherId)`
-  - If existing quiz has no `course_id` but has `subject` text — show subject as placeholder hint
-  - Saving always writes `course_id`
+**`myteacher/teacher/quizzes.html`** ✅ Built
+- Settings pane: course dropdown replaces subject free-text input
+- If existing quiz has no `course_id` but has `subject` text — shows "Previously: {subject}" hint
+- Saving writes both `course_id` and `subject` text (backward compat)
 
-**`myteacher/student/my-classes.html`**
-- Group student's classes by programme/cohort
-- Instead of flat list — show cohort as a section header
-- Each class under that cohort represents one course for that semester
+**`myteacher/student/my-classes.html`** — Deferred
+- Student-side changes deferred until teacher structure settles with real usage
 
 ---
 
@@ -279,7 +274,7 @@ Follow this exact order — each step depends on the previous:
 1. Create teacher_programmes table + RLS
 2. Create teacher_cohorts table + RLS
 3. Create teacher_courses table + RLS
-4. Alter teacher_classes — add cohort_id, course_id (nullable)
+4. Alter teacher_classes — add cohort_id (nullable). NO course_id on classes.
 5. Alter teacher_quizzes — add course_id (nullable, keep subject)
 6. Add all indexes
 7. Add API functions to myteacher-api.js
@@ -287,10 +282,10 @@ Follow this exact order — each step depends on the previous:
 9. Build cohorts-panel.js component
 10. Build courses-panel.js component
 11. Build academic-structure.html (thin shell loading all three)
-12. Add Academic Structure to teacher nav
-13. Update classes.html — cohort + course selectors, grouped class list
-14. Update quizzes.html — course selector in settings pane
-15. Update my-classes.html — group by programme/cohort
+12. Add Academic Structure to teacher nav ("Academics")
+13. Update classes.html — cohort dropdown, grouped class list, auto-suggested titles
+14. Update quizzes.html — course dropdown in settings pane
+15. ~~Update my-classes.html — group by programme/cohort~~ (deferred)
 ```
 
 ---
@@ -301,7 +296,7 @@ Follow this exact order — each step depends on the previous:
 
 **What it is:** A reusable modal component triggered from anywhere a teacher sees a student. Shows the full picture of one student — identity, classes, custom fields, all attempts.
 
-**Why on hold:** The student panel is designed to show a student's classes and attempts. Once Courses and Cohorts are wired into classes, the data shape and display logic for classes changes significantly. Building the student panel now would require rebuilding it after Slice 12-14. Build this after Slices 12-14 are complete.
+**Previously on hold** waiting for Slices 12-14. Now unblocked — Slices 12-14 are complete. Ready to build.
 
 **Spec when ready to build:**
 
@@ -348,32 +343,27 @@ Wire into:
 
 ---
 
-## Files to Create
+## Files Created / Modified
 
 ```
-NEW:
-myteacher/teacher/academic-structure.html
-myteacher/teacher/components/programmes-panel.js
-myteacher/teacher/components/cohorts-panel.js
-myteacher/teacher/components/courses-panel.js
+CREATED:
+myteacher/teacher/academic-structure.html        ✅
+myteacher/teacher/components/programmes-panel.js ✅
+myteacher/teacher/components/cohorts-panel.js    ✅
+myteacher/teacher/components/courses-panel.js    ✅
+db/migrations/slice12_teacher_courses.sql        ✅
+db/migrations/slice13_teacher_programmes_cohorts.sql ✅
+db/migrations/slice14_wire_cohort_to_classes.sql  ✅
 
 MODIFIED:
-js/myteacher-api.js          — new API functions
-js/myteacher-teacher-nav.js  — add Academic Structure link
-myteacher/teacher/classes.html   — cohort + course selectors, grouped list
-myteacher/teacher/quizzes.html   — course selector in settings pane
-myteacher/student/my-classes.html — group by programme/cohort
-
-DB (run in Supabase SQL editor):
-— CREATE teacher_programmes
-— CREATE teacher_cohorts
-— CREATE teacher_courses
-— ALTER teacher_classes
-— ALTER teacher_quizzes
-— All indexes
-— All RLS policies
+js/myteacher-api.js          — 16 new functions (courses, programmes, cohorts) ✅
+js/myteacher-teacher-nav.js  — "Academics" link added ✅
+myteacher/teacher/classes.html   — cohort dropdown, grouped list, title suggestion ✅
+myteacher/teacher/quizzes.html   — course dropdown in settings pane ✅
+db/schema.sql                — 3 new tables, 2 new columns, 39 tables total ✅
+myteacher/student/my-classes.html — deferred (no changes)
 ```
 
 ---
 
-*End of document. Share with Claude Desktop to begin implementation.*
+*Implementation complete. Document updated April 2026.*

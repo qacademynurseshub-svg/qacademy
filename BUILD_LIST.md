@@ -100,3 +100,12 @@ Pagination on all admin and student list pages (users, payments, fixed-quizzes, 
 - Rate limit on password reset (3 per email per 60 min) — dedicated reset_requests table with full audit trail (user_exists, status, device info, used tracking). Admin UI deferred.
 - Login methods: username + password, Google OAuth, magic link (passwordless email)
 - Reset password error handling for invalid/expired/replaced links
+
+### Slices 12–14: Academic Structure (April 2026)
+- 3 new tables: teacher_programmes, teacher_cohorts, teacher_courses (all with RLS)
+- CRUD APIs for all three + self-contained panel components (programmes-panel.js, cohorts-panel.js, courses-panel.js)
+- Academic Structure page (academic-structure.html) with all three panels, added to teacher nav as "Academics"
+- Classes wired to cohorts: cohort dropdown replaces programme/course text fields, class list grouped by cohort, auto-suggested titles
+- Quizzes wired to courses: course dropdown replaces subject free-text, backward compat for old quizzes with subject hint
+- Key decision: courses link through quizzes only (not classes). A class = cohort + semester (student group). A quiz = course (subject identity)
+- Schema: cohort_id on teacher_classes, course_id on teacher_quizzes. Both nullable for backward compat. 39 tables total

@@ -17,7 +17,7 @@ qacademy-gamma/
     runner/                ← 2 quiz runner pages
   myteacher/               ← Teacher Assess product
     admin/                 ← 2 admin pages
-    teacher/               ← 8 teacher pages
+    teacher/               ← 9 teacher pages
     student/               ← 5 student pages
   js/
     paths.js               ← CENTRAL PATH CONFIG — edit this to clone
@@ -764,6 +764,7 @@ Key rules:
 - [ ] Add teacher/student sidebar navigation
 - [ ] Seed QAcademy library tables with production question content
 - [ ] Test full quiz lifecycle end-to-end (create → publish → take → results → review)
+- [ ] Run Slice 12-14 migrations (teacher_courses, teacher_programmes, teacher_cohorts, cohort_id on teacher_classes, course_id on teacher_quizzes)
 
 ---
 

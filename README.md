@@ -1,5 +1,5 @@
 # QAcademy Nurses Hub — README
-*Last updated: March 2026*
+*Last updated: April 2026*
 
 ## What This Is
 QAcademy Nurses Hub is a web-based learning management system for nursing students in Ghana preparing for NMC licensure exams. It serves five programmes: RN, RM, RPHN, RMHN, and NACNAP.
@@ -30,7 +30,7 @@ qacademy-gamma/
     runner/                ← 2 quiz runner pages
   myteacher/               ← Teacher Assess product
     admin/                 ← 2 admin pages
-    teacher/               ← 8 teacher pages
+    teacher/               ← 9 teacher pages
     student/               ← 5 student pages
   js/
     paths.js               ← CENTRAL PATH CONFIG — edit this to clone
@@ -144,7 +144,7 @@ const MYTEACHER = {
 - `student/upgrade.html` — upgrade page for existing logged-in students
 - `payment-confirmation.html` — post-payment redirect handler, calls verify
 
-### Teacher Assess — MyTeacher ✅ (Slices 1–11)
+### Teacher Assess — MyTeacher ✅ (Slices 1–14)
 - **Slice 1–2: Foundation** — Teacher profiles, access request/approval, admin approval page
 - **Slice 3: Classes Manager** — Full CRUD, join codes, custom fields, member management, extended class metadata (programme, course, academic year, semester, description, dates, capacity, colour)
 - **Slice 4: Student My Classes** — Join by code, class detail, quizzes tab with attempts modal
@@ -157,6 +157,9 @@ const MYTEACHER = {
 - **Slice 10: Dashboard Wiring** — Teacher dashboard (live stats, recent activity), Student dashboard (live stats, first-visit join overlay)
 - **Slice 11: Library Picker** — Standalone full-screen page, course browser with filters, add to quiz draft, wired to quiz manager Library tab, edit-to-copy flow (LIB items save to personal bank with source tracking, original library untouched)
 - **Integrity Hardening** — 12 fixes across 3 tiers (see Quiz Lifecycle Rules below)
+- **Slice 12: Teacher Courses** — teacher_courses table, CRUD API, self-contained courses-panel.js component. course_id added to teacher_quizzes (nullable, subject kept as fallback)
+- **Slice 13: Programmes & Cohorts** — teacher_programmes + teacher_cohorts tables, CRUD APIs, programmes-panel.js + cohorts-panel.js components. Academic Structure page with all three panels
+- **Slice 14: Wiring** — Cohort dropdown on class creation (replaces programme/course text fields), class list grouped by cohort, course dropdown on quiz settings (replaces subject free-text), auto-suggested class titles from cohort + academic year + semester
 
 ### Profile Pages ✅
 - **Student NMC Profile** (`student/profile.html`) — Personal details (name, phone, avatar), academic details (level, cohort), subscription status. Inline edit with save.
@@ -171,9 +174,16 @@ const MYTEACHER = {
 - **Schema**: `teacher_classes.require_approval` (boolean), `teacher_class_members.status` supports `PENDING`/`REJECTED`
 
 ### Extended Class Metadata ✅
-- **9 new optional fields** on `teacher_classes`: `description`, `programme`, `course`, `academic_year`, `semester`, `max_capacity`, `start_date`, `end_date`, `colour`
-- **Teacher modal** — grouped form (academic details, settings, colour picker with 8 presets)
-- **Teacher class cards** — colour accent border, programme/course subtitle, academic period chip, capacity counter, "Ended" badge
+- **Optional fields** on `teacher_classes`: `description`, `programme`, `course`, `academic_year`, `semester`, `max_capacity`, `start_date`, `end_date`, `colour`, `cohort_id`
+- **Teacher modal** — cohort dropdown (grouped by programme), academic year + semester free-text, settings, colour picker with 8 presets. Auto-suggested class title from cohort + academic year + semester
+- **Teacher class cards** — colour accent border, programme subtitle, academic period chip, capacity counter, "Ended" badge, grouped by cohort in list
+
+### Academic Structure ✅ (Slices 12–14)
+- **Mental model:** Programme (the degree) → Cohort (the intake group) → Class (cohort + semester). Course (the subject) → Quiz. Courses link through quizzes, not classes.
+- **3 new tables:** `teacher_programmes`, `teacher_cohorts`, `teacher_courses` — each with full CRUD API and RLS
+- **Academic Structure page** (`academic-structure.html`) — three self-contained panel components side by side (programmes, cohorts, courses)
+- **Components:** `programmes-panel.js`, `cohorts-panel.js`, `courses-panel.js` — reusable, container-agnostic, can be embedded on any page or inside a modal
+- **Wiring:** Classes use cohort dropdown, quizzes use course dropdown. Backward compatible — old data with null cohort/course still works
 - **Teacher detail panel** — description, info chips, date display, capacity slots
 - **Student class cards** — colour accent, programme/course subtitle, academic period chip
 - **Student join flow** — org card shows programme, course, description
@@ -264,12 +274,13 @@ Thread-based messaging system between admin and students.
 | Page | Status | Notes |
 |---|---|---|
 | myteacher/teacher/dashboard.html | ✅ Done | Live stats (classes, quizzes, students, attempts), recent activity feed |
-| myteacher/teacher/classes.html | ✅ Done | Full CRUD, join codes, custom fields, members |
+| myteacher/teacher/classes.html | ✅ Done | Full CRUD, join codes, custom fields, members, cohort dropdown, grouped by cohort |
 | myteacher/teacher/bank.html | ✅ Done | MCQ/TF/SATA, image upload, CSV import, filters |
-| myteacher/teacher/quizzes.html | ✅ Done | 4-tab editor, presets, publish with snapshots, clone, archive, release results, SATA scoring policy, mutable settings, library picker |
+| myteacher/teacher/quizzes.html | ✅ Done | 4-tab editor, presets, publish with snapshots, clone, archive, release results, SATA scoring policy, mutable settings, library picker, course dropdown |
 | myteacher/teacher/import.html | ✅ Done | CSV import with validation, duplicate detection, AI help prompt |
 | myteacher/teacher/library.html | ✅ Done | Full-screen library browser, course filters, add to quiz draft |
 | myteacher/teacher/results.html | ✅ Done | Marksheet, item analysis, drawers, CSV export, print |
+| myteacher/teacher/academic-structure.html | ✅ Done | Programmes, Cohorts, Courses — three self-contained panel components |
 | myteacher/teacher/profile.html | ✅ Done | QAcademy account + Organisation profile, avatar & logo upload, inline edit |
 
 ### Teacher Assess — Student Pages
