@@ -98,39 +98,110 @@ a { color: var(--brand); }
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
 
-/* ── Form layout ─────────────────────────────────────────── */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 700px) { .form-grid { grid-template-columns: 1fr; } }
+/* ── Shared form elements (used across tabs) ─────────────── */
 .form-group { display: flex; flex-direction: column; gap: 4px; }
-.form-group label { font-size: 12px; font-weight: 800; color: var(--muted); }
-.form-group input, .form-group select, .form-group textarea { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; font-family: inherit; background: var(--card); }
+.form-group label { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+.form-group input, .form-group select, .form-group textarea { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; font-family: inherit; background: var(--card); color: var(--ink); }
 .form-group textarea { min-height: 70px; resize: vertical; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(11,122,117,.10); }
 .form-span-2 { grid-column: 1 / -1; }
-.form-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
-.form-section-title { font-size: 14px; font-weight: 900; margin-bottom: 12px; }
 .hint { font-size: 12px; color: var(--muted); }
-.check-row { display: flex; align-items: center; gap: 8px; }
-.check-row input[type="checkbox"] { width: auto; accent-color: var(--brand); }
-.check-row label { font-size: 13px; font-weight: 700; cursor: pointer; }
 
-/* ── Preset cards ────────────────────────────────────────── */
-.preset-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
-.preset-card { padding: 14px; border: 2px solid var(--line); border-radius: 14px; cursor: pointer; transition: all .14s ease; background: var(--card); }
+/* ── Settings — summary strip ────────────────────────────── */
+.settings-summary { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 14px; }
+.settings-stat { background: var(--soft); border-radius: 10px; padding: 10px 14px; }
+.settings-stat-label { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+.settings-stat-val { font-size: 17px; font-weight: 900; margin-top: 4px; line-height: 1; }
+.settings-stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.stat-teal { color: var(--brand); }
+.stat-amber { color: var(--warn); }
+.stat-ok { color: var(--ok); }
+
+/* ── Settings — master detail layout ────────────────────── */
+.settings-md { display: grid; grid-template-columns: 210px 1fr; gap: 12px; align-items: start; }
+@media (max-width: 760px) { .settings-md { grid-template-columns: 1fr; } }
+
+/* left nav */
+.settings-nav { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--card); }
+.settings-nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--line); transition: background .12s ease; border-left: 3px solid transparent; }
+.settings-nav-item:last-child { border-bottom: none; }
+.settings-nav-item:hover { background: var(--soft); }
+.settings-nav-item.active { background: var(--brand-light); border-left-color: var(--brand); }
+.settings-nav-icon { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.sni-teal   { background: rgba(11,122,117,.12); }
+.sni-amber  { background: rgba(180,83,9,.10); }
+.sni-purple { background: rgba(109,40,217,.10); }
+.sni-blue   { background: rgba(37,99,235,.10); }
+.sni-green  { background: rgba(6,118,71,.10); }
+.sni-coral  { background: rgba(185,28,28,.08); }
+.settings-nav-meta { flex: 1; min-width: 0; }
+.settings-nav-title { font-size: 12px; font-weight: 700; }
+.settings-nav-item.active .settings-nav-title { color: var(--brand); }
+.settings-nav-digest { font-size: 10px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.settings-nav-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 20px; flex-shrink: 0; }
+.snt-saved { background: var(--ok-light); color: var(--ok); }
+.snt-opt   { background: var(--warn-light); color: var(--warn); }
+
+/* right panel */
+.settings-panel { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--card); }
+.settings-panel-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--soft); border-bottom: 1px solid var(--line); }
+.settings-panel-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.settings-panel-title { font-size: 14px; font-weight: 900; }
+.settings-panel-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.settings-panel-body { padding: 16px; }
+.settings-panel-footer { padding: 12px 16px; border-top: 1px solid var(--line); background: var(--soft); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* section forms */
+.sf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 700px) { .sf-grid { grid-template-columns: 1fr; } }
+.sf-span2 { grid-column: 1 / -1; }
+
+/* preset grid inside settings */
+.preset-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+.preset-card { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; transition: all .14s ease; background: var(--card); }
 .preset-card:hover { border-color: rgba(11,122,117,.30); }
-.preset-card.selected { border-color: var(--brand); background: var(--brand-light); }
-.preset-card-name { font-weight: 900; font-size: 15px; }
-.preset-card-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.preset-card.selected { border: 2px solid var(--brand); background: var(--brand-light); }
+.preset-card-name { font-weight: 900; font-size: 13px; }
+.preset-card.selected .preset-card-name { color: var(--brand); }
+.preset-card-desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
 
-/* ── Grade bands & Custom fields ─────────────────────────── */
-.dyn-row { border: 1px dashed rgba(0,0,0,.18); border-radius: 14px; padding: 10px; background: var(--soft); display: grid; gap: 10px; grid-template-columns: 120px 1fr auto; align-items: end; margin-bottom: 8px; }
-@media (max-width: 700px) { .dyn-row { grid-template-columns: 1fr; } }
-.dyn-row label { font-size: 11px; font-weight: 800; color: var(--muted); }
-.dyn-row input, .dyn-row select, .dyn-row textarea { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; font-family: inherit; }
+/* toggle switches */
+.toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 700px) { .toggle-grid { grid-template-columns: 1fr; } }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
+.toggle-info .toggle-label { font-size: 13px; font-weight: 700; }
+.toggle-info .toggle-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.toggle-pill { width: 36px; height: 20px; border-radius: 10px; background: var(--brand); flex-shrink: 0; position: relative; cursor: pointer; transition: background .15s; }
+.toggle-pill::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 2px; right: 2px; transition: all .15s; }
+.toggle-pill.off { background: rgba(0,0,0,.18); }
+.toggle-pill.off::after { right: auto; left: 2px; }
 
-.field-row { border: 1px dashed rgba(0,0,0,.18); border-radius: 14px; padding: 10px; background: var(--soft); display: grid; gap: 10px; grid-template-columns: 1.2fr .7fr .55fr; align-items: end; margin-bottom: 8px; }
+/* grade bands */
+.band-row { display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 6px; background: var(--soft); }
+.band-row input { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; font-family: inherit; background: var(--card); color: var(--ink); width: 100%; }
+
+/* access code display */
+.code-display { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--soft); border: 1px solid var(--line); border-radius: 12px; }
+.code-val { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 24px; font-weight: 700; color: var(--brand); letter-spacing: .1em; }
+
+/* custom field rows */
+.field-row { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--soft); display: grid; gap: 10px; grid-template-columns: 1.2fr .7fr .55fr; align-items: end; margin-bottom: 8px; }
 @media (max-width: 700px) { .field-row { grid-template-columns: 1fr; } }
 .field-row .row2 { grid-column: 1 / -1; }
+.dyn-row { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--soft); display: grid; gap: 10px; grid-template-columns: 120px 1fr auto; align-items: end; margin-bottom: 8px; }
+@media (max-width: 700px) { .dyn-row { grid-template-columns: 1fr; } }
+.dyn-row label { font-size: 11px; font-weight: 800; color: var(--muted); }
+.dyn-row input, .dyn-row select, .dyn-row textarea { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; font-family: inherit; background: var(--card); color: var(--ink); }
+
+/* mobile nav for settings */
+@media (max-width: 760px) {
+  .settings-nav { display: flex; overflow-x: auto; border-radius: 10px; }
+  .settings-nav-item { flex-direction: column; align-items: center; min-width: 70px; padding: 8px 10px; border-bottom: none; border-right: 1px solid var(--line); border-left: none; border-bottom: 3px solid transparent; }
+  .settings-nav-item.active { border-left: none; border-bottom-color: var(--brand); }
+  .settings-nav-digest { display: none; }
+  .settings-nav-tag { display: none; }
+  .settings-nav-title { font-size: 10px; margin-top: 4px; text-align: center; white-space: nowrap; }
+}
 
 /* ── Classes tab ─────────────────────────────────────────── */
 .cls-box { border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: rgba(255,255,255,.75); display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
@@ -267,125 +338,339 @@ a { color: var(--brand); }
 
       <!-- ======== SETTINGS TAB ======== -->
       <div class="tab-pane active" id="paneSettings">
-        <!-- Presets -->
-        <div class="form-section-title">Preset</div>
-        <div class="preset-row" id="presetRow">
-          <div class="preset-card" data-preset="STUDY">
-            <div class="preset-card-name">Study</div>
-            <div class="preset-card-desc">Untimed, unlimited attempts, review on</div>
-          </div>
-          <div class="preset-card" data-preset="ASSIGNMENT">
-            <div class="preset-card-name">Assignment</div>
-            <div class="preset-card-desc">60 min, 1 attempt, results after close</div>
-          </div>
-          <div class="preset-card" data-preset="IN_CLASS">
-            <div class="preset-card-name">In-Class</div>
-            <div class="preset-card-desc">15 min, 1 attempt, no review</div>
-          </div>
-          <div class="preset-card" data-preset="EXAM">
-            <div class="preset-card-name">Exam</div>
-            <div class="preset-card-desc">60 min, 1 attempt, manual release</div>
-          </div>
-        </div>
-        <div style="margin-bottom:16px">
-          <a href="#" id="noPresetLink" style="font-size:12px;font-weight:700">Start with custom (no preset)</a>
-          <button class="btn sm" id="btnResetPreset" style="display:none;margin-left:10px">Reset to preset defaults</button>
-        </div>
 
-        <!-- Core fields -->
-        <div class="form-grid">
-          <div class="form-group form-span-2">
-            <label>Quiz Title *</label>
-            <input type="text" id="fTitle" placeholder="e.g. Pharmacology Midterm" />
+        <!-- Summary strip -->
+        <div class="settings-summary">
+          <div class="settings-stat">
+            <div class="settings-stat-label">Preset</div>
+            <div class="settings-stat-val stat-teal" id="sStatPreset">—</div>
+            <div class="settings-stat-sub" id="sStatPresetSub">not set</div>
           </div>
-          <div class="form-group">
-            <label>Subject</label>
-            <input type="text" id="fSubject" placeholder="e.g. Pharmacology" />
+          <div class="settings-stat">
+            <div class="settings-stat-label">Draft items</div>
+            <div class="settings-stat-val" id="sStatDraft">0</div>
+            <div class="settings-stat-sub">questions</div>
           </div>
-          <div class="form-group">
-            <label>Duration (minutes, 0 = untimed)</label>
-            <input type="number" id="fDuration" min="0" value="0" />
+          <div class="settings-stat">
+            <div class="settings-stat-label">Classes</div>
+            <div class="settings-stat-val" id="sStatClasses">0</div>
+            <div class="settings-stat-sub">linked</div>
           </div>
-          <div class="form-group">
-            <label>Max Attempts (0 = unlimited)</label>
-            <input type="number" id="fMaxAttempts" min="0" value="1" />
-          </div>
-          <div class="form-group">
-            <label>Results Release Policy</label>
-            <select id="fResultsPolicy">
-              <option value="IMMEDIATE">Immediate</option>
-              <option value="AFTER_CLOSE">After Close Date</option>
-              <option value="MANUAL">Manual Release</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Score Display</label>
-            <select id="fScoreDisplay">
-              <option value="RAW_AND_PCT">Raw + Percentage</option>
-              <option value="PCT_ONLY">Percentage Only</option>
-              <option value="RAW_ONLY">Raw Score Only</option>
-              <option value="HIDE">Hide Score</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>SATA Scoring Policy</label>
-            <select id="fSataScoring">
-              <option value="ALL_OR_NOTHING">All or Nothing</option>
-              <option value="PARTIAL_CREDIT">Partial Credit</option>
-              <option value="PER_OPTION">Per Option</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Open At</label>
-            <input type="datetime-local" id="fOpenAt" />
-          </div>
-          <div class="form-group">
-            <label>Close At</label>
-            <input type="datetime-local" id="fCloseAt" />
+          <div class="settings-stat">
+            <div class="settings-stat-label">Status</div>
+            <div class="settings-stat-val stat-amber" id="sStatStatus">—</div>
+            <div class="settings-stat-sub" id="sStatStatusSub">—</div>
           </div>
         </div>
 
-        <!-- Toggles -->
-        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:14px">
-          <div class="check-row"><input type="checkbox" id="fShuffleQ" /><label for="fShuffleQ">Shuffle questions</label></div>
-          <div class="check-row"><input type="checkbox" id="fShuffleO" checked /><label for="fShuffleO">Shuffle options</label></div>
-          <div class="check-row"><input type="checkbox" id="fShowReview" /><label for="fShowReview">Allow review</label></div>
-          <div class="check-row"><input type="checkbox" id="fShowResults" checked /><label for="fShowResults">Show results</label></div>
-        </div>
+        <!-- Master-detail -->
+        <div class="settings-md">
 
-        <!-- Access Code -->
-        <div class="form-section">
-          <div class="form-section-title">Access Code</div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="kbd" id="fAccessCode" style="font-size:18px;padding:4px 12px">—</span>
-            <button class="btn sm" id="btnRegenCode">Regenerate</button>
+          <!-- LEFT NAV -->
+          <div class="settings-nav" id="settingsNav">
+            <div class="settings-nav-item active" data-section="preset">
+              <div class="settings-nav-icon sni-teal">📋</div>
+              <div class="settings-nav-meta">
+                <div class="settings-nav-title">Preset</div>
+                <div class="settings-nav-digest" id="dPreset">—</div>
+              </div>
+              <span class="settings-nav-tag snt-saved" id="tagPreset">Saved</span>
+            </div>
+            <div class="settings-nav-item" data-section="basic">
+              <div class="settings-nav-icon sni-amber">📝</div>
+              <div class="settings-nav-meta">
+                <div class="settings-nav-title">Basic info</div>
+                <div class="settings-nav-digest" id="dBasic">—</div>
+              </div>
+              <span class="settings-nav-tag snt-saved" id="tagBasic">Saved</span>
+            </div>
+            <div class="settings-nav-item" data-section="behaviour">
+              <div class="settings-nav-icon sni-purple">⚙️</div>
+              <div class="settings-nav-meta">
+                <div class="settings-nav-title">Behaviour</div>
+                <div class="settings-nav-digest" id="dBehaviour">—</div>
+              </div>
+              <span class="settings-nav-tag snt-saved" id="tagBehaviour">Saved</span>
+            </div>
+            <div class="settings-nav-item" data-section="schedule">
+              <div class="settings-nav-icon sni-blue">📅</div>
+              <div class="settings-nav-meta">
+                <div class="settings-nav-title">Schedule</div>
+                <div class="settings-nav-digest" id="dSchedule">No dates set</div>
+              </div>
+              <span class="settings-nav-tag snt-opt" id="tagSchedule">Optional</span>
+            </div>
+            <div class="settings-nav-item" data-section="grading">
+              <div class="settings-nav-icon sni-green">🎓</div>
+              <div class="settings-nav-meta">
+                <div class="settings-nav-title">Grading</div>
+                <div class="settings-nav-digest" id="dGrading">Pass 50%</div>
+              </div>
+              <span class="settings-nav-tag snt-saved" id="tagGrading">Saved</span>
+            </div>
+            <div class="settings-nav-item" data-section="code">
+              <div class="settings-nav-icon sni-teal">🔑</div>
+              <div class="settings-nav-meta">
+                <div class="settings-nav-title">Access code</div>
+                <div class="settings-nav-digest" id="dCode">—</div>
+              </div>
+            </div>
+            <div class="settings-nav-item" data-section="fields">
+              <div class="settings-nav-icon sni-coral">🗂️</div>
+              <div class="settings-nav-meta">
+                <div class="settings-nav-title">Custom fields</div>
+                <div class="settings-nav-digest" id="dFields">None configured</div>
+              </div>
+              <span class="settings-nav-tag snt-opt" id="tagFields">Optional</span>
+            </div>
           </div>
-          <div class="hint" style="margin-top:6px">Students use this code to find the quiz. Only regenerate for DRAFT quizzes.</div>
-        </div>
 
-        <!-- Grade Bands -->
-        <div class="form-section">
-          <div class="form-section-title">Grade Bands</div>
-          <div id="gradeBandsWrap"></div>
-          <div class="hint" id="gradeBandsHint" style="margin-top:8px"></div>
-          <button class="btn sm" id="btnAddBand" style="margin-top:8px">+ Add band</button>
-          <div class="form-group" style="margin-top:10px;max-width:200px">
-            <label>Pass Threshold %</label>
-            <input type="number" id="fPassThreshold" min="0" max="100" value="50" />
+          <!-- RIGHT PANELS -->
+          <div>
+
+            <!-- PRESET PANEL -->
+            <div class="settings-panel" id="spPreset">
+              <div class="settings-panel-head">
+                <div class="settings-panel-icon sni-teal">📋</div>
+                <div>
+                  <div class="settings-panel-title">Preset</div>
+                  <div class="settings-panel-sub">Pick a template — customise any setting afterwards</div>
+                </div>
+              </div>
+              <div class="settings-panel-body">
+                <div class="preset-row" id="presetRow">
+                  <div class="preset-card" data-preset="STUDY">
+                    <div class="preset-card-name">Study</div>
+                    <div class="preset-card-desc">Untimed, unlimited attempts, review on, immediate results</div>
+                  </div>
+                  <div class="preset-card" data-preset="ASSIGNMENT">
+                    <div class="preset-card-name">Assignment</div>
+                    <div class="preset-card-desc">60 min, 1 attempt, results after close date</div>
+                  </div>
+                  <div class="preset-card" data-preset="IN_CLASS">
+                    <div class="preset-card-name">In-class</div>
+                    <div class="preset-card-desc">15 min, 1 attempt, no review, results after close</div>
+                  </div>
+                  <div class="preset-card" data-preset="EXAM">
+                    <div class="preset-card-name">Exam</div>
+                    <div class="preset-card-desc">60 min, 1 attempt, no review, manual results release</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <a href="#" id="noPresetLink" style="font-size:12px;font-weight:700">Start with custom (no preset)</a>
+                  <button class="btn sm" id="btnResetPreset" style="display:none">Reset to preset defaults</button>
+                </div>
+              </div>
+              <div class="settings-panel-footer">
+                <button class="btn primary" id="btnSaveQuiz">Save settings</button>
+              </div>
+            </div>
+
+            <!-- BASIC INFO PANEL -->
+            <div class="settings-panel" id="spBasic" style="display:none">
+              <div class="settings-panel-head">
+                <div class="settings-panel-icon sni-amber">📝</div>
+                <div>
+                  <div class="settings-panel-title">Basic info</div>
+                  <div class="settings-panel-sub">Title, subject, duration, attempts and release policy</div>
+                </div>
+              </div>
+              <div class="settings-panel-body">
+                <div class="sf-grid">
+                  <div class="form-group sf-span2">
+                    <label>Quiz title *</label>
+                    <input type="text" id="fTitle" placeholder="e.g. Pharmacology Midterm" />
+                  </div>
+                  <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="fSubject" placeholder="e.g. Pharmacology" />
+                  </div>
+                  <div class="form-group">
+                    <label>Duration (min, 0 = untimed)</label>
+                    <input type="number" id="fDuration" min="0" value="0" />
+                  </div>
+                  <div class="form-group">
+                    <label>Max attempts (0 = unlimited)</label>
+                    <input type="number" id="fMaxAttempts" min="0" value="1" />
+                  </div>
+                  <div class="form-group">
+                    <label>Results release policy</label>
+                    <select id="fResultsPolicy">
+                      <option value="IMMEDIATE">Immediate</option>
+                      <option value="AFTER_CLOSE">After Close Date</option>
+                      <option value="MANUAL">Manual Release</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Score display</label>
+                    <select id="fScoreDisplay">
+                      <option value="RAW_AND_PCT">Raw + Percentage</option>
+                      <option value="PCT_ONLY">Percentage Only</option>
+                      <option value="RAW_ONLY">Raw Score Only</option>
+                      <option value="HIDE">Hide Score</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>SATA scoring policy</label>
+                    <select id="fSataScoring">
+                      <option value="ALL_OR_NOTHING">All or Nothing</option>
+                      <option value="PARTIAL_CREDIT">Partial Credit</option>
+                      <option value="PER_OPTION">Per Option</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-panel-footer">
+                <button class="btn primary" onclick="saveQuiz()">Save settings</button>
+              </div>
+            </div>
+
+            <!-- BEHAVIOUR PANEL -->
+            <div class="settings-panel" id="spBehaviour" style="display:none">
+              <div class="settings-panel-head">
+                <div class="settings-panel-icon sni-purple">⚙️</div>
+                <div>
+                  <div class="settings-panel-title">Behaviour</div>
+                  <div class="settings-panel-sub">Control how the quiz works for students</div>
+                </div>
+              </div>
+              <div class="settings-panel-body">
+                <div class="toggle-grid">
+                  <div class="toggle-row">
+                    <div class="toggle-info">
+                      <div class="toggle-label">Shuffle questions</div>
+                      <div class="toggle-sub">Random order each attempt</div>
+                    </div>
+                    <div class="toggle-pill off" id="tShuffleQ" onclick="toggleSetting('fShuffleQ','tShuffleQ')"></div>
+                    <input type="checkbox" id="fShuffleQ" style="display:none" />
+                  </div>
+                  <div class="toggle-row">
+                    <div class="toggle-info">
+                      <div class="toggle-label">Shuffle options</div>
+                      <div class="toggle-sub">Random option order per question</div>
+                    </div>
+                    <div class="toggle-pill" id="tShuffleO" onclick="toggleSetting('fShuffleO','tShuffleO')"></div>
+                    <input type="checkbox" id="fShuffleO" checked style="display:none" />
+                  </div>
+                  <div class="toggle-row">
+                    <div class="toggle-info">
+                      <div class="toggle-label">Allow review</div>
+                      <div class="toggle-sub">Student can review answers after submit</div>
+                    </div>
+                    <div class="toggle-pill off" id="tShowReview" onclick="toggleSetting('fShowReview','tShowReview')"></div>
+                    <input type="checkbox" id="fShowReview" style="display:none" />
+                  </div>
+                  <div class="toggle-row">
+                    <div class="toggle-info">
+                      <div class="toggle-label">Show results</div>
+                      <div class="toggle-sub">Score visible to student after submit</div>
+                    </div>
+                    <div class="toggle-pill" id="tShowResults" onclick="toggleSetting('fShowResults','tShowResults')"></div>
+                    <input type="checkbox" id="fShowResults" checked style="display:none" />
+                  </div>
+                </div>
+              </div>
+              <div class="settings-panel-footer">
+                <button class="btn primary" onclick="saveQuiz()">Save settings</button>
+              </div>
+            </div>
+
+            <!-- SCHEDULE PANEL -->
+            <div class="settings-panel" id="spSchedule" style="display:none">
+              <div class="settings-panel-head">
+                <div class="settings-panel-icon sni-blue">📅</div>
+                <div>
+                  <div class="settings-panel-title">Schedule</div>
+                  <div class="settings-panel-sub">Set when the quiz opens and closes — both are optional</div>
+                </div>
+              </div>
+              <div class="settings-panel-body">
+                <div class="sf-grid">
+                  <div class="form-group">
+                    <label>Open at</label>
+                    <input type="datetime-local" id="fOpenAt" />
+                  </div>
+                  <div class="form-group">
+                    <label>Close at</label>
+                    <input type="datetime-local" id="fCloseAt" />
+                  </div>
+                </div>
+                <div class="hint" style="margin-top:12px">If no open date is set the quiz is immediately accessible. If no close date is set it stays open indefinitely.</div>
+              </div>
+              <div class="settings-panel-footer">
+                <button class="btn primary" onclick="saveQuiz()">Save settings</button>
+              </div>
+            </div>
+
+            <!-- GRADING PANEL -->
+            <div class="settings-panel" id="spGrading" style="display:none">
+              <div class="settings-panel-head">
+                <div class="settings-panel-icon sni-green">🎓</div>
+                <div>
+                  <div class="settings-panel-title">Grading</div>
+                  <div class="settings-panel-sub">Pass threshold and grade band labels</div>
+                </div>
+              </div>
+              <div class="settings-panel-body">
+                <div class="sf-grid" style="margin-bottom:16px">
+                  <div class="form-group">
+                    <label>Pass threshold %</label>
+                    <input type="number" id="fPassThreshold" min="0" max="100" value="50" style="max-width:120px" />
+                  </div>
+                </div>
+                <div class="hint" style="margin-bottom:8px" id="gradeBandsHint">Grade bands</div>
+                <div id="gradeBandsWrap"></div>
+                <button class="btn sm" id="btnAddBand" style="margin-top:4px">+ Add band</button>
+              </div>
+              <div class="settings-panel-footer">
+                <button class="btn primary" onclick="saveQuiz()">Save settings</button>
+              </div>
+            </div>
+
+            <!-- ACCESS CODE PANEL -->
+            <div class="settings-panel" id="spCode" style="display:none">
+              <div class="settings-panel-head">
+                <div class="settings-panel-icon sni-teal">🔑</div>
+                <div>
+                  <div class="settings-panel-title">Access code</div>
+                  <div class="settings-panel-sub">Students use this code to find your quiz</div>
+                </div>
+              </div>
+              <div class="settings-panel-body">
+                <div class="code-display">
+                  <div>
+                    <span id="fAccessCode" class="code-val">—</span>
+                    <div class="hint" style="margin-top:4px">Share via WhatsApp, email or any channel</div>
+                  </div>
+                  <button class="btn sm" id="btnRegenCode">Regenerate</button>
+                </div>
+                <div class="hint" style="margin-top:10px">Only regenerate for Draft quizzes. Changing the code will invalidate previously shared links.</div>
+              </div>
+              <div class="settings-panel-footer">
+                <button class="btn primary" onclick="saveQuiz()">Save settings</button>
+              </div>
+            </div>
+
+            <!-- CUSTOM FIELDS PANEL -->
+            <div class="settings-panel" id="spFields" style="display:none">
+              <div class="settings-panel-head">
+                <div class="settings-panel-icon sni-coral">🗂️</div>
+                <div>
+                  <div class="settings-panel-title">Custom fields</div>
+                  <div class="settings-panel-sub">Up to 4 fields collected from students before the quiz starts</div>
+                </div>
+              </div>
+              <div class="settings-panel-body">
+                <div class="hint" style="margin-bottom:12px">Use these for things like room number, seat number, or index number.</div>
+                <div id="customFieldsWrap"></div>
+                <button class="btn sm" id="btnAddField" style="margin-top:8px">+ Add field</button>
+              </div>
+              <div class="settings-panel-footer">
+                <button class="btn primary" onclick="saveQuiz()">Save settings</button>
+              </div>
+            </div>
+
           </div>
-        </div>
-
-        <!-- Quiz Custom Fields -->
-        <div class="form-section">
-          <div class="form-section-title">Quiz Custom Fields</div>
-          <div class="hint" style="margin-bottom:10px">Up to 4 fields collected from students before they start the quiz.</div>
-          <div id="customFieldsWrap"></div>
-          <button class="btn sm" id="btnAddField" style="margin-top:8px">+ Add field</button>
-        </div>
-
-        <!-- Save -->
-        <div style="margin-top:24px;display:flex;gap:10px">
-          <button class="btn primary" id="btnSaveQuiz">Save Settings</button>
         </div>
       </div>
 
@@ -877,6 +1162,7 @@ async function openQuiz(quizId) {
   fillFormFromQuiz(quiz);
   enableTabs(true);
   setActiveTab('settings');
+  showSettingsSection('preset');
   showEditorView();
   updateEditorStrip();
   setReadOnlyState(quiz.status !== 'DRAFT');
@@ -898,6 +1184,7 @@ function newQuiz() {
   applyPreset('EXAM');
   enableTabs(false);
   setActiveTab('settings');
+  showSettingsSection('preset');
   showEditorView();
   updateEditorStrip();
   setReadOnlyState(false);
@@ -915,6 +1202,86 @@ function updateEditorStrip() {
   $('editorBadges').innerHTML = badges;
 }
 
+
+// ================================================================
+// SETTINGS PANE — section navigation + toggle helpers
+// ================================================================
+const SETTINGS_SECTIONS = ['preset','basic','behaviour','schedule','grading','code','fields'];
+
+function showSettingsSection(name) {
+  SETTINGS_SECTIONS.forEach(s => {
+    const key = s.charAt(0).toUpperCase() + s.slice(1);
+    const panel = $('sp' + key);
+    if (panel) panel.style.display = s === name ? '' : 'none';
+  });
+  document.querySelectorAll('.settings-nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.section === name);
+  });
+}
+
+function toggleSetting(checkId, pillId) {
+  const cb = $(checkId);
+  const pill = $(pillId);
+  if (!cb || !pill) return;
+  cb.checked = !cb.checked;
+  pill.classList.toggle('off', !cb.checked);
+  markPresetDirty();
+  updateSettingsDigests();
+}
+
+function updateSettingsSummary() {
+  const preset = CURRENT_PRESET || 'Custom';
+  const dur = parseInt($('fDuration')?.value) || 0;
+  const att = parseInt($('fMaxAttempts')?.value) || 0;
+
+  if ($('sStatPreset')) $('sStatPreset').textContent = preset.charAt(0) + preset.slice(1).toLowerCase();
+  if ($('sStatPresetSub')) $('sStatPresetSub').textContent = (dur ? dur + ' min' : 'Untimed') + ' · ' + (att === 0 ? 'Unlimited' : att + (att === 1 ? ' attempt' : ' attempts'));
+  if ($('sStatDraft')) $('sStatDraft').textContent = DRAFT_IDS.length;
+  if ($('sStatClasses')) $('sStatClasses').textContent = LINKED_CLASS_IDS.size;
+
+  const status = SELECTED_QUIZ?.status || (IS_NEW ? 'NEW' : '—');
+  if ($('sStatStatus')) {
+    $('sStatStatus').textContent = status.charAt(0) + status.slice(1).toLowerCase();
+    $('sStatStatus').className = 'settings-stat-val ' + (status === 'PUBLISHED' ? 'stat-ok' : status === 'DRAFT' ? 'stat-amber' : '');
+  }
+  if ($('sStatStatusSub')) $('sStatStatusSub').textContent = status === 'DRAFT' ? 'not yet published' : status === 'PUBLISHED' ? 'live' : status === 'ARCHIVED' ? 'archived' : 'unsaved';
+
+  updateSettingsDigests();
+}
+
+function updateSettingsDigests() {
+  const preset = CURRENT_PRESET || 'Custom';
+  const dur = parseInt($('fDuration')?.value) || 0;
+
+  if ($('dPreset')) $('dPreset').textContent = preset.charAt(0) + preset.slice(1).toLowerCase() + ' · ' + (dur ? dur + ' min' : 'Untimed');
+
+  const title = ($('fTitle')?.value || '').trim();
+  const subject = ($('fSubject')?.value || '').trim();
+  if ($('dBasic')) $('dBasic').textContent = (title || '—') + (subject ? ' · ' + subject : '');
+
+  const sq = $('fShuffleQ')?.checked;
+  const so = $('fShuffleO')?.checked;
+  const sr = $('fShowReview')?.checked;
+  if ($('dBehaviour')) $('dBehaviour').textContent = [sq ? 'Shuffle Q' : null, so ? 'Shuffle opts' : null, sr ? 'Review on' : 'Review off'].filter(Boolean).join(' · ');
+
+  const oa = $('fOpenAt')?.value;
+  const ca = $('fCloseAt')?.value;
+  if ($('dSchedule')) {
+    $('dSchedule').textContent = (oa || ca)
+      ? [(oa ? 'Opens ' + new Date(oa).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : null), (ca ? 'Closes ' + new Date(ca).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : null)].filter(Boolean).join(' · ')
+      : 'No dates set';
+  }
+
+  const pt = $('fPassThreshold')?.value || '50';
+  const bc = GRADE_BANDS.length;
+  if ($('dGrading')) $('dGrading').textContent = 'Pass ' + pt + '% · ' + bc + ' band' + (bc !== 1 ? 's' : '');
+
+  const code = SELECTED_QUIZ?.access_code || ($('fAccessCode')?.textContent?.trim()) || '—';
+  if ($('dCode')) $('dCode').textContent = code;
+
+  const fc = CUSTOM_FIELDS.length;
+  if ($('dFields')) $('dFields').textContent = fc ? fc + ' field' + (fc !== 1 ? 's' : '') + ' configured' : 'None configured';
+}
 
 // ================================================================
 // READ-ONLY STATE (for non-DRAFT quizzes)
@@ -993,6 +1360,8 @@ function resetForm() {
   renderCustomFields();
   PRESET_DIRTY = false;
   $('btnResetPreset').style.display = 'none';
+  syncTogglePills();
+  updateSettingsSummary();
 }
 
 function fillFormFromQuiz(quiz) {
@@ -1052,6 +1421,16 @@ function fillFormFromQuiz(quiz) {
       renderLibItems();
     });
   }
+
+  syncTogglePills();
+  updateSettingsSummary();
+}
+
+function syncTogglePills() {
+  [['fShuffleQ','tShuffleQ'],['fShuffleO','tShuffleO'],['fShowReview','tShowReview'],['fShowResults','tShowResults']].forEach(function(p) {
+    var cb = $(p[0]); var pill = $(p[1]);
+    if (cb && pill) pill.classList.toggle('off', !cb.checked);
+  });
 }
 
 function readForm() {
@@ -1145,6 +1524,8 @@ function applyPreset(key) {
   $('fShowReview').checked = def.show_review;
   $('fShowResults').checked = def.show_results;
   $('fResultsPolicy').value = def.results_release_policy;
+  syncTogglePills();
+  updateSettingsSummary();
 }
 
 function highlightPreset(key) {
@@ -2025,6 +2406,9 @@ async function releaseResults() {
 // ================================================================
 function bindEvents() {
   $('btnNewQuiz').addEventListener('click', newQuiz);
+  document.querySelectorAll('.settings-nav-item').forEach(item => { item.addEventListener('click', () => showSettingsSection(item.dataset.section)); });
+  ['fTitle','fSubject','fDuration','fMaxAttempts','fResultsPolicy','fOpenAt','fCloseAt','fPassThreshold'].forEach(id => { const el = $(id); if (el) el.addEventListener('input', updateSettingsDigests); });
+
   let searchTimer = null;
   $('filterSearch').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadQuizzes, 300); });
   $('filterStatus').addEventListener('change', loadQuizzes);
