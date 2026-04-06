@@ -534,6 +534,30 @@
     const label = active ? 'Approved' : 'Disabled';
     showToast(label, `Teacher profile updated successfully.`);
 
+    // ── Send welcome email on approval (fire-and-forget) ──
+    if (active) {
+      try {
+        const t = allTeachers.find(r => r.teacher_id === teacherId);
+        if (t && t.email) {
+          await fetch(EMAIL_WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              secret: EMAIL_SECRET,
+              event: 'WELCOME_TEACHER',
+              data: {
+                name: t.display_name || '',
+                email: t.email,
+                loginUrl: window.location.origin + '/login.html'
+              }
+            })
+          });
+        }
+      } catch (emailErr) {
+        console.error('Welcome teacher email failed (non-blocking):', emailErr);
+      }
+    }
+
     // Update local data
     const idx = allTeachers.findIndex(t => t.teacher_id === teacherId);
     if (idx !== -1) {

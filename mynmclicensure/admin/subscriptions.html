@@ -1057,6 +1057,44 @@ async function submitGrant() {
   successEl.classList.add('show');
   btn.textContent = 'Granted ✓';
 
+  // ── Send subscription email (fire-and-forget) ──────
+  try {
+    // Get student details from the modal
+    const labelText = document.getElementById('selectedUserLabel').textContent || '';
+    const studentName = labelText.split('(')[0].trim();
+    const studentEmail = (labelText.match(/\(([^)]+)\)/) || [])[1] || '';
+
+    // Get product name and calculate expiry
+    const prodSel = document.getElementById('grantProduct');
+    const prodName = prodSel.options[prodSel.selectedIndex]?.textContent || '';
+    const prodDays = prodSel.options[prodSel.selectedIndex]?.dataset?.days;
+    const startDate = document.getElementById('grantStartDate').value
+      ? new Date(document.getElementById('grantStartDate').value)
+      : new Date();
+    const expiryDate = new Date(startDate.getTime() + parseInt(prodDays || 0) * 24*60*60*1000);
+    const expiryStr = expiryDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    if (studentEmail) {
+      await fetch(EMAIL_WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: EMAIL_SECRET,
+          event: 'SUBSCRIPTION_ASSIGNED',
+          data: {
+            name: studentName,
+            email: studentEmail,
+            loginUrl: window.location.origin + '/login.html',
+            productName: prodName,
+            expiryDate: expiryStr
+          }
+        })
+      });
+    }
+  } catch (emailErr) {
+    console.error('Subscription email failed (non-blocking):', emailErr);
+  }
+
   await loadData();
 
   setTimeout(() => {
