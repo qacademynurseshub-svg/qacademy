@@ -521,6 +521,10 @@
       <div class="form-field">
         <label for="mTitle">Class title *</label>
         <input type="text" id="mTitle" placeholder="e.g. ICU Revision Group A" maxlength="120" />
+        <div id="mTitleSuggestion" style="display:none;margin-top:6px;">
+          <span style="font-size:12px;color:var(--text-muted);" id="mTitleSuggestionText"></span>
+          <button type="button" id="mTitleSuggestionBtn" style="font-size:11px;font-weight:700;color:var(--accent,#2d7d72);background:rgba(45,125,114,0.08);border:1px solid rgba(45,125,114,0.22);border-radius:8px;padding:2px 10px;margin-left:6px;cursor:pointer;">Use this</button>
+        </div>
       </div>
 
       <div class="form-field">
@@ -756,6 +760,35 @@
       });
       sel.appendChild(group);
     });
+  }
+
+  // ── Title suggestion ───────────────────────────────────────
+  function updateTitleSuggestion() {
+    const cohortId = byId('mCohort').value;
+    const semester = (byId('mSemester').value || '').trim();
+    const wrap     = byId('mTitleSuggestion');
+    const textEl   = byId('mTitleSuggestionText');
+
+    if (!cohortId) { wrap.style.display = 'none'; return; }
+
+    const cohort = allCohorts.find(c => c.cohort_id === cohortId);
+    if (!cohort) { wrap.style.display = 'none'; return; }
+
+    let suggestion = cohort.title;
+    if (semester) suggestion += ' — ' + semester;
+
+    textEl.textContent = 'Suggested: ' + suggestion;
+    wrap.dataset.suggestion = suggestion;
+    wrap.style.display = '';
+  }
+
+  function applyTitleSuggestion() {
+    const wrap = byId('mTitleSuggestion');
+    const suggestion = wrap?.dataset.suggestion;
+    if (suggestion) {
+      byId('mTitle').value = suggestion;
+      byId('mTitle').focus();
+    }
   }
 
   // ── Load classes ──────────────────────────────────────────
@@ -1209,6 +1242,7 @@
       byId('mCohort').value          = '';
       byId('mAcademicYear').value    = '';
       byId('mSemester').value        = '';
+      byId('mTitleSuggestion').style.display = 'none';
       byId('mStatus').value          = 'ACTIVE';
       byId('mCapacity').value        = '';
       byId('mStartDate').value       = '';
@@ -1222,6 +1256,7 @@
       byId('mCohort').value          = c.cohort_id || '';
       byId('mAcademicYear').value    = c.academic_year || '';
       byId('mSemester').value        = c.semester || '';
+      byId('mTitleSuggestion').style.display = 'none';
       byId('mStatus').value          = c.status || 'ACTIVE';
       byId('mCapacity').value        = c.max_capacity || '';
       byId('mStartDate').value       = c.start_date || '';
@@ -1433,6 +1468,11 @@
     byId('modalCancel').addEventListener('click', closeModal);
     byId('modalSave').addEventListener('click',   saveClass);
     byId('btnAddField').addEventListener('click', addModalField);
+
+    // Title suggestion — update when cohort or semester changes
+    byId('mCohort').addEventListener('change', updateTitleSuggestion);
+    byId('mSemester').addEventListener('input', updateTitleSuggestion);
+    byId('mTitleSuggestionBtn').addEventListener('click', applyTitleSuggestion);
 
     // Colour picker
     byId('mColourPicker').addEventListener('click', e => {
