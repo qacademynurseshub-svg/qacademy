@@ -34,8 +34,9 @@
           <a href="${MYTEACHER.teacher}/bank.html"      class="mt-nav-link">Bank</a>
           <a href="${MYTEACHER.teacher}/quizzes.html"   class="mt-nav-link">Quizzes</a>
           <a href="${MYTEACHER.teacher}/library.html"   class="mt-nav-link">Library</a>
-          <a href="${MYTEACHER.teacher}/results.html"   class="mt-nav-link">Results</a>
-          <a href="${MYTEACHER.teacher}/profile.html"   class="mt-nav-link">Profile</a>
+          <a href="${MYTEACHER.teacher}/results.html"              class="mt-nav-link">Results</a>
+          <a href="${MYTEACHER.teacher}/academic-structure.html" class="mt-nav-link">Academics</a>
+          <a href="${MYTEACHER.teacher}/profile.html"            class="mt-nav-link">Profile</a>
         </div>
 
         <!-- Right side -->
@@ -66,8 +67,9 @@
         <a href="${MYTEACHER.teacher}/bank.html"      class="mt-drawer-link">📚 Question Bank</a>
         <a href="${MYTEACHER.teacher}/quizzes.html"   class="mt-drawer-link">📝 Quizzes</a>
         <a href="${MYTEACHER.teacher}/library.html"   class="mt-drawer-link">🔍 Library</a>
-        <a href="${MYTEACHER.teacher}/results.html"   class="mt-drawer-link">📊 Results</a>
-        <a href="${MYTEACHER.teacher}/profile.html"   class="mt-drawer-link">👤 Profile</a>
+        <a href="${MYTEACHER.teacher}/results.html"              class="mt-drawer-link">📊 Results</a>
+        <a href="${MYTEACHER.teacher}/academic-structure.html" class="mt-drawer-link">🎓 Academics</a>
+        <a href="${MYTEACHER.teacher}/profile.html"            class="mt-drawer-link">👤 Profile</a>
         <div class="mt-drawer-divider"></div>
         <button class="mt-drawer-link mt-drawer-signout" id="mtDrawerSignOut">↩ Sign out</button>
       </nav>
