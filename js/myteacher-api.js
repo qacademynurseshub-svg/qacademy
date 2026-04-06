@@ -3512,3 +3512,91 @@ async function uploadProfileImage(userId, file, prefix = 'user') {
   const { data: urlData } = db.storage.from('profile-images').getPublicUrl(fileName);
   return urlData.publicUrl;
 }
+
+
+// ============================================================
+// Slice 12: Teacher Courses
+// ============================================================
+
+function makeCourseId() {
+  return 'TCRS_' + Date.now() + '_' + makeSecureId('').slice(0, 8);
+}
+
+async function createCourse(teacherId, payload) {
+  const now      = new Date().toISOString();
+  const courseId  = makeCourseId();
+
+  const row = {
+    course_id  : courseId,
+    teacher_id : teacherId,
+    title      : payload.title,
+    status     : 'ACTIVE',
+    created_at : now,
+    updated_at : now
+  };
+
+  if (payload.description) row.description = payload.description;
+
+  const { data, error } = await db
+    .from('teacher_courses')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) { console.error('createCourse:', error); return { success: false, message: error.message }; }
+  return { success: true, data };
+}
+
+async function getCourses(teacherId, opts = {}) {
+  let query = db
+    .from('teacher_courses')
+    .select('course_id, teacher_id, title, description, status, created_at, updated_at')
+    .eq('teacher_id', teacherId)
+    .order('title', { ascending: true });
+
+  if (opts.status && opts.status !== 'ALL') {
+    query = query.eq('status', opts.status);
+  }
+
+  const { data, error } = await query;
+  if (error) { console.error('getCourses:', error); return []; }
+  return data || [];
+}
+
+async function getCourseById(courseId) {
+  const { data, error } = await db
+    .from('teacher_courses')
+    .select('course_id, teacher_id, title, description, status, created_at, updated_at')
+    .eq('course_id', courseId)
+    .maybeSingle();
+
+  if (error) { console.error('getCourseById:', error); return null; }
+  return data;
+}
+
+async function updateCourse(courseId, teacherId, patch) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_courses')
+    .update({ ...patch, updated_at: now })
+    .eq('course_id', courseId)
+    .eq('teacher_id', teacherId);
+
+  if (error) { console.error('updateCourse:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+async function archiveCourse(courseId, teacherId, action) {
+  const newStatus = action === 'RESTORE' ? 'ACTIVE' : 'ARCHIVED';
+  const now       = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_courses')
+    .update({ status: newStatus, updated_at: now })
+    .eq('course_id', courseId)
+    .eq('teacher_id', teacherId);
+
+  if (error) { console.error('archiveCourse:', error); return { success: false, message: error.message }; }
+  return { success: true, newStatus };
+}

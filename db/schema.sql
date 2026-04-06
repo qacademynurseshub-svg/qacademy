@@ -8,8 +8,8 @@
 --   - When adding a new table, add it here first.
 --   - Run the relevant CREATE/ALTER in Supabase SQL editor.
 --   - All tables use dev_allow_all RLS during build.
---   - 36 tables total (11 core + 3 quiz engine + 11 items
---     + 1 offline packs + 2 messaging + 9 teacher assess)
+--   - 37 tables total (11 core + 3 quiz engine + 11 items
+--     + 1 offline packs + 2 messaging + 10 teacher assess)
 -- ============================================================
 
 
@@ -487,6 +487,7 @@ CREATE TABLE teacher_quizzes (
   teacher_id             TEXT NOT NULL,
   title                  TEXT NOT NULL,
   subject                TEXT,
+  course_id              TEXT REFERENCES teacher_courses(course_id),
   preset                 TEXT NOT NULL DEFAULT 'EXAM',
   duration_minutes       INTEGER NOT NULL DEFAULT 0,
   shuffle_questions      BOOLEAN NOT NULL DEFAULT false,
@@ -618,6 +619,22 @@ CREATE TABLE teacher_library_courses (
 
 CREATE INDEX ON teacher_library_courses (status);
 CREATE INDEX ON teacher_library_courses (sort_order);
+
+-- 5.10 teacher_courses
+-- A Course is what a teacher teaches (Pharmacology 1, Anatomy, etc).
+-- Created once, reused across years. Quizzes link to a Course.
+CREATE TABLE teacher_courses (
+  course_id    TEXT PRIMARY KEY,
+  teacher_id   TEXT NOT NULL,
+  title        TEXT NOT NULL,
+  description  TEXT,
+  status       TEXT NOT NULL DEFAULT 'ACTIVE',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- status: ACTIVE | ARCHIVED
+
+CREATE INDEX ON teacher_courses (teacher_id);
 
 
 -- 1.11 sessions
