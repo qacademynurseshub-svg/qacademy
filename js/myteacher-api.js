@@ -819,7 +819,8 @@ async function appendToDraftItems(teacherQuizId, bankItemIds) {
       ? JSON.parse(quiz.draft_items_json)
       : (quiz.draft_items_json || {});
     existingItems = Array.isArray(parsed.items) ? parsed.items : [];
-  } catch (_) {
+  } catch (err) {
+    console.warn('[myteacher-api] appendToDraftItems — failed to parse draft_items_json:', err.message);
     existingItems = [];
   }
 
@@ -941,7 +942,10 @@ async function getDraftPreview(quizId) {
       ? quiz.draft_items_json
       : JSON.parse(quiz.draft_items_json || '{}');
     ids = Array.isArray(parsed.items) ? parsed.items : [];
-  } catch (_) { ids = []; }
+  } catch (err) {
+    console.warn('[myteacher-api] getDraftPreview — failed to parse draft_items_json:', err.message);
+    ids = [];
+  }
 
   if (!ids.length) return { items: [], missing: [] };
 
@@ -1241,7 +1245,10 @@ async function removeFromDraftItems(quizId, bankItemId) {
       ? quiz.draft_items_json
       : JSON.parse(quiz.draft_items_json || '{}');
     items = Array.isArray(parsed.items) ? parsed.items : [];
-  } catch (_) { items = []; }
+  } catch (err) {
+    console.warn('[myteacher-api] removeFromDraftItems — failed to parse draft_items_json:', err.message);
+    items = [];
+  }
 
   const before = items.length;
   items = items.filter(id => id !== bankItemId);
@@ -1372,7 +1379,10 @@ async function publishTeacherQuiz(quizId, teacherId) {
       ? quiz.draft_items_json
       : JSON.parse(quiz.draft_items_json || '{}');
     draftIds = Array.isArray(parsed.items) ? parsed.items : [];
-  } catch (_) { draftIds = []; }
+  } catch (err) {
+    console.warn('[myteacher-api] publishTeacherQuiz — failed to parse draft_ids_json:', err.message);
+    draftIds = [];
+  }
 
   // Deduplicate draft items (server-side safety)
   draftIds = [...new Set(draftIds)];
@@ -1535,7 +1545,10 @@ async function cloneTeacherQuiz(sourceQuizId, teacherId, { copySchedule = false 
         ? source.draft_items_json
         : JSON.parse(source.draft_items_json || '{}');
       draftItems = Array.isArray(parsed.items) ? parsed.items : [];
-    } catch (_) { draftItems = []; }
+    } catch (err) {
+      console.warn('[myteacher-api] cloneTeacherQuiz — failed to parse draft_items_json:', err.message);
+      draftItems = [];
+    }
   }
 
   // 3. Create clone
@@ -2411,17 +2424,23 @@ async function getAttemptResults(attemptId, userId) {
   try {
     const cf = typeof cls?.custom_fields_json === 'object' ? cls.custom_fields_json : JSON.parse(cls?.custom_fields_json || '[]');
     classFields = Array.isArray(cf) ? cf : (Array.isArray(cf.fields) ? cf.fields : []);
-  } catch(_) {}
+  } catch(err) {
+    console.warn('[myteacher-api] getAttemptResults — failed to parse class custom_fields_json:', err.message);
+  }
   try {
     const mf = typeof member?.member_fields_json === 'object' ? member.member_fields_json : JSON.parse(member?.member_fields_json || '{}');
     classValues = (mf && typeof mf === 'object' && !Array.isArray(mf)) ? mf : (mf?.fields || {});
-  } catch(_) {}
+  } catch(err) {
+    console.warn('[myteacher-api] getAttemptResults — failed to parse member_fields_json:', err.message);
+  }
 
   let candidateFields = {};
   try {
     const cf = typeof attempt.candidate_fields_json === 'object' ? attempt.candidate_fields_json : JSON.parse(attempt.candidate_fields_json || '{}');
     candidateFields = cf.fields || cf || {};
-  } catch(_) {}
+  } catch(err) {
+    console.warn('[myteacher-api] getAttemptResults — failed to parse candidate_fields_json:', err.message);
+  }
 
   // Quiz custom fields schema — ensure all fields have keys
   let quizFieldsSchema = [];
@@ -2435,7 +2454,9 @@ async function getAttemptResults(attemptId, userId) {
       usedK[key] = true;
       return { ...f, key };
     });
-  } catch(_) {}
+  } catch(err) {
+    console.warn('[myteacher-api] getAttemptResults — failed to parse quiz custom_fields_json:', err.message);
+  }
 
   return {
     success: true,
@@ -2836,7 +2857,9 @@ async function getTeacherResultsMarksheet(quizId, classId, opts = {}) {
   try {
     const cf = typeof cls?.custom_fields_json === 'object' ? cls.custom_fields_json : JSON.parse(cls?.custom_fields_json || '[]');
     classFields = Array.isArray(cf) ? cf : (Array.isArray(cf.fields) ? cf.fields : []);
-  } catch(_) {}
+  } catch(err) {
+    console.warn('[myteacher-api] getTeacherResultsMarksheet — failed to parse class custom_fields_json:', err.message);
+  }
 
   let quizFields = [];
   try {
@@ -2849,7 +2872,9 @@ async function getTeacherResultsMarksheet(quizId, classId, opts = {}) {
       usedQK[key] = true;
       return { ...f, key };
     });
-  } catch(_) {}
+  } catch(err) {
+    console.warn('[myteacher-api] getTeacherResultsMarksheet — failed to parse quiz custom_fields_json:', err.message);
+  }
 
   // Build rows
   const rows = (members || []).map(m => {
@@ -2867,7 +2892,9 @@ async function getTeacherResultsMarksheet(quizId, classId, opts = {}) {
     try {
       const mf = typeof m.member_fields_json === 'object' ? m.member_fields_json : JSON.parse(m.member_fields_json || '{}');
       memberValues = (mf && typeof mf === 'object' && !Array.isArray(mf)) ? mf : (mf?.fields || {});
-    } catch(_) {}
+    } catch(err) {
+      console.warn('[myteacher-api] getTeacherResultsMarksheet — failed to parse member_fields_json (map loop):', err.message);
+    }
 
     // Parse quiz candidate fields from headline attempt
     let candidateValues = {};
@@ -2875,7 +2902,9 @@ async function getTeacherResultsMarksheet(quizId, classId, opts = {}) {
       try {
         const cf = typeof headline.candidate_fields_json === 'object' ? headline.candidate_fields_json : JSON.parse(headline.candidate_fields_json || '{}');
         candidateValues = cf.fields || cf || {};
-      } catch(_) {}
+      } catch(err) {
+        console.warn('[myteacher-api] getTeacherResultsMarksheet — failed to parse candidate_fields_json (map loop):', err.message);
+      }
     }
 
     const gradeBands = headline?.grade_bands_json || quiz.grade_bands_json;
@@ -3485,7 +3514,10 @@ function _gradeLabelFromBands(bandsJson, pct) {
   try {
     const parsed = typeof bandsJson === 'object' ? bandsJson : JSON.parse(bandsJson || '{}');
     bands = Array.isArray(parsed.bands) ? parsed.bands : [];
-  } catch(_) { return null; }
+  } catch(err) {
+    console.warn('[myteacher-api] _gradeLabelFromBands — failed to parse grade_bands_json:', err.message);
+    return null;
+  }
 
   if (!bands.length) return null;
 

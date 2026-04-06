@@ -13,7 +13,7 @@ Last updated: April 2026
 - [ ] Welcome email on registration
 - [ ] Password reset confirmation email
 - [ ] Turn on email confirmation in Supabase Auth
-- [ ] Fix 14 silent catch blocks in myteacher-api.js
+- [x] Fix 14 silent catch blocks in myteacher-api.js
 - [ ] Standardise error response shapes across both API files
 - [ ] User-facing error states on critical flows (login, quiz submission, join class, payment)
 
