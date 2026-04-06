@@ -275,14 +275,70 @@ a { color: var(--brand); }
 .qe-opt-label { font-weight: 900; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
 
 /* ── Publish tab ─────────────────────────────────────────── */
-.pub-checklist { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: rgba(255,255,255,.75); display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
-.pub-check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.pub-check .icon { font-size: 16px; }
-.pub-check.pass .icon { color: var(--ok); }
-.pub-check.fail .icon { color: var(--danger); }
-.pub-check.warn .icon { color: var(--warn); }
-.pub-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.release-section { margin-top: 20px; border: 1px solid var(--warn); border-radius: 14px; padding: 14px; background: var(--warn-light); }
+/* ── Publish pane ─────────────────────────────────────────── */
+.pub-summary { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-bottom: 16px; background: var(--card); }
+.pub-summary-head { padding: 12px 16px; background: var(--soft); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.pub-summary-title { font-size: 15px; font-weight: 700; }
+.pub-summary-body { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); }
+@media (max-width: 700px) { .pub-summary-body { grid-template-columns: repeat(2, 1fr); } }
+.pub-stat { padding: 12px 16px; border-right: 1px solid var(--line); }
+.pub-stat:last-child { border-right: none; }
+.pub-stat-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; color: var(--muted); }
+.pub-stat-val { font-size: 18px; font-weight: 900; margin-top: 4px; line-height: 1; }
+.pub-stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.pub-val-teal { color: var(--brand); }
+.pub-val-amber { color: var(--warn); }
+.pub-val-ok { color: var(--ok); }
+.pub-val-danger { color: var(--danger); }
+
+.pub-checklist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.pub-check { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.pub-check.pass { border-color: rgba(6,118,71,.25); background: var(--ok-light); }
+.pub-check.warn { border-color: rgba(180,83,9,.25); background: var(--warn-light); }
+.pub-check.fail { border-color: rgba(185,28,28,.25); background: var(--danger-light); }
+.pub-check-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; flex-shrink: 0; margin-top: 1px; }
+.pass .pub-check-icon { background: var(--ok); color: #fff; }
+.warn .pub-check-icon { background: var(--warn); color: #fff; }
+.fail .pub-check-icon { background: var(--danger); color: #fff; }
+.pub-check-body { flex: 1; min-width: 0; }
+.pub-check-text { font-size: 13px; font-weight: 700; }
+.pass .pub-check-text { color: #064e38; }
+.warn .pub-check-text { color: var(--warn); }
+.fail .pub-check-text { color: var(--danger); }
+.pub-check-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.pass .pub-check-sub { color: var(--ok); }
+
+.pub-action-card { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-bottom: 16px; }
+.pub-action-primary { padding: 16px; background: var(--card); border-bottom: 1px solid var(--line); }
+.pub-action-label { font-size: 14px; font-weight: 900; margin-bottom: 4px; }
+.pub-action-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+.pub-secondary-row { display: flex; }
+.pub-sec-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 14px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; background: var(--soft); color: var(--muted); border-right: 1px solid var(--line); transition: all .12s ease; }
+.pub-sec-btn:last-child { border-right: none; }
+.pub-sec-btn:hover { background: var(--card); color: var(--ink); }
+.pub-sec-btn:disabled { opacity: .4; cursor: not-allowed; }
+.pub-sec-btn.danger { color: var(--danger); }
+.pub-sec-btn.danger:hover { background: var(--danger-light); }
+
+.pub-status-banner { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; margin-bottom: 16px; }
+.pub-status-banner.pub-published { background: var(--ok-light); border: 1px solid rgba(6,118,71,.25); }
+.pub-status-banner.pub-archived { background: var(--soft); border: 1px solid var(--line); }
+.pub-banner-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; font-weight: 900; }
+.pub-published .pub-banner-icon { background: var(--ok); color: #fff; }
+.pub-archived .pub-banner-icon { background: var(--muted); color: #fff; }
+.pub-banner-title { font-size: 14px; font-weight: 900; }
+.pub-published .pub-banner-title { color: #064e38; }
+.pub-archived .pub-banner-title { color: var(--ink); }
+.pub-banner-sub { font-size: 12px; margin-top: 2px; }
+.pub-published .pub-banner-sub { color: var(--ok); }
+.pub-archived .pub-banner-sub { color: var(--muted); }
+
+.release-card { border: 1px solid rgba(180,83,9,.3); border-radius: 14px; overflow: hidden; margin-bottom: 16px; }
+.release-card-head { padding: 10px 16px; background: var(--warn-light); border-bottom: 1px solid rgba(180,83,9,.2); display: flex; align-items: center; gap: 8px; }
+.release-card-title { font-size: 13px; font-weight: 900; color: var(--warn); }
+.release-card-body { padding: 14px 16px; background: var(--card); }
+.release-card-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+.release-done { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--ok-light); border: 1px solid rgba(6,118,71,.25); border-radius: 10px; font-size: 13px; font-weight: 700; color: #064e38; margin-bottom: 16px; }
 
 /* ── Preview card ────────────────────────────────────────── */
 .prev-card { border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: var(--card); }
@@ -953,21 +1009,7 @@ a { color: var(--brand); }
 
       <!-- ======== PUBLISH TAB ======== -->
       <div class="tab-pane" id="panePublish">
-        <div class="form-section-title">Publish Checklist</div>
-        <div class="pub-checklist" id="pubChecklist"></div>
-        <div class="pub-actions">
-          <button class="btn primary" id="btnPublish">Publish Quiz</button>
-          <button class="btn danger" id="btnArchive">Archive Quiz</button>
-          <button class="btn" id="btnClone">Clone Quiz</button>
-        </div>
-        <div class="release-section" id="releaseSection" style="display:none">
-          <div style="font-weight:900;margin-bottom:8px">Release Results</div>
-          <div class="hint" style="margin-bottom:10px">Make results visible to students immediately, regardless of the release policy.</div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="btn primary" id="btnRelease">Release Results to Students</button>
-            <span class="hint" id="releaseStatus"></span>
-          </div>
-        </div>
+        <div id="pubContainer"></div>
       </div>
 
     </div>
@@ -1408,8 +1450,8 @@ function setReadOnlyState(readOnly) {
     $('btnSaveDraft').disabled = readOnly;
   }
 
-  $('btnPublish').disabled = status !== 'DRAFT' || !DRAFT_IDS.length;
-  $('btnArchive').disabled = status === 'ARCHIVED';
+  if ($('btnPublish')) $('btnPublish').disabled = status !== 'DRAFT' || !DRAFT_IDS.length;
+  if ($('btnArchive')) $('btnArchive').disabled = status === 'ARCHIVED';
 }
 
 
@@ -2424,48 +2466,218 @@ function showPreview(bankItemId) {
 // ================================================================
 function renderPublishPane() {
   if (!SELECTED_QUIZ) return;
-  const q = SELECTED_QUIZ;
-  const checks = [];
+  const q      = SELECTED_QUIZ;
+  const status = (q.status || 'DRAFT').toUpperCase();
+  const container = $('pubContainer');
+  if (!container) return;
 
-  const pass = (ok, text) => checks.push({ ok, text });
-  const warn = (text) => checks.push({ ok: 'warn', text });
+  // ── helpers ────────────────────────────────────────────────
+  function summaryCard() {
+    const preset   = q.preset || 'Custom';
+    const dur      = q.duration_minutes ? q.duration_minutes + ' min' : 'Untimed';
+    const att      = q.max_attempts === 0 ? 'Unlimited' : (q.max_attempts || 1) + ' attempt' + (q.max_attempts !== 1 ? 's' : '');
+    const qCount   = status === 'DRAFT' ? DRAFT_IDS.length : (q._snapCount || DRAFT_IDS.length);
+    const clsCount = LINKED_CLASS_IDS.size;
 
-  pass(!!SELECTED_ID, 'Quiz has an ID');
-  pass(q.status === 'DRAFT', `Status is ${q.status} ${q.status === 'DRAFT' ? '(editable)' : '(locked)'}`);
-  pass(DRAFT_IDS.length > 0, `Draft has ${DRAFT_IDS.length} item(s)`);
+    let scheduleVal, scheduleSub;
+    if (q.open_at || q.close_at) {
+      const fmt = iso => iso ? new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '?';
+      scheduleVal = fmt(q.open_at) + ' – ' + fmt(q.close_at);
+      scheduleSub = 'open → close';
+    } else {
+      scheduleVal = 'None';
+      scheduleSub = 'always open';
+    }
 
-  if (LINKED_CLASS_IDS.size === 0) warn('No classes linked (optional but recommended)');
-  else pass(true, `${LINKED_CLASS_IDS.size} class(es) linked`);
+    const statusChip = status === 'PUBLISHED'
+      ? '<span class="badge badge-published">Published</span>'
+      : status === 'ARCHIVED'
+      ? '<span class="badge badge-archived">Archived</span>'
+      : '<span class="badge badge-draft">Draft</span>';
 
-  if (q.results_release_policy === 'AFTER_CLOSE' && !q.close_at) pass(false, 'AFTER_CLOSE policy requires a Close At date');
-  else pass(true, `Results policy: ${q.results_release_policy}`);
+    const qValCls  = qCount   === 0 ? 'pub-val-danger' : '';
+    const clsValCls = clsCount === 0 ? 'pub-val-amber' : 'pub-val-teal';
 
-  if (q.open_at && q.close_at && new Date(q.close_at) <= new Date(q.open_at)) pass(false, 'Close date must be after open date');
-  else if (q.open_at || q.close_at) pass(true, 'Schedule dates are valid');
-
-  $('pubChecklist').innerHTML = checks.map(c => {
-    const cls = c.ok === true ? 'pass' : c.ok === 'warn' ? 'warn' : 'fail';
-    const icon = c.ok === true ? '✓' : c.ok === 'warn' ? '⚠' : '✗';
-    return `<div class="pub-check ${cls}"><span class="icon">${icon}</span> ${esc(c.text)}</div>`;
-  }).join('');
-
-  const canPublish = q.status === 'DRAFT' && DRAFT_IDS.length > 0 &&
-    !(q.results_release_policy === 'AFTER_CLOSE' && !q.close_at);
-  $('btnPublish').disabled = !canPublish;
-  $('btnArchive').disabled = q.status === 'ARCHIVED';
-
-  const showRelease = (q.status === 'PUBLISHED' || q.status === 'ARCHIVED') && q.results_release_policy === 'MANUAL';
-  const showReleaseNow = (q.status === 'PUBLISHED' || q.status === 'ARCHIVED') && q.results_release_policy !== 'MANUAL' && !q.results_released;
-  $('releaseSection').style.display = (showRelease || showReleaseNow) ? '' : 'none';
-  if (showRelease) {
-    $('releaseStatus').textContent = q.results_released
-      ? 'Released at ' + fmtDate(q.results_released_at)
-      : 'Not yet released';
-    $('btnRelease').disabled = !!q.results_released;
-  } else if (showReleaseNow) {
-    $('releaseStatus').textContent = `Current policy: ${q.results_release_policy}. You can override and release now.`;
-    $('btnRelease').disabled = false;
+    return `
+    <div class="pub-summary">
+      <div class="pub-summary-head">
+        <div class="pub-summary-title">${esc(q.title || 'Untitled Quiz')}</div>
+        ${statusChip}
+      </div>
+      <div class="pub-summary-body">
+        <div class="pub-stat">
+          <div class="pub-stat-label">Preset</div>
+          <div class="pub-stat-val pub-val-teal" style="font-size:14px;margin-top:5px">${esc(preset)}</div>
+          <div class="pub-stat-sub">${esc(dur)} · ${esc(att)}</div>
+        </div>
+        <div class="pub-stat">
+          <div class="pub-stat-label">${status === 'DRAFT' ? 'Draft items' : 'Questions'}</div>
+          <div class="pub-stat-val ${qValCls}">${qCount}</div>
+          <div class="pub-stat-sub">${status === 'DRAFT' ? 'ready to snapshot' : 'snapshotted'}</div>
+        </div>
+        <div class="pub-stat">
+          <div class="pub-stat-label">Classes</div>
+          <div class="pub-stat-val ${clsValCls}">${clsCount}</div>
+          <div class="pub-stat-sub">${clsCount === 0 ? 'none linked' : 'linked'}</div>
+        </div>
+        <div class="pub-stat">
+          <div class="pub-stat-label">Schedule</div>
+          <div class="pub-stat-val" style="font-size:13px;margin-top:5px">${esc(scheduleVal)}</div>
+          <div class="pub-stat-sub">${esc(scheduleSub)}</div>
+        </div>
+      </div>
+    </div>`;
   }
+
+  function checklistHtml() {
+    const items = [];
+    const add = (ok, text, sub) => items.push({ ok, text, sub: sub || '' });
+
+    add(true, 'Quiz saved', 'Settings saved and ID assigned');
+
+    if (DRAFT_IDS.length > 0) add(true, `${DRAFT_IDS.length} question${DRAFT_IDS.length !== 1 ? 's' : ''} added`, 'Draft is ready to snapshot');
+    else add(false, 'No questions added', 'Add at least 1 question in the Questions tab');
+
+    if (LINKED_CLASS_IDS.size > 0) add(true, `${LINKED_CLASS_IDS.size} class${LINKED_CLASS_IDS.size !== 1 ? 'es' : ''} linked`, 'Students in these classes will see the quiz');
+    else add('warn', 'No classes linked', "Students won't see this quiz until a class is linked");
+
+    if (q.results_release_policy === 'AFTER_CLOSE' && !q.close_at) {
+      add(false, 'Close date required', 'After Close Date policy needs a close date — set it in Settings → Schedule');
+    } else {
+      const polLabel = q.results_release_policy === 'IMMEDIATE' ? 'Immediate — students see results right after submitting'
+        : q.results_release_policy === 'AFTER_CLOSE' ? 'After close date — results visible once quiz closes'
+        : 'Manual release — you control when students see scores';
+      add(true, 'Results policy set', polLabel);
+    }
+
+    if (q.open_at && q.close_at && new Date(q.close_at) <= new Date(q.open_at)) {
+      add(false, 'Schedule invalid', 'Close date must be after open date — fix in Settings → Schedule');
+    } else if (q.open_at || q.close_at) {
+      const fmt = iso => iso ? new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      add(true, 'Schedule valid', `Opens ${fmt(q.open_at)} · Closes ${fmt(q.close_at)}`);
+    }
+
+    return '<div class="pub-checklist">' + items.map(item => {
+      const cls  = item.ok === true ? 'pass' : item.ok === 'warn' ? 'warn' : 'fail';
+      const icon = item.ok === true ? '✓' : item.ok === 'warn' ? '!' : '✗';
+      return `<div class="pub-check ${cls}">
+        <div class="pub-check-icon">${icon}</div>
+        <div class="pub-check-body">
+          <div class="pub-check-text">${esc(item.text)}</div>
+          ${item.sub ? `<div class="pub-check-sub">${esc(item.sub)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  function actionCard(canPublish) {
+    const readyLabel = canPublish ? 'Ready to publish' : 'Not ready to publish';
+    const readySub   = canPublish
+      ? `Publishing will snapshot all ${DRAFT_IDS.length} question${DRAFT_IDS.length !== 1 ? 's' : ''} and lock editing. This cannot be undone.`
+      : 'Fix the issues above before publishing.';
+    return `
+    <div class="pub-action-card">
+      <div class="pub-action-primary">
+        <div class="pub-action-label">${readyLabel}</div>
+        <div class="pub-action-sub">${readySub}</div>
+        <button class="btn primary" id="btnPublish" ${canPublish ? '' : 'disabled'}>Publish quiz</button>
+      </div>
+      <div class="pub-secondary-row">
+        <div class="pub-sec-btn" id="btnClone" onclick="cloneQuiz()">Clone quiz</div>
+        <div class="pub-sec-btn danger" id="btnArchive" onclick="archiveQuiz()">Archive quiz</div>
+      </div>
+    </div>`;
+  }
+
+  function publishedActionCard() {
+    return `
+    <div class="pub-action-card">
+      <div class="pub-secondary-row">
+        <div class="pub-sec-btn" id="btnClone" onclick="cloneQuiz()">Clone quiz</div>
+        <div class="pub-sec-btn danger" id="btnArchive" onclick="archiveQuiz()">Archive quiz</div>
+      </div>
+    </div>`;
+  }
+
+  function archivedActionCard() {
+    return `
+    <div class="pub-action-card">
+      <div class="pub-secondary-row">
+        <div class="pub-sec-btn" id="btnClone" onclick="cloneQuiz()">Clone quiz</div>
+      </div>
+    </div>`;
+  }
+
+  function releaseCardHtml() {
+    if (q.results_released) {
+      const relDate = q.results_released_at ? fmtDate(q.results_released_at) : '';
+      return `<div class="release-done">✓ Results released to students${relDate ? ' on ' + relDate : ''}</div>`;
+    }
+    const sub = q.results_release_policy === 'MANUAL'
+      ? 'Results policy is set to Manual Release. Students cannot see their scores until you release them.'
+      : `Results policy is set to ${q.results_release_policy}. You can override and release now.`;
+    return `
+    <div class="release-card">
+      <div class="release-card-head">
+        <div class="release-card-title">Results not yet released</div>
+      </div>
+      <div class="release-card-body">
+        <div class="release-card-sub">${sub}</div>
+        <button class="btn primary" id="btnRelease" onclick="releaseResults()">Release results to students</button>
+      </div>
+    </div>`;
+  }
+
+  // ── Render by status ───────────────────────────────────────
+  let html = '';
+
+  if (status === 'DRAFT') {
+    const canPublish = DRAFT_IDS.length > 0 &&
+      !(q.results_release_policy === 'AFTER_CLOSE' && !q.close_at) &&
+      !(q.open_at && q.close_at && new Date(q.close_at) <= new Date(q.open_at));
+
+    html = summaryCard() + checklistHtml() + actionCard(canPublish);
+
+  } else if (status === 'PUBLISHED') {
+    const fmt = iso => iso ? new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : null;
+    const pubDate = fmt(q.updated_at);
+    const clsText = `${LINKED_CLASS_IDS.size} class${LINKED_CLASS_IDS.size !== 1 ? 'es' : ''}`;
+    const schedText = (q.open_at || q.close_at)
+      ? ` · Opens ${fmt(q.open_at)} – Closes ${fmt(q.close_at)}`
+      : '';
+
+    html += `
+    <div class="pub-status-banner pub-published">
+      <div class="pub-banner-icon">✓</div>
+      <div>
+        <div class="pub-banner-title">Quiz is live</div>
+        <div class="pub-banner-sub">${pubDate ? 'Published ' + pubDate + ' · ' : ''}${DRAFT_IDS.length} questions · ${clsText}${schedText}</div>
+      </div>
+    </div>`;
+
+    const showRelease = q.results_release_policy === 'MANUAL' || !q.results_released;
+    if (showRelease) html += releaseCardHtml();
+
+    html += summaryCard() + publishedActionCard();
+
+  } else if (status === 'ARCHIVED') {
+    html += `
+    <div class="pub-status-banner pub-archived">
+      <div class="pub-banner-icon">—</div>
+      <div>
+        <div class="pub-banner-title">Quiz is archived</div>
+        <div class="pub-banner-sub">No longer visible to students. Settings are read-only.</div>
+      </div>
+    </div>`;
+
+    html += summaryCard() + archivedActionCard();
+  }
+
+  container.innerHTML = html;
+
+  // Wire up publish button if present
+  const btnPub = $('btnPublish');
+  if (btnPub) btnPub.addEventListener('click', publishQuiz);
 }
 
 async function publishQuiz() {
@@ -2490,7 +2702,6 @@ async function publishQuiz() {
   updateEditorStrip();
   setReadOnlyState(true);
   renderPublishPane();
-  $('btnPublish').textContent = 'Publish Quiz';
 }
 
 async function archiveQuiz() {
@@ -2692,10 +2903,7 @@ function bindEvents() {
     });
   });
 
-  $('btnPublish').addEventListener('click', publishQuiz);
-  $('btnArchive').addEventListener('click', archiveQuiz);
-  $('btnClone').addEventListener('click', cloneQuiz);
-  $('btnRelease').addEventListener('click', releaseResults);
+  // btnPublish wired in renderPublishPane(); btnArchive/Clone/Release use inline onclick
 
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
