@@ -4,6 +4,11 @@
 // Deploy: cd workers/email-worker && npx wrangler deploy
 // ============================================================
 
+// ── Import HTML templates as text modules ───────────────────
+import welcomeStudentHtml from './templates/welcome-student.html';
+import welcomeTeacherHtml from './templates/welcome-teacher.html';
+import subscriptionAssignedHtml from './templates/subscription-assigned.html';
+
 // ── Allowed origins for CORS ────────────────────────────────
 const ALLOWED_ORIGINS = [
   'https://qacademy-gamma.pages.dev',
@@ -29,15 +34,15 @@ function corsHeaders(origin) {
 // ── Event → template + subject mapping ──────────────────────
 const EVENT_MAP = {
   WELCOME_STUDENT: {
-    template: 'welcome-student.html',
+    html: welcomeStudentHtml,
     subject: 'Welcome to QAcademy \u2013 You\u2019re all set'
   },
   WELCOME_TEACHER: {
-    template: 'welcome-teacher.html',
+    html: welcomeTeacherHtml,
     subject: 'Welcome to QAcademy Teacher Assess \u2013 You\u2019re approved'
   },
   SUBSCRIPTION_ASSIGNED: {
-    template: 'subscription-assigned.html',
+    html: subscriptionAssignedHtml,
     subject: 'Your QAcademy access is now active'
   }
 };
@@ -113,20 +118,8 @@ export default {
         );
       }
 
-      // ── Load template ─────────────────────────────────
-      // Templates are bundled as static assets via import
-      const templateUrl = new URL('./templates/' + eventConfig.template, import.meta.url);
-      const templateResponse = await fetch(templateUrl);
-      if (!templateResponse.ok) {
-        return Response.json(
-          { ok: false, error: 'Template not found: ' + eventConfig.template },
-          { status: 500, headers }
-        );
-      }
-      const templateHtml = await templateResponse.text();
-
       // ── Fill placeholders ─────────────────────────────
-      const filledHtml = fillTemplate(templateHtml, body.data);
+      const filledHtml = fillTemplate(eventConfig.html, body.data);
 
       // ── Send via Resend ───────────────────────────────
       const resendResponse = await fetch('https://api.resend.com/emails', {
