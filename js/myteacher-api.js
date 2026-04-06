@@ -2117,19 +2117,105 @@ async function getAttempt(attemptId) {
 
 
 // ── Helper: auto-timeout an expired attempt ─────────────────
+// Grades whatever answers the student has, then marks TIMED_OUT.
 async function _autoTimeoutAttempt(attempt) {
-  const now = new Date().toISOString();
+  const nowIso = new Date().toISOString();
   const maxSeconds = (attempt.duration_minutes || 0) * 60;
   let finalTime = attempt.time_taken_s || 0;
   if (maxSeconds > 0 && finalTime > maxSeconds) finalTime = maxSeconds;
 
+  // Fetch quiz + snapshot items for grading
+  const quiz = await getTeacherQuiz(attempt.teacher_quiz_id);
+  const { data: snapItems } = await db
+    .from('teacher_quiz_items')
+    .select('*')
+    .eq('teacher_quiz_id', attempt.teacher_quiz_id);
+
+  let scoreMarks = 0;
+  let totalMarks = 0;
+
+  if (quiz && snapItems && snapItems.length) {
+    const snapMap = new Map(snapItems.map(s => [s.quiz_item_id, s]));
+    const finalAnswers = attempt.answers_json || {};
+    const attemptItems = attempt.items_json || [];
+    const sataPolicy = quiz.sata_scoring_policy || 'ALL_OR_NOTHING';
+
+    attemptItems.forEach(item => {
+      const snap = snapMap.get(item.quiz_item_id);
+      if (!snap) return;
+      const marks = snap.snap_marks || 1;
+      totalMarks += marks;
+
+      const qType = snap.snap_question_type || 'MCQ';
+      const studentAnswer = finalAnswers[item.quiz_item_id];
+
+      if (qType === 'SATA') {
+        const correctSet = new Set((snap.snap_correct || '').split(',').map(s => s.trim()).filter(Boolean));
+        const studentSet = new Set(
+          Array.isArray(studentAnswer) ? studentAnswer :
+          (typeof studentAnswer === 'string' ? studentAnswer.split(',').map(s => s.trim()).filter(Boolean) : [])
+        );
+        const origStudentSet = new Set();
+        studentSet.forEach(dl => {
+          const orig = item.opt_map ? item.opt_map[dl] : dl;
+          if (orig) origStudentSet.add(orig);
+        });
+
+        if (sataPolicy === 'ALL_OR_NOTHING') {
+          if (origStudentSet.size === correctSet.size &&
+              [...origStudentSet].every(l => correctSet.has(l))) {
+            scoreMarks += marks;
+          }
+        } else if (sataPolicy === 'PARTIAL_CREDIT') {
+          let credit = 0;
+          origStudentSet.forEach(l => { credit += correctSet.has(l) ? 1 : -1; });
+          credit = Math.max(0, credit);
+          scoreMarks += Math.round((credit / correctSet.size) * marks * 100) / 100;
+        } else if (sataPolicy === 'PER_OPTION') {
+          const allOptions = _getSataOptionLetters(snap);
+          let correct = 0;
+          allOptions.forEach(letter => {
+            if (correctSet.has(letter) === origStudentSet.has(letter)) correct++;
+          });
+          scoreMarks += Math.round((correct / allOptions.length) * marks * 100) / 100;
+        }
+      } else {
+        const chosen = typeof studentAnswer === 'string' ? studentAnswer.trim() : '';
+        const origChosen = item.opt_map ? (item.opt_map[chosen] || chosen) : chosen;
+        if (origChosen && origChosen === snap.snap_correct) {
+          scoreMarks += marks;
+        }
+      }
+    });
+  }
+
+  const pct = totalMarks > 0 ? Math.round((scoreMarks / totalMarks) * 10000) / 100 : 0;
+
+  const patch = {
+    status              : 'TIMED_OUT',
+    submitted_at        : nowIso,
+    updated_at          : nowIso,
+    time_taken_s        : finalTime,
+    score_raw           : scoreMarks,
+    score_total         : totalMarks,
+    score_pct           : pct,
+    score_json          : quiz ? {
+      total_marks: totalMarks, score_marks: scoreMarks, percent: pct,
+      sata_scoring_policy: quiz.sata_scoring_policy || 'ALL_OR_NOTHING',
+      pass_threshold_pct: quiz.pass_threshold_pct ?? 50,
+      results_release_policy: quiz.results_release_policy,
+      show_review: quiz.show_review,
+      show_results: quiz.show_results,
+      results_released: quiz.results_released,
+      close_at: quiz.close_at
+    } : null,
+    grading_policy      : quiz ? quiz.grading_policy : null,
+    grade_bands_json    : quiz ? quiz.grade_bands_json : null,
+    score_display_policy: quiz ? quiz.score_display_policy : null
+  };
+
   await db.from('teacher_quiz_attempts')
-    .update({
-      status      : 'TIMED_OUT',
-      submitted_at: now,
-      updated_at  : now,
-      time_taken_s: finalTime
-    })
+    .update(patch)
     .eq('attempt_id', attempt.attempt_id);
 }
 
