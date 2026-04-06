@@ -11,6 +11,7 @@ import subscriptionAssignedHtml from './templates/subscription-assigned.html';
 import subscriptionRevokedHtml from './templates/subscription-revoked.html';
 import paymentSetupRequiredHtml from './templates/payment-setup-required.html';
 import classJoinApprovedHtml from './templates/class-join-approved.html';
+import footerHtml from './templates/footer.html';
 
 // ── Allowed origins for CORS ────────────────────────────────
 const ALLOWED_ORIGINS = [
@@ -140,7 +141,14 @@ export default {
       }
 
       // ── Fill placeholders ─────────────────────────────
-      const filledHtml = fillTemplate(eventConfig.html, body.data);
+      let filledHtml = fillTemplate(eventConfig.html, body.data);
+
+      // ── Inject shared footer ──────────────────────────
+      const filledFooter = footerHtml
+        .replace(/\{\{socialTiktok\}\}/g, 'https://tiktok.com/@qacademynurses')
+        .replace(/\{\{socialTelegram\}\}/g, 'https://t.me/qacademynurses')
+        .replace(/\{\{socialWhatsapp\}\}/g, 'https://wa.me/233538132277');
+      filledHtml = filledHtml.replace(/\{\{footer\}\}/g, filledFooter);
 
       // ── Build subject (some events have dynamic subjects) ──
       let subject = eventConfig.subject;

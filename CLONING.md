@@ -185,6 +185,11 @@ CORS: Worker only accepts requests from APP_BASE_URL. Update the allowed origin 
 From address: QAcademy Educational Consult <noreply@qacademynurses.com>
 Templates live in: workers/email-worker/templates/
 
+Shared footer: `workers/email-worker/templates/footer.html`
+Injected into every email via `{{footer}}` placeholder in `index.js`.
+Social link placeholders (`{{socialTiktok}}`, `{{socialTelegram}}`, `{{socialWhatsapp}}`)
+are resolved in `index.js` — update the URLs there when real links are available.
+
 ### Email & SMTP Setup
 
 #### Resend Account
