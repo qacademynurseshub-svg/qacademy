@@ -8,8 +8,8 @@
 --   - When adding a new table, add it here first.
 --   - Run the relevant CREATE/ALTER in Supabase SQL editor.
 --   - All tables use dev_allow_all RLS during build.
---   - 37 tables total (11 core + 3 quiz engine + 11 items
---     + 1 offline packs + 2 messaging + 10 teacher assess)
+--   - 39 tables total (11 core + 3 quiz engine + 11 items
+--     + 1 offline packs + 2 messaging + 12 teacher assess)
 -- ============================================================
 
 
@@ -635,6 +635,40 @@ CREATE TABLE teacher_courses (
 -- status: ACTIVE | ARCHIVED
 
 CREATE INDEX ON teacher_courses (teacher_id);
+
+-- 5.11 teacher_programmes
+-- A Programme is the academic programme (BSc Nursing, BSc Midwifery).
+-- Lightweight label — just a title. Cohorts belong to a Programme.
+CREATE TABLE teacher_programmes (
+  programme_id  TEXT PRIMARY KEY,
+  teacher_id    TEXT NOT NULL,
+  title         TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'ACTIVE',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- status: ACTIVE | ARCHIVED
+
+CREATE INDEX ON teacher_programmes (teacher_id);
+
+-- 5.12 teacher_cohorts
+-- A Cohort is the permanent identity of a student group.
+-- e.g. "BSc Nursing 2024 Intake". Created once per intake year.
+-- No uniqueness constraint — multiple cohorts per programme/year allowed.
+CREATE TABLE teacher_cohorts (
+  cohort_id     TEXT PRIMARY KEY,
+  teacher_id    TEXT NOT NULL,
+  programme_id  TEXT NOT NULL REFERENCES teacher_programmes(programme_id),
+  title         TEXT NOT NULL,
+  intake_year   INT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'ACTIVE',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- status: ACTIVE | ARCHIVED
+
+CREATE INDEX ON teacher_cohorts (teacher_id);
+CREATE INDEX ON teacher_cohorts (programme_id);
 
 
 -- 1.11 sessions

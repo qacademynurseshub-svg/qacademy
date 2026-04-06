@@ -3600,3 +3600,166 @@ async function archiveCourse(courseId, teacherId, action) {
   if (error) { console.error('archiveCourse:', error); return { success: false, message: error.message }; }
   return { success: true, newStatus };
 }
+
+
+// ============================================================
+// Slice 13: Teacher Programmes
+// ============================================================
+
+function makeProgrammeId() {
+  return 'TPRG_' + Date.now() + '_' + makeSecureId('').slice(0, 8);
+}
+
+async function createProgramme(teacherId, payload) {
+  const now         = new Date().toISOString();
+  const programmeId = makeProgrammeId();
+
+  const row = {
+    programme_id : programmeId,
+    teacher_id   : teacherId,
+    title        : payload.title,
+    status       : 'ACTIVE',
+    created_at   : now,
+    updated_at   : now
+  };
+
+  const { data, error } = await db
+    .from('teacher_programmes')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) { console.error('createProgramme:', error); return { success: false, message: error.message }; }
+  return { success: true, data };
+}
+
+async function getProgrammes(teacherId, opts = {}) {
+  let query = db
+    .from('teacher_programmes')
+    .select('programme_id, teacher_id, title, status, created_at, updated_at')
+    .eq('teacher_id', teacherId)
+    .order('title', { ascending: true });
+
+  if (opts.status && opts.status !== 'ALL') {
+    query = query.eq('status', opts.status);
+  }
+
+  const { data, error } = await query;
+  if (error) { console.error('getProgrammes:', error); return []; }
+  return data || [];
+}
+
+async function updateProgramme(programmeId, teacherId, patch) {
+  const now = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_programmes')
+    .update({ ...patch, updated_at: now })
+    .eq('programme_id', programmeId)
+    .eq('teacher_id', teacherId);
+
+  if (error) { console.error('updateProgramme:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+async function archiveProgramme(programmeId, teacherId, action) {
+  const newStatus = action === 'RESTORE' ? 'ACTIVE' : 'ARCHIVED';
+  const now       = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_programmes')
+    .update({ status: newStatus, updated_at: now })
+    .eq('programme_id', programmeId)
+    .eq('teacher_id', teacherId);
+
+  if (error) { console.error('archiveProgramme:', error); return { success: false, message: error.message }; }
+  return { success: true, newStatus };
+}
+
+
+// ============================================================
+// Slice 13: Teacher Cohorts
+// ============================================================
+
+function makeCohortId() {
+  return 'TCOH_' + Date.now() + '_' + makeSecureId('').slice(0, 8);
+}
+
+async function createCohort(teacherId, payload) {
+  const now      = new Date().toISOString();
+  const cohortId = makeCohortId();
+
+  const row = {
+    cohort_id    : cohortId,
+    teacher_id   : teacherId,
+    programme_id : payload.programme_id,
+    title        : payload.title,
+    intake_year  : parseInt(payload.intake_year, 10),
+    status       : 'ACTIVE',
+    created_at   : now,
+    updated_at   : now
+  };
+
+  const { data, error } = await db
+    .from('teacher_cohorts')
+    .insert(row)
+    .select()
+    .single();
+
+  if (error) { console.error('createCohort:', error); return { success: false, message: error.message }; }
+  return { success: true, data };
+}
+
+async function getCohorts(teacherId, opts = {}) {
+  let query = db
+    .from('teacher_cohorts')
+    .select('cohort_id, teacher_id, programme_id, title, intake_year, status, created_at, updated_at')
+    .eq('teacher_id', teacherId)
+    .order('intake_year', { ascending: false })
+    .order('title', { ascending: true });
+
+  if (opts.status && opts.status !== 'ALL') {
+    query = query.eq('status', opts.status);
+  }
+
+  if (opts.programme_id) {
+    query = query.eq('programme_id', opts.programme_id);
+  }
+
+  const { data, error } = await query;
+  if (error) { console.error('getCohorts:', error); return []; }
+  return data || [];
+}
+
+async function updateCohort(cohortId, teacherId, patch) {
+  const now = new Date().toISOString();
+
+  // Ensure intake_year is int if present
+  const safePatch = { ...patch, updated_at: now };
+  if (safePatch.intake_year !== undefined) {
+    safePatch.intake_year = parseInt(safePatch.intake_year, 10);
+  }
+
+  const { error } = await db
+    .from('teacher_cohorts')
+    .update(safePatch)
+    .eq('cohort_id', cohortId)
+    .eq('teacher_id', teacherId);
+
+  if (error) { console.error('updateCohort:', error); return { success: false, message: error.message }; }
+  return { success: true };
+}
+
+async function archiveCohort(cohortId, teacherId, action) {
+  const newStatus = action === 'RESTORE' ? 'ACTIVE' : 'ARCHIVED';
+  const now       = new Date().toISOString();
+
+  const { error } = await db
+    .from('teacher_cohorts')
+    .update({ status: newStatus, updated_at: now })
+    .eq('cohort_id', cohortId)
+    .eq('teacher_id', teacherId);
+
+  if (error) { console.error('archiveCohort:', error); return { success: false, message: error.message }; }
+  return { success: true, newStatus };
+}

@@ -73,18 +73,14 @@
     </div>
 
     <div class="structure-grid">
-      <!-- Programmes panel — Slice 13 -->
+      <!-- Programmes panel -->
       <div class="panel">
-        <div class="panel-body" id="programmesContainer" style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:13px;">
-          Programmes — coming in Slice 13
-        </div>
+        <div class="panel-body" id="programmesContainer"></div>
       </div>
 
-      <!-- Cohorts panel — Slice 13 -->
+      <!-- Cohorts panel -->
       <div class="panel">
-        <div class="panel-body" id="cohortsContainer" style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:13px;">
-          Cohorts — coming in Slice 13
-        </div>
+        <div class="panel-body" id="cohortsContainer"></div>
       </div>
 
       <!-- Courses panel — Slice 12 (live) -->
@@ -109,6 +105,8 @@
 <script src="/js/paths.js"></script>
 <script src="/js/utils.js"></script>
 <script src="/js/myteacher-teacher-nav.js"></script>
+<script src="/myteacher/teacher/components/programmes-panel.js"></script>
+<script src="/myteacher/teacher/components/cohorts-panel.js"></script>
 <script src="/myteacher/teacher/components/courses-panel.js"></script>
 <script>
 
@@ -118,7 +116,9 @@
 
     if (typeof mtSetUser === 'function') mtSetUser(profile);
 
-    // Initialise the Courses panel
+    // Initialise all three panels
+    initProgrammesPanel('programmesContainer', profile.user_id);
+    initCohortsPanel('cohortsContainer', profile.user_id);
     initCoursesPanel('coursesContainer', profile.user_id);
   }
 
