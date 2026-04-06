@@ -346,6 +346,7 @@ a { color: var(--brand); }
 <script src="/js/paths.js"></script>
 <script src="/js/utils.js"></script>
 <script src="/js/myteacher-teacher-nav.js"></script>
+<script src="/myteacher/teacher/components/student-panel.js"></script>
 <script>
 // ================================================================
 // RESULTS & REPORTS — Page Logic
@@ -647,6 +648,7 @@ function renderMarksheet() {
       <td style="font-size:12px;color:var(--muted)">${fmtDate(r.submitted_at)}</td>
       <td>
         <div style="display:flex;gap:4px">
+          <button class="btn sm" onclick="openStudentPanel('${esc(r.user_id)}','${esc(TEACHER_ID)}')">Overview</button>
           ${r.attempts_used > 0 ? `<button class="btn sm" onclick="openAttemptsDrawer('${esc(r.user_id)}','${esc(r.display_name)}')">Attempts</button>` : ''}
           ${r.headline_attempt_id ? `<button class="btn sm" onclick="openAttemptDetailDrawer('${esc(r.headline_attempt_id)}')">View</button>` : ''}
         </div>

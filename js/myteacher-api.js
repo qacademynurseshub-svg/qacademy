@@ -3849,3 +3849,64 @@ async function archiveCohort(cohortId, teacherId, action) {
   if (error) { console.error('archiveCohort:', error); return { success: false, message: error.message }; }
   return { success: true, newStatus };
 }
+
+
+// ============================================================
+// Student Panel: Overview data
+// ============================================================
+
+async function getStudentOverview(userId, teacherId) {
+  // Fetch user, class memberships, attempts, and teacher's quizzes in parallel
+  const [userRes, membersRes, attemptsRes, quizzesRes] = await Promise.all([
+    db.from('users')
+      .select('user_id, forename, surname, name, email, avatar_url')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    db.from('teacher_class_members')
+      .select(`
+        class_id, user_id, teacher_id, status, joined_at, member_fields_json,
+        teacher_classes (
+          class_id, title, status, colour, programme, academic_year, semester,
+          cohort_id, custom_fields_json, end_date
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('teacher_id', teacherId)
+      .order('joined_at', { ascending: false }),
+    db.from('teacher_quiz_attempts')
+      .select('attempt_id, user_id, teacher_quiz_id, class_id, attempt_no, status, score_raw, score_total, score_pct, time_taken_s, submitted_at, started_at')
+      .eq('user_id', userId)
+      .eq('teacher_id', teacherId)
+      .neq('status', 'ABANDONED')
+      .order('submitted_at', { ascending: false }),
+    db.from('teacher_quizzes')
+      .select('teacher_quiz_id, title, subject, course_id, status')
+      .eq('teacher_id', teacherId)
+  ]);
+
+  if (userRes.error) { console.error('getStudentOverview user:', userRes.error); }
+  if (membersRes.error) { console.error('getStudentOverview members:', membersRes.error); }
+  if (attemptsRes.error) { console.error('getStudentOverview attempts:', attemptsRes.error); }
+  if (quizzesRes.error) { console.error('getStudentOverview quizzes:', quizzesRes.error); }
+
+  // Build quiz lookup map (quiz_id → { title, subject, course_id })
+  const quizMap = {};
+  (quizzesRes.data || []).forEach(q => {
+    quizMap[q.teacher_quiz_id] = { title: q.title, subject: q.subject, course_id: q.course_id };
+  });
+
+  // Build class lookup map (class_id → class title) from memberships
+  const classMap = {};
+  (membersRes.data || []).forEach(m => {
+    const cls = m.teacher_classes;
+    if (cls) classMap[cls.class_id] = cls.title;
+  });
+
+  return {
+    user: userRes.data || null,
+    classes: membersRes.data || [],
+    attempts: attemptsRes.data || [],
+    quizMap,
+    classMap
+  };
+}
