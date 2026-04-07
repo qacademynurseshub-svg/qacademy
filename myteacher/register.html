@@ -322,6 +322,10 @@
     successAlert.textContent = msg;
     successAlert.classList.add('show');
 
+    // Sign out so the user arrives at login.html with a clean
+    // state — avoids onAuthStateChange deadlock from the signUp session
+    await db.auth.signOut();
+
     setTimeout(() => {
       window.location.href = '/login.html';
     }, 2500);
