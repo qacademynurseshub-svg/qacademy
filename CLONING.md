@@ -1,5 +1,5 @@
 # QAcademy Nurses Hub — CLONING NOTES
-*Last updated: March 2026*
+*Last updated: April 2026*
 
 Technical rebuild guide. Follow end-to-end to recreate the full environment from scratch.
 
@@ -15,13 +15,18 @@ qacademy-gamma/
     admin/                 ← 12 admin pages
     student/               ← 16 student pages
     runner/                ← 2 quiz runner pages
+    register.html          ← Student registration
+    subscribe.html         ← Paid subscription flow
+    payment-confirmation.html ← Payment callback
+    premium-prep.html      ← Premium marketing page
   myteacher/               ← Teacher Assess product
     admin/                 ← 2 admin pages
     teacher/               ← 9 teacher pages
     student/               ← 5 student pages
+    register.html          ← Teacher registration
   js/
     paths.js               ← CENTRAL PATH CONFIG — edit this to clone
-    config.js              ← Supabase credentials
+    config.js              ← Environment config (auto-detects dev vs prod)
     guard.js               ← Auth & role guards
     auth.js                ← Auth utilities (hashing, fingerprint, event IDs)
     mynmclicensure-api.js  ← Licensure data layer
@@ -32,8 +37,14 @@ qacademy-gamma/
     myteacher-teacher-nav.js
     myteacher-student-nav.js
   payments-worker/         ← Cloudflare Worker (separate deployment)
+  workers/email-worker/    ← Cloudflare Worker for transactional emails
+  db/
+    schema.sql             ← Single source of truth for all 42 tables
+    rls.sql                ← All RLS policies + helper functions
+    prod-setup/            ← Ready-to-run SQL scripts for new environments
   docs/                    ← Reference documentation
-  (root HTML)              ← login, register, router, subscribe, etc.
+  .github/workflows/       ← GitHub Actions (mirror to prod repo)
+  (root HTML)              ← login, forgot-password, reset-password, router, index
 ```
 
 ### Config-driven paths — `js/paths.js`
@@ -90,10 +101,29 @@ To clone e.g. `mynmclicensure/` into `mypharmacy/`:
 
 ## 1. Stack
 - **Frontend:** Vanilla HTML / CSS / JS — no build step
-- **Hosting:** Cloudflare Pages (auto-deploys on push to `main`)
+- **Hosting:** Cloudflare Pages (auto-deploys on push)
 - **Database & Auth:** Supabase (free tier)
-- **Version Control:** GitHub (`mybackpacc-byte/qacademy-gamma`)
 - **Payments:** Paystack — Cloudflare Worker deployed at `payments-worker/`
+- **Emails:** Resend API — Cloudflare Worker deployed at `workers/email-worker/`
+
+### Environments
+| | Dev | Prod |
+|--|-----|------|
+| **Repo** | `mybackpacc-byte/qacademy-gamma` | `qacademynurseshub-svg/qacademy` |
+| **Branch** | `main` | `production` (mirrors to prod repo) |
+| **Pages URL** | `qacademy-gamma.pages.dev` | `qacademy-bkf.pages.dev` |
+| **Supabase** | `zrakjibtxyzoqcdtvpmq` | `qizhyhjeqhaybyddsuni` |
+| **Payments worker** | `qacademy-gamma-payment-workers` | `qacademy-prod-payment-workers` |
+| **Email worker** | `qacademy-email-worker` | `qacademy-prod-email-worker` |
+
+`js/config.js` auto-detects the environment by checking `window.location.hostname` — same code works on both.
+
+### Dev → Prod workflow
+1. All work happens on `main` branch (dev repo)
+2. When ready to promote: merge `main` → `production` branch
+3. GitHub Action automatically mirrors `production` to the prod repo
+4. Prod Cloudflare Pages auto-deploys from the prod repo
+5. Workers must be deployed manually (`npx wrangler deploy`)
 
 ---
 
@@ -101,11 +131,11 @@ To clone e.g. `mynmclicensure/` into `mypharmacy/`:
 
 ### Supabase
 1. Create a new Supabase project
-2. Copy Project URL and anon key into `js/config.js`:
-```js
-const db = supabase.createClient('YOUR_PROJECT_URL', 'YOUR_ANON_KEY');
-```
+2. Run the 4 SQL scripts in `db/prod-setup/` in order (01 → 04) in the SQL Editor
+3. Update `js/config.js` with the project URL and anon key (in the IS_PROD ternary)
+
 > The Supabase JS CDN uses `supabase` as its global. We use `db` everywhere.
+> `js/config.js` uses hostname detection — no need for separate config files per environment.
 
 ### Cloudflare Pages
 1. Connect GitHub repo to Cloudflare Pages
@@ -152,10 +182,7 @@ If cloning to a new worker account, the namespace_id can stay as "1001" — it i
 Tokens issued during SETUP_REQUIRED expire after 48 hours.
 Admin can refresh a token by clicking "Retry Activation" on the payment row in the admin payments panel, then copying the fresh setup link.
 
-In `subscribe.html`, `mynmclicensure/student/upgrade.html`, and `payment-confirmation.html` — set `PAYMENTS_WORKER_URL` to the deployed worker URL:
-```
-https://qacademy-gamma-payment-workers.mybackpacc.workers.dev
-```
+All three payment pages (`subscribe.html`, `upgrade.html`, `payment-confirmation.html`) read `PAYMENTS_API_BASE` from `js/config.js` — no per-file URL needed.
 
 ### Email Worker (Cloudflare Worker)
 The worker lives in `workers/email-worker/` and is deployed separately from the frontend.
@@ -823,26 +850,28 @@ Key rules:
 ---
 
 ## 8. Before Going Live Checklist
-- [ ] Replace dev_allow_all RLS with proper role-based policies
-- [ ] Set up custom SMTP for emails
-- [ ] Turn on email confirmation in Supabase Auth
+- [x] Replace dev_allow_all RLS with proper role-based policies
+- [x] Set up custom SMTP for emails (Resend)
+- [x] Set up Paystack webhook (Cloudflare Worker)
+- [x] Build and wire admin pages (payments, user management)
+- [x] Add teacher/student sidebar navigation
+- [x] Seed QAcademy library tables
+- [x] Set up dev/prod environment split
+- [x] Deploy prod payments + email workers
+- [ ] Turn on email confirmation in Supabase Auth (on hold — needs UI)
 - [ ] Set up custom domain on Cloudflare
-- [x] Set up Paystack webhook (Cloudflare Worker) ✅
-- [ ] Remove test accounts
+- [ ] Remove test accounts from dev database
+- [ ] Review and clean up question bank content
+- [ ] Seed prod database with production question content
+- [ ] Test full quiz lifecycle end-to-end on prod
 - [ ] Rotate Supabase anon key if ever committed publicly
-- [ ] Review and clean up question bank content before go-live
-- [ ] Build and wire admin pages (payments, user management)
-- [ ] Add teacher/student sidebar navigation
-- [ ] Seed QAcademy library tables with production question content
-- [ ] Test full quiz lifecycle end-to-end (create → publish → take → results → review)
-- [ ] Run Slice 12-14 migrations (teacher_courses, teacher_programmes, teacher_cohorts, cohort_id on teacher_classes, course_id on teacher_quizzes)
 
 ---
 
-## 9. Test Accounts
+## 9. Test Accounts (dev only — prod starts clean)
 | Role | Email | Notes |
 |---|---|---|
 | ADMIN | mybackpacc@gmail.com | role=ADMIN |
-| TEACHER | samquatleumas@gmail.com | role=TEACHER (corrected from STUDENT during Sprint 1) |
-| STUDENT | Albert Owusu-Ansah | role=STUDENT (corrected from TEACHER during Sprint 1), RN / L300 / 2024 cohort / TRIAL |
+| TEACHER | samquatleumas@gmail.com | role=TEACHER |
+| STUDENT | Albert Owusu-Ansah | role=STUDENT, RN / L300 / 2024 cohort / TRIAL |
 | STUDENT | Justice Asiamah | RM / L100 / 2023 cohort / TRIAL |

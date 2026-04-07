@@ -11,7 +11,7 @@ Last updated: April 2026
 These must be done before real users touch the platform.
 
 ### Infrastructure
-- [ ] Set up dev/prod split — second Supabase project (prod), prod branch on Cloudflare, separate config per environment. Run all migrations on prod DB.
+- [x] Set up dev/prod split — separate Supabase project, GitHub repo, Cloudflare Pages, payments + email workers. Mirror pipeline from production branch. Hostname detection in config.js.
 - [ ] Set up custom domain on Cloudflare
 - [ ] Remove test accounts (MANUAL_TEST rows)
 - [ ] Review and clean up question bank content
