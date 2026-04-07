@@ -820,7 +820,7 @@ async function retryActivation(reference) {
       // ── Send setup email (fire-and-forget) ───────────
       try {
         const setupUrl = window.location.origin
-          + '/payment-confirmation.html?reference=' + encodeURIComponent(reference)
+          + '/mynmclicensure/payment-confirmation.html?reference=' + encodeURIComponent(reference)
           + '&setup_token=' + encodeURIComponent(data.setup_token || '');
 
         if (data.email) {
@@ -863,7 +863,7 @@ async function retryActivation(reference) {
 // can send it manually to a student who paid but never completed setup
 function copySetupLink(reference, setupToken) {
   const base    = window.location.origin;
-  const url     = `${base}/payment-confirmation.html?reference=${encodeURIComponent(reference)}&setup_token=${encodeURIComponent(setupToken)}`;
+  const url     = `${base}/mynmclicensure/payment-confirmation.html?reference=${encodeURIComponent(reference)}&setup_token=${encodeURIComponent(setupToken)}`;
   navigator.clipboard.writeText(url).then(() => {
     const sucEl = document.getElementById('panelSuccess');
     sucEl.textContent = '📋 Setup link copied to clipboard. Send it to the student.';

@@ -788,7 +788,7 @@ async function handleInitPublic(request, env) {
   }
 
   const reference = makeRef('QAC');
-  const callbackUrl = new URL('/payment-confirmation.html', env.APP_BASE_URL).toString();
+  const callbackUrl = new URL('/mynmclicensure/payment-confirmation.html', env.APP_BASE_URL).toString();
 
   const paymentRow = await sbInsert(env, 'payments', {
     reference,
@@ -878,7 +878,7 @@ async function handleInitPublic(request, env) {
  * Body:
  * {
  *   product_id: "RM_2026_PREP",
- *   callback_url: "https://qacademy-gamma.pages.dev/payment-confirmation.html" // optional
+ *   callback_url: "https://qacademy-gamma.pages.dev/mynmclicensure/payment-confirmation.html" // optional
  * }
  *
  * Auth:
@@ -1013,7 +1013,7 @@ async function handleInitUpgrade(request, env) {
   const reference = makeRef('QAC');
   const callbackUrl =
     callbackUrlInput ||
-    new URL('/payment-confirmation.html', env.APP_BASE_URL).toString();
+    new URL('/mynmclicensure/payment-confirmation.html', env.APP_BASE_URL).toString();
 
   // 4) Create the payment audit row first
   await sbInsert(env, 'payments', {

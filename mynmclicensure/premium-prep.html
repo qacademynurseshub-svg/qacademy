@@ -545,7 +545,7 @@
           </div>
           <div class="hero-actions">
             <button class="btn btn-primary" id="startBtn" type="button">Choose Programme</button>
-            <a class="btn btn-secondary" href="/register.html">Free Trial Instead</a>
+            <a class="btn btn-secondary" href="/mynmclicensure/register.html">Free Trial Instead</a>
           </div>
         </div>
       </div>
@@ -930,7 +930,7 @@ function workerBase(){
           product_id: v.product_id,
           program_id: v.program_id,
           phone_number: v.phone || '',
-          callback_url: location.origin + '/payment-confirmation.html'
+          callback_url: location.origin + '/mynmclicensure/payment-confirmation.html'
         };
 
         const resp = await fetch(workerBase() + '/payments/init-public', {
