@@ -73,17 +73,17 @@ INSERT INTO products (product_id, name, kind, status, courses_included, price_mi
   ('NACNAP_FULL', 'Nursing Assistant, Preventive/Clinical Full Access', 'PAID', 'active', '{GP,NAC_BASIC_CLIN,NAC_BASIC_PREV}',     15000, 'GHS', 365);
 
 -- Standalone (per-course, 365-day)
-INSERT INTO products (product_id, name, kind, status, courses_included, price_minor, currency, duration_days) VALUES
-  ('GP_ONLY',                'General Paper Standalone Access',                                              'PAID', 'active', '{GP}',                5900, 'GHS', 365),
-  ('RN_MED_ONLY',            'Medicine & Medical Nursing Standalone Access',                                 'PAID', 'active', '{RN_MED}',            5900, 'GHS', 365),
-  ('RN_SURG_ONLY',           'Surgery & Surgical Nursing Standalone Access',                                 'PAID', 'active', '{RN_SURG}',           5900, 'GHS', 365),
-  ('RM_PED_OBS_HRN_ONLY',    'Paediatric, Obstetric Anatomy, & High-Risk Neonates Standalone Access',       'PAID', 'active', '{RM_PED_OBS_HRN}',    5900, 'GHS', 365),
-  ('RM_MID_ONLY',            'Midwifery Standalone Access',                                                  'PAID', 'active', '{RM_MID}',            5900, 'GHS', 365),
-  ('RPHN_PPHN_ONLY',         'Principles of Public Health Nursing Standalone Access',                        'PAID', 'active', '{RPHN_PPHN}',         5900, 'GHS', 365),
-  ('RPHN_DISEASE_CTRL_ONLY', 'Principles of Disease Management & Control Standalone Access',                 'PAID', 'active', '{RPHN_DISEASE_CTRL}', 5900, 'GHS', 365),
-  ('RMHN_PSYCH_NURS_ONLY',   'Principles & Practice of Psychiatric Nursing Standalone Access',               'PAID', 'active', '{RMHN_PSYCH_NURS}',   5900, 'GHS', 365),
-  ('RMHN_PSYCH_PPHARM_ONLY', 'Psychiatry, Psychopathology & Psychopharmacology Standalone Access',           'PAID', 'active', '{RMHN_PSYCH_PPHARM}', 5900, 'GHS', 365),
-  ('NAC_BASIC_CLIN_ONLY',    'Basic Clinical Nursing Standalone Access',                                     'PAID', 'active', '{NAC_BASIC_CLIN}',    5910, 'GHS', 70, '{JKHOILHHPI}'),
+INSERT INTO products (product_id, name, kind, status, courses_included, price_minor, currency, duration_days, telegram_group_keys) VALUES
+  ('GP_ONLY',                'General Paper Standalone Access',                                              'PAID', 'active', '{GP}',                5900, 'GHS', 365, NULL),
+  ('RN_MED_ONLY',            'Medicine & Medical Nursing Standalone Access',                                 'PAID', 'active', '{RN_MED}',            5900, 'GHS', 365, NULL),
+  ('RN_SURG_ONLY',           'Surgery & Surgical Nursing Standalone Access',                                 'PAID', 'active', '{RN_SURG}',           5900, 'GHS', 365, NULL),
+  ('RM_PED_OBS_HRN_ONLY',    'Paediatric, Obstetric Anatomy, & High-Risk Neonates Standalone Access',       'PAID', 'active', '{RM_PED_OBS_HRN}',    5900, 'GHS', 365, NULL),
+  ('RM_MID_ONLY',            'Midwifery Standalone Access',                                                  'PAID', 'active', '{RM_MID}',            5900, 'GHS', 365, NULL),
+  ('RPHN_PPHN_ONLY',         'Principles of Public Health Nursing Standalone Access',                        'PAID', 'active', '{RPHN_PPHN}',         5900, 'GHS', 365, NULL),
+  ('RPHN_DISEASE_CTRL_ONLY', 'Principles of Disease Management & Control Standalone Access',                 'PAID', 'active', '{RPHN_DISEASE_CTRL}', 5900, 'GHS', 365, NULL),
+  ('RMHN_PSYCH_NURS_ONLY',   'Principles & Practice of Psychiatric Nursing Standalone Access',               'PAID', 'active', '{RMHN_PSYCH_NURS}',   5900, 'GHS', 365, NULL),
+  ('RMHN_PSYCH_PPHARM_ONLY', 'Psychiatry, Psychopathology & Psychopharmacology Standalone Access',           'PAID', 'active', '{RMHN_PSYCH_PPHARM}', 5900, 'GHS', 365, NULL),
+  ('NAC_BASIC_CLIN_ONLY',    'Basic Clinical Nursing Standalone Access',                                     'PAID', 'active', '{NAC_BASIC_CLIN}',    5910, 'GHS', 70,  '{JKHOILHHPI}'),
   ('NAC_BASIC_PREV_ONLY',    'Basic Preventive Nursing Standalone Access',                                   'PAID', 'active', '{NAC_BASIC_PREV}',    5900, 'GHS', 365, '{JUKJGHOIU8ILUL}');
 
 -- ── Config ──────────────────────────────────────────────────
