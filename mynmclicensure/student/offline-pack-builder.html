@@ -1372,7 +1372,7 @@ async function openOfflineModal() {
   el.offlineFreshnessPill.style.display = 'none';
   el.offlineFreshnessPill.textContent = 'Fresh: — • Reused: —';
 
-  if (allowance && allowance.ok) {
+  if (allowance && allowance.success) {
     el.offlineAllowancePill.textContent = `Allowance: ${allowance.remaining} left of ${allowance.downloads_per_course}`;
     el.offlineModalError.textContent = '';
     el.offlineCreateBtn.disabled = !allowance.allowed;

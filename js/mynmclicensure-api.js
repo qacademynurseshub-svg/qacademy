@@ -1697,7 +1697,7 @@ async function getOfflinePackAllowance(userId, courseId) {
 
   if (!allCourseSubs.length) {
     return {
-      ok: false,
+      success: false,
       allowed: false,
       blocked_reason: 'not_subscribed',
       course_id: safeCourseId,
@@ -1713,7 +1713,7 @@ async function getOfflinePackAllowance(userId, courseId) {
 
   if (!activeCourseSubs.length) {
     return {
-      ok: false,
+      success: false,
       allowed: false,
       blocked_reason: 'renew_required',
       course_id: safeCourseId,
@@ -1729,7 +1729,7 @@ async function getOfflinePackAllowance(userId, courseId) {
 
   if (!qualifyingSubs.length) {
     return {
-      ok: false,
+      success: false,
       allowed: false,
       blocked_reason: 'trial_not_allowed',
       course_id: safeCourseId,
@@ -1762,7 +1762,7 @@ async function getOfflinePackAllowance(userId, courseId) {
   if (error) {
     console.error('getOfflinePackAllowance:', error);
     return {
-      ok: false,
+      success: false,
       allowed: false,
       blocked_reason: 'allowance_check_failed',
       course_id: safeCourseId,
@@ -1778,7 +1778,7 @@ async function getOfflinePackAllowance(userId, courseId) {
   const remaining = Math.max(0, downloadsPerCourse - usedThisPeriod);
 
   return {
-    ok: true,
+    success: true,
     allowed: remaining > 0,
     blocked_reason: null,
     course_id: safeCourseId,
@@ -1843,7 +1843,7 @@ async function createOfflinePack(userId, payload = {}) {
   }
 
   const allowance = await getOfflinePackAllowance(userId, safeCourseId);
-  if (!allowance.ok) {
+  if (!allowance.success) {
     return {
       success: false,
       blocked_reason: allowance.blocked_reason || 'not_allowed',
@@ -1956,15 +1956,15 @@ async function getOfflinePackForRender(userId, packId) {
 
   if (error) {
     console.error('getOfflinePackForRender:', error);
-    return { success: false, error: 'pack_lookup_failed', message: error.message };
+    return { success: false, code: 'pack_lookup_failed', message: error.message };
   }
 
   if (!pack) {
-    return { success: false, error: 'pack_not_found', message: 'Offline pack not found.' };
+    return { success: false, code: 'pack_not_found', message: 'Offline pack not found.' };
   }
 
   if (String(pack.status || '').toLowerCase() !== 'active') {
-    return { success: false, error: 'pack_inactive', message: 'This offline pack is not active.' };
+    return { success: false, code: 'pack_inactive', message: 'This offline pack is not active.' };
   }
 
   const savedIds = Array.isArray(pack.item_ids) ? pack.item_ids : [];
@@ -2672,14 +2672,14 @@ async function getAdminThreads(filters = {}) {
 async function closeThread(threadId) {
   const { error } = await db.from('messages_threads')
     .update({ status: 'closed' }).eq('thread_id', threadId);
-  if (error) { console.error('closeThread:', error); return { success: false }; }
+  if (error) { console.error('closeThread:', error); return { success: false, message: error.message }; }
   return { success: true };
 }
 
 async function reopenThread(threadId) {
   const { error } = await db.from('messages_threads')
     .update({ status: 'open' }).eq('thread_id', threadId);
-  if (error) { console.error('reopenThread:', error); return { success: false }; }
+  if (error) { console.error('reopenThread:', error); return { success: false, message: error.message }; }
   return { success: true };
 }
 
