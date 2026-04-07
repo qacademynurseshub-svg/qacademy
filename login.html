@@ -313,13 +313,10 @@
     }
 
     // ── Attempt login with Supabase Auth ────────────────────────
-    console.log('[login] 1. calling signInWithPassword...');
     const { data, error } = await db.auth.signInWithPassword({
       email,
       password
     });
-    console.log('[login] 2. signInWithPassword done, error:', error ? error.message : 'none');
-
     if (error) {
       // Log the failed attempt (fire-and-forget — don't block UI)
       db.rpc('log_auth_event', {
@@ -342,7 +339,9 @@
 
     // ── Post-login: session + redirect (wrapped in try/catch) ──
     try {
-      console.log('[login] 3. looking up user row...');
+      // Look up the users row. If the token hasn't propagated to
+      // PostgREST yet, the RLS check fails and we get null.
+      // Retry once after a short delay to cover that race.
       let userRow = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         const { data: row } = await db
@@ -350,12 +349,11 @@
           .select('user_id')
           .eq('auth_id', data.user.id)
           .maybeSingle();
-        console.log('[login] 3.' + (attempt+1) + ' user lookup:', row ? row.user_id : 'null');
         if (row) { userRow = row; break; }
         if (attempt === 0) await new Promise(r => setTimeout(r, 500));
       }
 
-      console.log('[login] 4. logging auth event...');
+      // Log successful login (fire-and-forget)
       db.rpc('log_auth_event', {
         p_event_id:     makeEventId(),
         p_event_type:   'LOGIN_SUCCESS',
@@ -367,7 +365,6 @@
       }).then(() => {}).catch(() => {});
 
       if (!userRow) {
-        console.log('[login] 5. NO user row found — showing error');
         await db.auth.signOut();
         emailLoginInProgress = false;
         errorAlert.textContent = 'No account found for this email. Please register first.';
@@ -377,13 +374,11 @@
         return;
       }
 
-      console.log('[login] 5. creating session...');
       await createLoginSession(userRow.user_id, 'EMAIL');
-      console.log('[login] 6. redirecting to router...');
       window.location.href = '/router.html';
 
     } catch (err) {
-      console.error('[login] CAUGHT post-login error:', err);
+      console.error('[login] post-login error:', err);
       emailLoginInProgress = false;
       errorAlert.textContent = 'Something went wrong during sign-in. Please try again.';
       errorAlert.classList.add('show');
