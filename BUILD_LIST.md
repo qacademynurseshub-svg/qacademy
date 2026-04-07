@@ -15,7 +15,7 @@ Last updated: April 2026
 - [ ] Turn on email confirmation in Supabase Auth (on hold)
 - [x] Fix 14 silent catch blocks in myteacher-api.js
 - [x] Standardise error response shapes across both API files
-- [ ] User-facing error states on critical flows (login, quiz submission, join class, payment)
+- [x] User-facing error states on critical flows (login, quiz submission, join class, payment)
 
 ### Week 2–3: Empty States & Polish
 - [ ] Empty state guidance on every page ("No quizzes yet — create your first one")
