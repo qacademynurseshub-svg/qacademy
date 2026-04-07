@@ -8,13 +8,22 @@ QAcademy Nurses Hub is a web-based learning management system for nursing studen
 | Layer | Technology |
 |---|---|
 | Frontend | Vanilla HTML / CSS / JS — no build step |
-| Hosting | Cloudflare Pages (`qacademy-gamma.pages.dev`) |
+| Hosting | Cloudflare Pages |
 | Database & Auth | Supabase (free tier) |
-| Version Control | GitHub (`mybackpacc-byte/qacademy-gamma`) |
-| Payments | Paystack — Cloudflare Worker deployed (`payments-worker/`) |
+| Payments | Paystack — Cloudflare Worker (`payments-worker/`) |
+| Emails | Resend API — Cloudflare Worker (`workers/email-worker/`) |
 | Messaging | Built-in thread-based system (Supabase) |
 
-No separate backend server. Everything is JAMstack. The Cloudflare Worker is isolated to payments only — it does not touch the rest of the frontend build.
+No separate backend server. Everything is JAMstack. Workers are isolated to payments and emails only.
+
+### Environments
+| | Dev | Prod |
+|--|-----|------|
+| **Repo** | `mybackpacc-byte/qacademy-gamma` | `qacademynurseshub-svg/qacademy` |
+| **Pages** | `qacademy-gamma.pages.dev` | `qacademy-bkf.pages.dev` |
+| **Branch** | `main` | `production` → mirrors to prod repo |
+
+`js/config.js` auto-detects dev vs prod by hostname. See `CLONING.md` for full environment details.
 
 ---
 
@@ -28,25 +37,23 @@ qacademy-gamma/
     admin/                 ← 12 admin pages
     student/               ← 16 student pages
     runner/                ← 2 quiz runner pages
+    register.html, subscribe.html, payment-confirmation.html, premium-prep.html
   myteacher/               ← Teacher Assess product
     admin/                 ← 2 admin pages
     teacher/               ← 9 teacher pages
     student/               ← 5 student pages
+    register.html
   js/
     paths.js               ← CENTRAL PATH CONFIG — edit this to clone
-    config.js              ← Supabase credentials
+    config.js              ← Environment config (auto-detects dev vs prod)
     guard.js               ← Auth & role guards
     auth.js                ← Auth utilities (hashing, fingerprint, event IDs)
     mynmclicensure-api.js  ← Licensure data layer
     myteacher-api.js       ← Teacher Assess data layer
-    mynmclicensure-admin-sidebar.js
-    mynmclicensure-student-sidebar.js
-    myteacher-admin-nav.js
-    myteacher-teacher-nav.js
-    myteacher-student-nav.js
-  payments-worker/         ← Cloudflare Worker (separate deployment)
-  docs/                    ← Reference documentation
-  (root HTML)              ← login, register, router, subscribe, etc.
+  payments-worker/         ← Cloudflare Worker (payments)
+  workers/email-worker/    ← Cloudflare Worker (transactional emails)
+  db/                      ← Schema, RLS, migrations, prod setup scripts
+  (root HTML)              ← login, forgot-password, reset-password, router, index
 ```
 
 ### Path Configuration — `js/paths.js`
