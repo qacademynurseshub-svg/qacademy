@@ -1,0 +1,115 @@
+-- ============================================================
+-- PROD SETUP — Script 4 of 4: Seed Reference Data
+-- Paste this into the prod Supabase SQL Editor and run.
+-- Seeds reference/catalogue data only — NO users, NO test data.
+-- IMPORTANT: Update payments_worker_url value below to the
+-- prod payments worker URL after deploying it.
+-- ============================================================
+
+-- ── Programs ────────────────────────────────────────────────
+
+INSERT INTO programs (program_id, program_name, trial_product_id) VALUES
+  ('RN',     'Registered Nursing',              'RN_TRIAL'),
+  ('RM',     'Registered Midwifery',            'RM_TRIAL'),
+  ('RPHN',   'Registered Public Health Nursing', 'RPHN_TRIAL'),
+  ('RMHN',   'Registered Mental Health Nursing', 'RMHN_TRIAL'),
+  ('NACNAP', 'NACNAP',                          'NACNAP_TRIAL');
+
+-- ── Courses ─────────────────────────────────────────────────
+
+INSERT INTO courses (course_id, title, program_scope, status) VALUES
+  ('GP',                'General Paper',                                       '{RN,RM,RPHN,RMHN,NACNAP}', 'active'),
+  ('RN_MED',            'Medicine & Medical Nursing',                          '{RN}',                     'active'),
+  ('RN_SURG',           'Surgery & Surgical Nursing',                          '{RN}',                     'active'),
+  ('RM_PED_OBS_HRN',    'Paediatric, Obstetric Anatomy, & High-Risk Neonates', '{RM}',                     'active'),
+  ('RM_MID',            'Midwifery',                                           '{RM}',                     'active'),
+  ('RPHN_PPHN',         'Principles of Public Health Nursing',                 '{RPHN}',                   'active'),
+  ('RPHN_DISEASE_CTRL', 'Principles of Disease Management & Control',          '{RPHN}',                   'active'),
+  ('RMHN_PSYCH_NURS',   'Principles & Practice of Psychiatric Nursing',        '{RMHN}',                   'active'),
+  ('RMHN_PSYCH_PPHARM', 'Psychiatry, Psychopathology & Psychopharmacology',    '{RMHN}',                   'active'),
+  ('NAC_BASIC_CLIN',    'Basic Clinical Nursing',                              '{NACNAP}',                 'active'),
+  ('NAC_BASIC_PREV',    'Basic Preventive Nursing',                            '{NACNAP}',                 'active');
+
+-- ── Levels ──────────────────────────────────────────────────
+
+INSERT INTO levels (level_id, label) VALUES
+  ('L100', 'Level 100'),
+  ('L200', 'Level 200'),
+  ('L300', 'Level 300'),
+  ('L400', 'Level 400');
+
+-- ── Products ────────────────────────────────────────────────
+
+-- Trial products (7-day free)
+INSERT INTO products (product_id, name, kind, status, courses_included, price_minor, currency, duration_days) VALUES
+  ('RN_TRIAL',     'Registered Nursing — 7 Day Free Trial',                       'TRIAL', 'active', '{GP,RN_MED,RN_SURG}',                   0, 'GHS', 7),
+  ('RM_TRIAL',     'Registered Midwifery — 7 Day Free Trial',                     'TRIAL', 'active', '{GP,RM_PED_OBS_HRN,RM_MID}',            0, 'GHS', 7),
+  ('RPHN_TRIAL',   'Registered Public Health Nursing — 7 Day Free Trial',         'TRIAL', 'active', '{GP,RPHN_PPHN,RPHN_DISEASE_CTRL}',      0, 'GHS', 7),
+  ('RMHN_TRIAL',   'Registered Mental Health Nursing — 7 Day Free Trial',         'TRIAL', 'active', '{GP,RMHN_PSYCH_NURS,RMHN_PSYCH_PPHARM}',0, 'GHS', 7),
+  ('NACNAP_TRIAL', 'Nursing Assistant Preventive/Clinical — 7 Day Free Trial',    'TRIAL', 'active', '{GP,NAC_BASIC_CLIN,NAC_BASIC_PREV}',    0, 'GHS', 7);
+
+-- Free products (30-day)
+INSERT INTO products (product_id, name, kind, status, courses_included, price_minor, currency, duration_days) VALUES
+  ('RN_FULL_FREE',     'Registered Nursing Free Full Access',                       'FREE', 'active', '{GP,RN_MED,RN_SURG}',                    0, 'GHS', 30),
+  ('RM_FULL_FREE',     'Registered Midwife Free Full Access',                       'FREE', 'active', '{GP,RM_PED_OBS_HRN,RM_MID}',             0, 'GHS', 30),
+  ('RPHN_FULL_FREE',   'Registered Public Health Nursing Free Full Access',         'FREE', 'active', '{GP,RPHN_PPHN,RPHN_DISEASE_CTRL}',       0, 'GHS', 30),
+  ('RMHN_FULL_FREE',   'Registered Mental Health Nursing Free Full Access',         'FREE', 'active', '{GP,RMHN_PSYCH_NURS,RMHN_PSYCH_PPHARM}', 0, 'GHS', 30),
+  ('NACNAP_FULL_FREE', 'Nursing Assistant, Preventive/Clinical Free Full Access',   'FREE', 'active', '{GP,NAC_BASIC_CLIN,NAC_BASIC_PREV}',     0, 'GHS', 30);
+
+-- 2026 Premium Prep (240-day, with Telegram)
+INSERT INTO products (product_id, name, kind, status, courses_included, price_minor, currency, duration_days, telegram_group_keys) VALUES
+  ('RN_2026_PREP',     'Registered Nursing 2026 Premium Prep',                     'PAID', 'active', '{GP,RN_MED,RN_SURG}',                    7900, 'GHS', 240, '{PREMIUM_2026,RN_2026}'),
+  ('RM_2026_PREP',     'Registered Midwife 2026 Premium Prep',                     'PAID', 'active', '{GP,RM_PED_OBS_HRN,RM_MID}',             7900, 'GHS', 240, '{PREMIUM_2026,RM_2026}'),
+  ('RPHN_2026_PREP',   'Registered Public Health Nursing 2026 Premium Prep',       'PAID', 'active', '{GP,RPHN_PPHN,RPHN_DISEASE_CTRL}',       7900, 'GHS', 240, '{PREMIUM_2026,RPHN_2026}'),
+  ('RMHN_2026_PREP',   'Registered Mental Health Nursing 2026 Premium Prep',       'PAID', 'active', '{GP,RMHN_PSYCH_NURS,RMHN_PSYCH_PPHARM}', 7900, 'GHS', 240, '{PREMIUM_2026,RMHN_2026}'),
+  ('NACNAP_2026_PREP', 'Nursing Assistant, Preventive/Clinical 2026 Premium Prep', 'PAID', 'active', '{GP,NAC_BASIC_CLIN,NAC_BASIC_PREV}',     7900, 'GHS', 240, '{PREMIUM_2026,NACNAP_2026}');
+
+-- Full Access (365-day)
+INSERT INTO products (product_id, name, kind, status, courses_included, price_minor, currency, duration_days) VALUES
+  ('RN_FULL',     'Registered Nursing Full Access',                     'PAID', 'active', '{GP,RN_MED,RN_SURG}',                    15000, 'GHS', 365),
+  ('RM_FULL',     'Registered Midwife Full Access',                     'PAID', 'active', '{GP,RM_PED_OBS_HRN,RM_MID}',             15000, 'GHS', 365),
+  ('RPHN_FULL',   'Registered Public Health Nursing Full Access',       'PAID', 'active', '{GP,RPHN_PPHN,RPHN_DISEASE_CTRL}',       15000, 'GHS', 365),
+  ('RMHN_FULL',   'Registered Mental Health Nursing Full Access',       'PAID', 'active', '{GP,RMHN_PSYCH_NURS,RMHN_PSYCH_PPHARM}', 15000, 'GHS', 365),
+  ('NACNAP_FULL', 'Nursing Assistant, Preventive/Clinical Full Access', 'PAID', 'active', '{GP,NAC_BASIC_CLIN,NAC_BASIC_PREV}',     15000, 'GHS', 365);
+
+-- Standalone (per-course, 365-day)
+INSERT INTO products (product_id, name, kind, status, courses_included, price_minor, currency, duration_days) VALUES
+  ('GP_ONLY',                'General Paper Standalone Access',                                              'PAID', 'active', '{GP}',                5900, 'GHS', 365),
+  ('RN_MED_ONLY',            'Medicine & Medical Nursing Standalone Access',                                 'PAID', 'active', '{RN_MED}',            5900, 'GHS', 365),
+  ('RN_SURG_ONLY',           'Surgery & Surgical Nursing Standalone Access',                                 'PAID', 'active', '{RN_SURG}',           5900, 'GHS', 365),
+  ('RM_PED_OBS_HRN_ONLY',    'Paediatric, Obstetric Anatomy, & High-Risk Neonates Standalone Access',       'PAID', 'active', '{RM_PED_OBS_HRN}',    5900, 'GHS', 365),
+  ('RM_MID_ONLY',            'Midwifery Standalone Access',                                                  'PAID', 'active', '{RM_MID}',            5900, 'GHS', 365),
+  ('RPHN_PPHN_ONLY',         'Principles of Public Health Nursing Standalone Access',                        'PAID', 'active', '{RPHN_PPHN}',         5900, 'GHS', 365),
+  ('RPHN_DISEASE_CTRL_ONLY', 'Principles of Disease Management & Control Standalone Access',                 'PAID', 'active', '{RPHN_DISEASE_CTRL}', 5900, 'GHS', 365),
+  ('RMHN_PSYCH_NURS_ONLY',   'Principles & Practice of Psychiatric Nursing Standalone Access',               'PAID', 'active', '{RMHN_PSYCH_NURS}',   5900, 'GHS', 365),
+  ('RMHN_PSYCH_PPHARM_ONLY', 'Psychiatry, Psychopathology & Psychopharmacology Standalone Access',           'PAID', 'active', '{RMHN_PSYCH_PPHARM}', 5900, 'GHS', 365),
+  ('NAC_BASIC_CLIN_ONLY',    'Basic Clinical Nursing Standalone Access',                                     'PAID', 'active', '{NAC_BASIC_CLIN}',    5910, 'GHS', 70, '{JKHOILHHPI}'),
+  ('NAC_BASIC_PREV_ONLY',    'Basic Preventive Nursing Standalone Access',                                   'PAID', 'active', '{NAC_BASIC_PREV}',    5900, 'GHS', 365, '{JUKJGHOIU8ILUL}');
+
+-- ── Config ──────────────────────────────────────────────────
+-- NOTE: payments_worker_url needs updating to the prod worker URL
+
+INSERT INTO config (key, value, description) VALUES
+  ('runner_questions_per_page',    '1',  'Number of questions shown per page in both instant and timed runners'),
+  ('runner_autosave_interval_sec', '60', 'How often runners autosave in-progress attempts in seconds'),
+  ('builder_max_questions',        '50', 'Maximum number of questions a student can request in the quiz builder'),
+  ('builder_default_questions',    '40', 'Default max questions allowed by builder.'),
+  ('builder_minutes_per_question', '1',  'Controls minutes per question for builder'),
+  ('offline_max_questions',        '100','Max questions allowed per offline pack'),
+  ('offline_packs_per_course',     '5',  'Max packs per course per subscription period'),
+  ('payments_worker_url',          'PROD_PAYMENTS_WORKER_URL_HERE', 'Deployed Cloudflare Worker base URL for payment routes');
+
+-- ── Teacher Library Courses ─────────────────────────────────
+
+INSERT INTO teacher_library_courses (course_id, title, program_scope, status, sort_order, items_table) VALUES
+  ('GP',                'General Paper',                                        '{ALL}',    'active', 1,  'items_gp'),
+  ('RN_MED',            'Medicine & Medical Nursing',                           '{RN}',     'active', 2,  'items_rn_med'),
+  ('RN_SURG',           'Surgery & Surgical Nursing',                           '{RN}',     'active', 3,  'items_rn_surg'),
+  ('RM_PED_OBS_HRN',    'Paediatric, Obstetric Anatomy & High-Risk Neonates',  '{RM}',     'active', 4,  'items_rm_ped_obs_hrn'),
+  ('RM_MID',            'Midwifery',                                            '{RM}',     'active', 5,  'items_rm_mid'),
+  ('RPHN_PPHN',         'Principles of Public Health Nursing',                  '{RPHN}',   'active', 6,  'items_rphn_pphn'),
+  ('RPHN_DISEASE_CTRL', 'Principles of Disease Management & Control',           '{RPHN}',   'active', 7,  'items_rphn_disease_ctrl'),
+  ('RMHN_PSYCH_NURS',   'Principles & Practice of Psychiatric Nursing',         '{RMHN}',   'active', 8,  'items_rmhn_psych_nurs'),
+  ('RMHN_PSYCH_PPHARM', 'Psychiatry, Psychopathology & Psychopharmacology',     '{RMHN}',   'active', 9,  'items_rmhn_psych_ppharm'),
+  ('NAC_BASIC_CLIN',    'Basic Clinical Nursing',                               '{NACNAP}', 'active', 10, 'items_nac_basic_clin'),
+  ('NAC_BASIC_PREV',    'Basic Preventive Nursing',                             '{NACNAP}', 'active', 11, 'items_nac_basic_prev');
