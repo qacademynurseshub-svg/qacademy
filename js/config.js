@@ -18,16 +18,16 @@ const SUPABASE_ANON_KEY = IS_PROD
 
 // Payments Worker
 const PAYMENTS_API_BASE = IS_PROD
-  ? 'PROD_PAYMENTS_WORKER_URL_HERE'
+  ? 'https://qacademy-prod-payment-workers.qacademy-nurseshub.workers.dev'
   : 'https://qacademy-gamma-payment-workers.mybackpacc.workers.dev';
 
 // Email Worker
 const EMAIL_WORKER_URL = IS_PROD
-  ? 'PROD_EMAIL_WORKER_URL_HERE'
+  ? 'https://qacademy-prod-email-worker.qacademy-nurseshub.workers.dev'
   : 'https://qacademy-email-worker.mybackpacc.workers.dev';
 
 const EMAIL_SECRET = IS_PROD
-  ? 'PROD_EMAIL_SECRET_HERE'
+  ? 'bea84ac50d804cfaa85ef193734258a34b6a430591e24e96a571553a0a17ab2c'
   : 'bea84ac50d804cfaa85ef193734258a34b6a430591e24e96a571553a0a17ab2c';
 
 // Supabase client
