@@ -1,43 +1,48 @@
 # Build List
 
-**Status: 30-day sprint to free trial launch (May 2026)**
+**Status: MVP complete — preparing for free trial launch (May 2026)**
 
 Last updated: April 2026
 
 ---
 
-## 30-Day Launch Sprint (free trial ready)
+## Launch Blockers
 
-### Week 1–2: Emails & Error Handling
-- [x] Set up custom SMTP for emails (using Resend API via Cloudflare Worker)
-- [x] Welcome email on registration (student + teacher approval)
-- [ ] Password reset confirmation email (on hold)
-- [ ] Turn on email confirmation in Supabase Auth (on hold)
-- [x] Fix 14 silent catch blocks in myteacher-api.js
-- [x] Standardise error response shapes across both API files
-- [x] User-facing error states on critical flows (login, quiz submission, join class, payment)
+These must be done before real users touch the platform.
 
-### Week 2–3: Empty States & Polish
-- [ ] Empty state guidance on every page ("No quizzes yet — create your first one")
-- [ ] Consolidate escapeHtml() and safeText() in utils.js
-- [ ] Stats bar on learning-history reflects loaded page only — needs separate count query for true totals
-
-### Week 3–4: Cleanup & Launch Prep
+### Infrastructure
 - [ ] Set up dev/prod split — second Supabase project (prod), prod branch on Cloudflare, separate config per environment. Run all migrations on prod DB.
-- [ ] Revisit session expiry length (currently 7 days)
-- [ ] users.last_login_utc — wire up or drop
-- [ ] users.username — wire up or drop
+- [ ] Set up custom domain on Cloudflare
 - [ ] Remove test accounts (MANUAL_TEST rows)
 - [ ] Review and clean up question bank content
-- [ ] README and CLONING files need updating to reflect current folder structure and My Teacher naming
-- [ ] Set up custom domain on Cloudflare
-- [ ] Turn on Supabase email confirmation — requires "check your inbox" screen after register, unconfirmed email error state on login.html, and resend confirmation button. Must be done before real users.
+
+### Email Confirmation (on hold — required before real users)
+- [ ] Turn on email confirmation in Supabase Auth
+- [ ] "Check your inbox" screen after registration
+- [ ] Unconfirmed email error state on login.html
+- [ ] Resend confirmation button
+- [ ] Password reset confirmation email (custom branded via email worker)
 
 ---
 
-## After Trial: Server-Side & Business Logic
+## Post-Launch Polish
 
-These are important but shouldn't block the free trial. Real user feedback will help prioritise.
+Important but won't block the free trial. Real user feedback will help prioritise.
+
+### Empty States & UI Polish
+- [ ] Empty state guidance on every page ("No quizzes yet — create your first one")
+- [ ] Skeleton loaders replacing "Loading..." text
+- [ ] Stats bar on learning-history reflects loaded page only — needs separate count query for true totals
+
+### Code Cleanup
+- [ ] Consolidate escapeHtml() and safeText() in utils.js
+- [ ] Revisit session expiry length (currently 7 days)
+- [ ] users.last_login_utc — wire up or drop
+- [ ] users.username — wire up or drop
+- [ ] README and CLONING files need updating to reflect current folder structure and My Teacher naming
+
+### Product Separation
+- [ ] Gradually stop sharing things between myteacher & mynmclicensure so they can become separate products
 
 ### Move Business Logic Server-Side
 - [ ] Look into new stack that offers proper backend — almost all business logic lives in the browser
@@ -46,21 +51,16 @@ These are important but shouldn't block the free trial. Real user feedback will 
 - [ ] Correlation IDs on key flows (payment, join, publish, submission)
 - [ ] Explore moving config from the front end
 
-### Product Separation
-- [x] Move mynmclicensure-only pages (register, subscribe, payment-confirmation, premium-prep) from root into /mynmclicensure/
-- [ ] Gradually stop sharing things between myteacher & mynmclicensure so they can become separate products
-
 ### Admin Tools
 - [ ] Admin create user
 - [ ] Admin token audit / sessions audit / auth events audit
 - [ ] Admin reset request audit (data already in reset_requests table)
-- [ ] Admin Expiry reminder / auto expiry reminder
+- [ ] Admin expiry reminder / auto expiry reminder
 - [ ] Admin diagnostics — failed payments view, failed ops log
 - [ ] Admin Users page Stage 2 — Quiz History and Payment History panels in user side panel
 
 ### Features & Enhancements
 - [ ] Telegram for premium members
-- [ ] Skeleton loaders replacing "Loading..." text
 - [ ] Export/print — CSV for teachers, PDF results for students
 - [ ] Search — courses, questions, messages
 - [ ] Notifications — quiz published, results released, join approved
@@ -70,6 +70,9 @@ These are important but shouldn't block the free trial. Real user feedback will 
 - [ ] teacher_ref column on teacher_bank_items
 - [ ] Sequential runner mode
 - [ ] My Teacher payment model — define tiers when platform has real users
+- [ ] Introduce a teacher public question bank for sharing of resources
+- [ ] Introduce tagging system into question bank
+- [ ] Introduce MyTeacher exams listing timeline
 
 ### Testing
 - [ ] Playwright smoke tests for 8 critical paths
@@ -80,12 +83,6 @@ These are important but shouldn't block the free trial. Real user feedback will 
 - [ ] Beta v2 rebuild in React + Next.js — planned, not started
 - [ ] Rotate Supabase anon key if ever committed publicly
 - [ ] BIMI record — shows QAcademy logo next to sender name in Gmail inbox. Requires DMARC setup + Verified Mark Certificate (~$1,000/year). Revisit post-revenue.
-
-    ### Sam's new ideas
-- [ ] Introduce a teacher public question bank for sharing of resources
-- [ ] Introcues tagging system into questions bank
-- [ ] Introduces myteacher kinda exams listing timeline
-
 
 ---
 
@@ -112,3 +109,11 @@ Pagination on all admin and student list pages (users, payments, fixed-quizzes, 
 - Quizzes wired to courses: course dropdown replaces subject free-text, backward compat for old quizzes with subject hint
 - Key decision: courses link through quizzes only (not classes). A class = cohort + semester (student group). A quiz = course (subject identity)
 - Schema: cohort_id on teacher_classes, course_id on teacher_quizzes. Both nullable for backward compat. 39 tables total
+
+### Sprint 4: Emails & Error Hardening (April 2026)
+- Email worker via Cloudflare Worker + Resend API (welcome student, welcome teacher, class join approved, subscription assigned/revoked, payment setup required)
+- Shared injectable email footer across all templates
+- Fixed 14 silent catch blocks in myteacher-api.js
+- Standardised error response shapes in mynmclicensure-api.js (ok→success, error→code, added missing messages)
+- User-facing error states verified on all 4 critical flows (login, quiz submission, join class, payment)
+- Moved 4 mynmclicensure-only pages (register, subscribe, payment-confirmation, premium-prep) from root into /mynmclicensure/
