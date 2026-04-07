@@ -202,7 +202,7 @@
         const existingSessionId = localStorage.getItem('qa_session_id');
         if (existingSessionId) {
           console.log('[auth] existing session found, redirecting');
-          await redirectByRole(session.user.id);
+          redirectByRole();
           return;
         }
       }
@@ -245,7 +245,7 @@
       const sessionId = await createLoginSession(userRow.user_id, loginVia);
       console.log('[auth] session created:', sessionId || 'FAILED');
 
-      await redirectByRole(session.user.id);
+      redirectByRole();
 
     } catch (err) {
       console.error('[auth] onAuthStateChange error:', err);
@@ -344,31 +344,54 @@
       return;
     }
 
-    // ── Session control (now uses shared function) ────────────
-    const { data: userRow } = await db
-      .from('users')
-      .select('user_id')
-      .eq('auth_id', data.user.id)
-      .maybeSingle();
+    // ── Post-login: session + redirect (wrapped in try/catch) ──
+    try {
+      // Look up the users row. If the token hasn't propagated to
+      // PostgREST yet, the RLS check fails and we get null.
+      // Retry once after a short delay to cover that race.
+      let userRow = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { data: row } = await db
+          .from('users')
+          .select('user_id')
+          .eq('auth_id', data.user.id)
+          .maybeSingle();
+        if (row) { userRow = row; break; }
+        if (attempt === 0) await new Promise(r => setTimeout(r, 500));
+      }
 
-    // Log successful login (fire-and-forget)
-    db.rpc('log_auth_event', {
-      p_event_id:     makeEventId(),
-      p_event_type:   'LOGIN_SUCCESS',
-      p_identifier:   identifier,
-      p_user_id:      userRow ? userRow.user_id : null,
-      p_fp_hash:      fpHash,
-      p_ua_hash:      uaHash,
-      p_device_label: deviceLabel
-    }).then(() => {}).catch(() => {});
+      // Log successful login (fire-and-forget)
+      db.rpc('log_auth_event', {
+        p_event_id:     makeEventId(),
+        p_event_type:   'LOGIN_SUCCESS',
+        p_identifier:   identifier,
+        p_user_id:      userRow ? userRow.user_id : null,
+        p_fp_hash:      fpHash,
+        p_ua_hash:      uaHash,
+        p_device_label: deviceLabel
+      }).then(() => {}).catch(() => {});
 
-    if (userRow) {
+      if (!userRow) {
+        await db.auth.signOut();
+        emailLoginInProgress = false;
+        errorAlert.textContent = 'No account found for this email. Please register first.';
+        errorAlert.classList.add('show');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+        return;
+      }
+
       await createLoginSession(userRow.user_id, 'EMAIL');
-    }
-    // ── End session control ─────────────────────────────────────
+      window.location.href = '/router.html';
 
-    // Redirect based on role
-    await redirectByRole(data.user.id);
+    } catch (err) {
+      console.error('[login] post-login error:', err);
+      emailLoginInProgress = false;
+      errorAlert.textContent = 'Something went wrong during sign-in. Please try again.';
+      errorAlert.classList.add('show');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign In';
+    }
   });
 
   // ── Google Sign-In ──────────────────────────────────────────
@@ -430,28 +453,10 @@
     magicBtn.textContent = 'Send magic link';
   });
 
-  // Redirect user to their correct dashboard based on role
-async function redirectByRole(authId) {
-  const { data: profile } = await db
-    .from('users')
-    .select('role, must_change_password')
-    .eq('auth_id', authId)
-    .single();
-
-  if (!profile) {
+  // Redirect user to the router (central routing page)
+  function redirectByRole() {
     window.location.href = '/router.html';
-    return;
   }
-
-  // Check if password change is required
-  if (profile.must_change_password) {
-    window.location.href = '/change-password.html';
-    return;
-  }
-
-  // All roles go to Router — Router handles the rest
-  window.location.href = '/router.html';
-}
 </script>
 
 </body>
