@@ -9,12 +9,12 @@ Last updated: April 2026
 ## 30-Day Launch Sprint (free trial ready)
 
 ### Week 1–2: Emails & Error Handling
-- [ ] Set up custom SMTP for emails
-- [ ] Welcome email on registration
-- [ ] Password reset confirmation email
-- [ ] Turn on email confirmation in Supabase Auth
+- [x] Set up custom SMTP for emails (using Resend API via Cloudflare Worker)
+- [x] Welcome email on registration (student + teacher approval)
+- [ ] Password reset confirmation email (on hold)
+- [ ] Turn on email confirmation in Supabase Auth (on hold)
 - [x] Fix 14 silent catch blocks in myteacher-api.js
-- [ ] Standardise error response shapes across both API files
+- [x] Standardise error response shapes across both API files
 - [ ] User-facing error states on critical flows (login, quiz submission, join class, payment)
 
 ### Week 2–3: Empty States & Polish
@@ -47,6 +47,7 @@ These are important but shouldn't block the free trial. Real user feedback will 
 - [ ] Explore moving config from the front end
 
 ### Product Separation
+- [x] Move mynmclicensure-only pages (register, subscribe, payment-confirmation, premium-prep) from root into /mynmclicensure/
 - [ ] Gradually stop sharing things between myteacher & mynmclicensure so they can become separate products
 
 ### Admin Tools
