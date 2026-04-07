@@ -513,7 +513,7 @@ async function activateUser(userId) {
 // Send password reset email via Supabase Auth
 async function sendPasswordReset(email) {
   const { error } = await db.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://qacademy-gamma.pages.dev/reset-password.html'
+    redirectTo: window.location.origin + '/reset-password.html'
   });
 
   if (error) { console.error('sendPasswordReset:', error); return { success: false, message: error.message }; }

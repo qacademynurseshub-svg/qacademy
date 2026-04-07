@@ -377,11 +377,9 @@
     </div>
   </div>
 
+  <script src="/js/config.js"></script>
   <script>
-    /************************************************************
-     * Replace with your deployed Worker base URL.
-     ************************************************************/
-    const PAYMENTS_WORKER_URL = 'https://qacademy-gamma-payment-workers.mybackpacc.workers.dev';
+    // PAYMENTS_API_BASE is provided by /js/config.js
 
     /************************************************************
      * Support config.
@@ -628,12 +626,12 @@
 
       clearMessages();
 
-      const workerBase = String(PAYMENTS_WORKER_URL || '').trim().replace(/\/+$/, '');
+      const workerBase = String(PAYMENTS_API_BASE || '').trim().replace(/\/+$/, '');
       currentReference = getReference();
       els.refTxt.textContent = currentReference || '—';
 
       if (!workerBase || workerBase.includes('PASTE_YOUR_DEPLOYED_WORKER_BASE_URL_HERE')) {
-        renderError('PAYMENTS_WORKER_URL has not been set yet in payment-confirmation.html.', 'CONFIG');
+        renderError('PAYMENTS_API_BASE has not been set yet in payment-confirmation.html.', 'CONFIG');
         return;
       }
 
@@ -711,7 +709,7 @@
     async function runSetupComplete() {
       clearMessages();
 
-      const workerBase = String(PAYMENTS_WORKER_URL || '').trim().replace(/\/+$/, '');
+      const workerBase = String(PAYMENTS_API_BASE || '').trim().replace(/\/+$/, '');
       const forename = els.forename.value.trim();
       const surname = els.surname.value.trim();
       const password = els.password.value;
@@ -748,7 +746,7 @@
       }
 
       if (!workerBase || workerBase.includes('PASTE_YOUR_DEPLOYED_WORKER_BASE_URL_HERE')) {
-        showStatus(els.setupErrBox, 'error', 'PAYMENTS_WORKER_URL has not been set yet in payment-confirmation.html.');
+        showStatus(els.setupErrBox, 'error', 'PAYMENTS_API_BASE has not been set yet in payment-confirmation.html.');
         return;
       }
 

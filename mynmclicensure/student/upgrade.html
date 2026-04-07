@@ -363,12 +363,8 @@
 
   <script>
     /************************************************************
-     * IMPORTANT:
-     * Replace this with your deployed Worker base URL.
-     * Example:
-     *   https://your-worker-name.your-subdomain.workers.dev
+     * PAYMENTS_API_BASE is provided by /js/config.js
      ************************************************************/
-    const PAYMENTS_WORKER_URL = 'https://qacademy-gamma-payment-workers.mybackpacc.workers.dev';
 
     const els = {
       userPill: document.getElementById('userPill'),
@@ -614,10 +610,10 @@
         return;
       }
 
-      const baseUrl = String(PAYMENTS_WORKER_URL || '').trim().replace(/\/+$/, '');
+      const baseUrl = String(PAYMENTS_API_BASE || '').trim().replace(/\/+$/, '');
 
       if (!baseUrl || baseUrl.includes('PASTE_YOUR_DEPLOYED_WORKER_BASE_URL_HERE')) {
-        showStatus('error', 'PAYMENTS_WORKER_URL has not been set yet in this page.');
+        showStatus('error', 'PAYMENTS_API_BASE has not been set yet in this page.');
         return;
       }
 

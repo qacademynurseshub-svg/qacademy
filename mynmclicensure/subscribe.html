@@ -392,12 +392,7 @@
   <script src="/js/mynmclicensure-api.js"></script>
 
   <script>
-    /************************************************************
-     * Replace with your deployed Worker base URL.
-     * Example:
-     *   https://qacademy-payments.your-subdomain.workers.dev
-     ************************************************************/
-    const PAYMENTS_WORKER_URL = 'https://qacademy-gamma-payment-workers.mybackpacc.workers.dev';
+    // PAYMENTS_API_BASE is provided by /js/config.js
 
     const els = {
       signedInBox: document.getElementById('signedInBox'),
@@ -567,14 +562,14 @@
     async function startPayment() {
       clearBanner();
 
-      const workerBase = String(PAYMENTS_WORKER_URL || '').trim().replace(/\/+$/, '');
+      const workerBase = String(PAYMENTS_API_BASE || '').trim().replace(/\/+$/, '');
       const email = els.email.value.trim().toLowerCase();
       const phone = els.phone.value.trim();
       const programId = els.program.value.trim();
       const productId = els.product.value.trim();
 
       if (!workerBase || workerBase.includes('PASTE_YOUR_DEPLOYED_WORKER_BASE_URL_HERE')) {
-        showBanner('error', 'PAYMENTS_WORKER_URL has not been set yet in subscribe.html.');
+        showBanner('error', 'PAYMENTS_API_BASE has not been set yet in subscribe.html.');
         return;
       }
 
