@@ -142,6 +142,7 @@
   // onAuthStateChange fires when Supabase finishes processing
   // OAuth/magic-link tokens from the URL hash.
   let authHandled = false;
+  let emailLoginInProgress = false;
 
   db.auth.onAuthStateChange(async (event, session) => {
     console.log('[auth] onAuthStateChange:', event, session ? 'has session' : 'no session');
@@ -149,6 +150,9 @@
     // Only process once, and only when we have a session
     if (authHandled) return;
     if (!session) return;
+
+    // Skip if email+password login is handling its own flow
+    if (emailLoginInProgress) return;
 
     authHandled = true;
 
@@ -266,6 +270,9 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'Signing in...';
 
+    // Prevent onAuthStateChange from racing with this handler
+    emailLoginInProgress = true;
+
     // ── Prepare device info for logging ─────────────────────────
     const identifier = email.toLowerCase();
     const ua = navigator.userAgent || '';
@@ -297,6 +304,7 @@
           p_fail_reason:  'RATE_LIMITED'
         }).then(() => {}).catch(() => {});
 
+        emailLoginInProgress = false;
         const mins = Math.ceil((rl.retry_after_seconds || 60) / 60);
         errorAlert.textContent = 'Too many failed login attempts. Please try again in ' + mins + ' minute' + (mins === 1 ? '' : 's') + '.';
         errorAlert.classList.add('show');
@@ -328,6 +336,7 @@
         p_fail_reason:  'INVALID_CREDENTIALS'
       }).then(() => {}).catch(() => {});
 
+      emailLoginInProgress = false;
       errorAlert.textContent = 'Invalid email or password. Please try again.';
       errorAlert.classList.add('show');
       submitBtn.disabled = false;
