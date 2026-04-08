@@ -27,7 +27,7 @@ const EMAIL_WORKER_URL = IS_PROD
   : 'https://qacademy-email-worker.mybackpacc.workers.dev';
 
 const EMAIL_SECRET = IS_PROD
-  ? 'bea84ac50d804cfaa85ef193734258a34b6a430591e24e96a571553a0a17ab2c'
+  ? '4b6a430591e24e96a571553a0a17ab2cbea84ac50d804cfaa85ef193734258a3'
   : 'bea84ac50d804cfaa85ef193734258a34b6a430591e24e96a571553a0a17ab2c';
 
 // Supabase client
